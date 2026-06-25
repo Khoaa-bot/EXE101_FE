@@ -50,7 +50,9 @@ export default function AppSidebar({
       <div
         onClick={onClose}
         className={`fixed inset-0 z-[60] bg-black/50 transition-opacity duration-300 ${
-          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          isOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
         }`}
       />
 
@@ -118,7 +120,8 @@ export default function AppSidebar({
               <span
                 className="material-symbols-outlined"
                 style={{
-                  fontVariationSettings: active === "profile" ? "'FILL' 1" : "'FILL' 0",
+                  fontVariationSettings:
+                    active === "profile" ? "'FILL' 1" : "'FILL' 0",
                 }}
               >
                 person

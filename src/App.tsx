@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import AppShell from "./components/AppShell";
 import AddVehiclePage from "./pages/AddVehiclePage";
 import BookingPage from "./pages/BookingPage";
 import HistoryPage from "./pages/HistoryPage";
@@ -90,75 +91,111 @@ function App() {
     );
   }
 
+  const shellProps = {
+    onHomeClick: () => navigate("/home"),
+    onHistoryClick: () => navigate("/history"),
+    onNotificationsClick: () => navigate("/notifications"),
+    onProfileClick: () => navigate("/profile"),
+    onTrackingClick: () => navigate("/tracking"),
+    onLogout: () => {
+      setIsAuthenticated(false);
+      navigate("/login", true);
+    },
+  };
+
   if (routePath === "/history") {
     return (
-      <HistoryPage
-        onHomeClick={() => navigate("/home")}
-        onNotificationsClick={() => navigate("/notifications")}
-        onTrackingClick={() => navigate("/tracking")}
-        onProfileClick={() => navigate("/profile")}
-      />
+      <AppShell active="history" title="Lịch sử dịch vụ" {...shellProps}>
+        <HistoryPage
+          onHomeClick={shellProps.onHomeClick}
+          onNotificationsClick={shellProps.onNotificationsClick}
+          onTrackingClick={shellProps.onTrackingClick}
+          onProfileClick={shellProps.onProfileClick}
+        />
+      </AppShell>
     );
   }
 
   if (routePath === "/notifications") {
     return (
-      <NotificationsPage
-        onHomeClick={() => navigate("/home")}
-        onHistoryClick={() => navigate("/history")}
-        onTrackingClick={() => navigate("/tracking")}
-        onProfileClick={() => navigate("/profile")}
-      />
+      <AppShell active="notifications" title="Thông báo" {...shellProps}>
+        <NotificationsPage
+          onHomeClick={shellProps.onHomeClick}
+          onHistoryClick={shellProps.onHistoryClick}
+          onTrackingClick={shellProps.onTrackingClick}
+          onProfileClick={shellProps.onProfileClick}
+        />
+      </AppShell>
     );
   }
 
   if (routePath === "/tracking") {
     return (
-      <TrackingPage
-        onHomeClick={() => navigate("/home")}
-        onHistoryClick={() => navigate("/history")}
-        onNotificationsClick={() => navigate("/notifications")}
-        onProfileClick={() => navigate("/profile")}
-      />
+      <AppShell active="tracking" title="Theo dõi phương tiện" {...shellProps}>
+        <TrackingPage
+          onHomeClick={shellProps.onHomeClick}
+          onHistoryClick={shellProps.onHistoryClick}
+          onNotificationsClick={shellProps.onNotificationsClick}
+          onProfileClick={shellProps.onProfileClick}
+        />
+      </AppShell>
     );
   }
 
   if (routePath === "/profile") {
     return (
-      <ProfilePage
-        onHomeClick={() => navigate("/home")}
-        onAddVehicleClick={() => navigate("/add-vehicle")}
-        onHistoryClick={() => navigate("/history")}
-        onTrackingClick={() => navigate("/tracking")}
-        onNotificationsClick={() => navigate("/notifications")}
-      />
+      <AppShell
+        active="profile"
+        title="Cá nhân"
+        {...shellProps}
+      >
+        <ProfilePage
+          onHomeClick={shellProps.onHomeClick}
+          onAddVehicleClick={() => navigate("/add-vehicle")}
+          onHistoryClick={shellProps.onHistoryClick}
+          onTrackingClick={shellProps.onTrackingClick}
+          onNotificationsClick={shellProps.onNotificationsClick}
+        />
+      </AppShell>
     );
   }
 
   if (routePath === "/add-vehicle") {
-    return <AddVehiclePage onBackClick={() => navigate("/profile")} />;
+    return (
+      <AppShell active="profile" title="Thêm phương tiện mới" {...shellProps}>
+        <AddVehiclePage onBackClick={() => navigate("/profile")} />
+      </AppShell>
+    );
   }
 
   if (routePath === "/booking") {
     return (
-      <BookingPage
-        onHomeClick={() => navigate("/home")}
-        onHistoryClick={() => navigate("/history")}
-        onNotificationsClick={() => navigate("/notifications")}
-        onTrackingClick={() => navigate("/tracking")}
-        onProfileClick={() => navigate("/profile")}
-      />
+      <AppShell active="home" title="Đặt lịch dịch vụ" {...shellProps}>
+        <BookingPage
+          onHomeClick={shellProps.onHomeClick}
+          onHistoryClick={shellProps.onHistoryClick}
+          onNotificationsClick={shellProps.onNotificationsClick}
+          onTrackingClick={shellProps.onTrackingClick}
+          onProfileClick={shellProps.onProfileClick}
+        />
+      </AppShell>
     );
   }
 
   return (
-    <Home
-      onBookingClick={() => navigate("/booking")}
-      onHistoryClick={() => navigate("/history")}
-      onNotificationsClick={() => navigate("/notifications")}
-      onTrackingClick={() => navigate("/tracking")}
-      onProfileClick={() => navigate("/profile")}
-    />
+    <AppShell
+      active="home"
+      title="Tổng quan"
+      {...shellProps}
+    >
+      <Home
+        onBookingClick={() => navigate("/booking")}
+        onHistoryClick={shellProps.onHistoryClick}
+        onNotificationsClick={shellProps.onNotificationsClick}
+        onTrackingClick={shellProps.onTrackingClick}
+        onProfileClick={shellProps.onProfileClick}
+      />
+    </AppShell>
   );
 }
 
