@@ -10,6 +10,7 @@ export type AppShellProps = {
   onNotificationsClick: () => void;
   onProfileClick: () => void;
   onTrackingClick: () => void;
+  onFindGarageClick?: () => void;
   onBookingClick?: () => void;
   onAddVehicleClick?: () => void;
   onLogout?: () => void;
@@ -23,6 +24,7 @@ const navItems: Array<{
   hasNotification?: boolean;
 }> = [
   { label: "Trang chủ", icon: "home", section: "home" },
+  { label: "Tìm garage", icon: "storefront", section: "find_garage" },
   { label: "Lịch sử", icon: "history", section: "history" },
   { label: "Theo dõi", icon: "location_on", section: "tracking" },
   {
@@ -43,6 +45,7 @@ export default function AppShell({
   onNotificationsClick,
   onProfileClick,
   onTrackingClick,
+  onFindGarageClick,
   onBookingClick,
   onAddVehicleClick,
   onLogout,
@@ -50,9 +53,19 @@ export default function AppShell({
 }: AppShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+
+  const handleToggleSidebar = () => {
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setIsSidebarOpen(true);
+    } else {
+      setIsDesktopSidebarOpen(!isDesktopSidebarOpen);
+    }
+  };
 
   const handleNavigate = (section: AppSection) => {
     if (section === "home") onHomeClick();
+    if (section === "find_garage") onFindGarageClick?.();
     if (section === "history") onHistoryClick();
     if (section === "notifications") onNotificationsClick();
     if (section === "tracking") onTrackingClick();
@@ -68,8 +81,12 @@ export default function AppShell({
         onNavigate={handleNavigate}
       />
 
-      <aside className="fixed left-0 top-0 z-50 hidden h-full w-60 flex-col border-r border-outline-variant bg-surface-container-lowest md:flex">
-        <div className="px-lg py-xl">
+      <aside
+        className={`fixed left-0 top-0 z-50 h-full flex-col border-r border-outline-variant bg-surface-container-lowest transition-all duration-300 overflow-hidden hidden md:flex ${
+          isDesktopSidebarOpen ? "w-60" : "w-0 -translate-x-full border-r-0"
+        }`}
+      >
+        <div className="px-lg py-xl shrink-0">
           <div className="flex items-center gap-sm">
             <span className="material-symbols-outlined text-headline-lg text-primary">
               electric_car
@@ -151,14 +168,18 @@ export default function AppShell({
         </div>
       </aside>
 
-      <main className="min-h-screen bg-surface md:ml-60">
+      <main
+        className={`min-h-screen bg-surface transition-all duration-300 ${
+          isDesktopSidebarOpen ? "md:ml-60" : "md:ml-0"
+        }`}
+      >
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-outline-variant bg-surface px-margin-mobile md:px-xl">
           <div className="flex items-center gap-3">
             <button
-              className="-ml-2 rounded-full p-2 text-on-surface-variant transition-colors active:bg-surface-container md:hidden"
+              className="-ml-2 rounded-full p-2 text-on-surface-variant transition-colors active:bg-surface-container"
               type="button"
               aria-label="Mở menu"
-              onClick={() => setIsSidebarOpen(true)}
+              onClick={handleToggleSidebar}
             >
               <span className="material-symbols-outlined text-[28px]">menu</span>
             </button>

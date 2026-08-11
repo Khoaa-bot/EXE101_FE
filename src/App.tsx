@@ -9,6 +9,8 @@ import NotificationsPage from "./pages/NotificationsPage";
 import ProfilePage from "./pages/ProfilePage";
 import RegisterPage from "./pages/RegisterPage";
 import TrackingPage from "./pages/TrackingPage";
+import FindGaragePage from "./pages/FindGaragePage";
+import GarageDetailPage from "./pages/GarageDetailPage";
 
 const normalizePath = (path: string) => {
   const normalized = path.replace(/\/+$/, "");
@@ -23,6 +25,8 @@ const appRoutes = new Set([
   "/profile",
   "/add-vehicle",
   "/booking",
+  "/find-garage",
+  "/garage-detail",
 ]);
 
 const publicRoutes = new Set(["/", "/login", "/register"]);
@@ -93,6 +97,7 @@ function App() {
 
   const shellProps = {
     onHomeClick: () => navigate("/home"),
+    onFindGarageClick: () => navigate("/find-garage"),
     onHistoryClick: () => navigate("/history"),
     onNotificationsClick: () => navigate("/notifications"),
     onProfileClick: () => navigate("/profile"),
@@ -177,6 +182,25 @@ function App() {
           onNotificationsClick={shellProps.onNotificationsClick}
           onTrackingClick={shellProps.onTrackingClick}
           onProfileClick={shellProps.onProfileClick}
+        />
+      </AppShell>
+    );
+  }
+
+  if (routePath === "/find-garage") {
+    return (
+      <AppShell active="find_garage" title="Tìm garage" {...shellProps}>
+        <FindGaragePage onBookingClick={() => navigate("/garage-detail")} />
+      </AppShell>
+    );
+  }
+
+  if (routePath === "/garage-detail") {
+    return (
+      <AppShell active="find_garage" title="Chi tiết garage" {...shellProps}>
+        <GarageDetailPage
+          onBackClick={() => navigate("/find-garage")}
+          onBookingClick={() => navigate("/booking")}
         />
       </AppShell>
     );

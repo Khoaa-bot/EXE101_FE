@@ -5,7 +5,8 @@ export type AppSection =
   | "history"
   | "tracking"
   | "notifications"
-  | "profile";
+  | "profile"
+  | "find_garage";
 
 type AppSidebarProps = {
   active: AppSection;
@@ -21,6 +22,7 @@ const navItems: Array<{
   hasNotification?: boolean;
 }> = [
   { label: "Trang chủ", icon: "home", section: "home" },
+  { label: "Tìm garage", icon: "storefront", section: "find_garage" },
   { label: "Lịch sử", icon: "history", section: "history" },
   { label: "Theo dõi", icon: "location_on", section: "tracking" },
   {
