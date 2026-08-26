@@ -44,7 +44,9 @@ const getRoutePath = (isAuthenticated: boolean, pathname: string) => {
 };
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => Boolean(localStorage.getItem("auth_session")),
+  );
   const [pathname, setPathname] = useState(() =>
     normalizePath(window.location.pathname),
   );
@@ -103,6 +105,7 @@ function App() {
     onProfileClick: () => navigate("/profile"),
     onTrackingClick: () => navigate("/tracking"),
     onLogout: () => {
+      localStorage.removeItem("auth_session");
       setIsAuthenticated(false);
       navigate("/login", true);
     },

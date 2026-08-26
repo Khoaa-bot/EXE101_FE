@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { login } from "../services/api";
 
 type LoginPageProps = {
   onLogin: () => void;
@@ -10,10 +11,31 @@ export default function LoginPage({
   onRegisterClick,
 }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onLogin();
+    if (isSubmitting) return;
+
+    const formData = new FormData(event.currentTarget);
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      const session = await login({
+        username: String(formData.get("username") || "").trim(),
+        password: String(formData.get("password") || ""),
+      });
+      localStorage.setItem("auth_session", JSON.stringify(session));
+      onLogin();
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error ? requestError.message : "Đăng nhập không thành công.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -59,7 +81,7 @@ export default function LoginPage({
                 className="ml-1 font-label-md text-label-md text-on-surface-variant"
                 htmlFor="login-account"
               >
-                Số điện thoại hoặc Email
+                Tên đăng nhập
               </label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-xl text-outline">
@@ -68,9 +90,11 @@ export default function LoginPage({
                 <input
                   className="w-full rounded-lg border border-outline-variant bg-surface-container-low py-3 pl-12 pr-4 font-body-md text-body-md text-on-surface placeholder:text-outline transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   id="login-account"
-                  placeholder="name@email.com"
+                  name="username"
+                  placeholder="Nhập tên đăng nhập"
                   type="text"
                   autoComplete="username"
+                  required
                 />
               </div>
             </div>
@@ -89,9 +113,11 @@ export default function LoginPage({
                 <input
                   className="w-full rounded-lg border border-outline-variant bg-surface-container-low py-3 pl-12 pr-12 font-body-md text-body-md text-on-surface placeholder:text-outline transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   id="login-password"
+                  name="password"
                   placeholder="••••••••"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
+                  required
                 />
                 <button
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-outline transition-colors hover:text-primary"
@@ -115,11 +141,18 @@ export default function LoginPage({
               </a>
             </div>
 
+            {error && (
+              <p className="rounded-lg bg-error-container px-3 py-2 font-body-sm text-body-sm text-on-error-container" role="alert">
+                {error}
+              </p>
+            )}
+
             <button
-              className="w-full rounded-lg bg-primary py-4 font-headline-md text-headline-md text-on-primary shadow-md transition-all hover:bg-surface-tint active:scale-[0.98]"
+              className="w-full rounded-lg bg-primary py-4 font-headline-md text-headline-md text-on-primary shadow-md transition-all hover:bg-surface-tint active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
               type="submit"
+              disabled={isSubmitting}
             >
-              ĐĂNG NHẬP
+              {isSubmitting ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP"}
             </button>
           </form>
 

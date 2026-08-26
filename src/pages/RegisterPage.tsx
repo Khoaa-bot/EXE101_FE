@@ -1,26 +1,43 @@
 import { useState } from "react";
+import { register } from "../services/api";
 
 type RegisterPageProps = {
   onBackToLogin: () => void;
 };
 
-type SubmitState = "idle" | "loading" | "success";
+type SubmitState = "idle" | "loading" | "success" | "error";
 
 export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
+  const [error, setError] = useState("");
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (submitState !== "idle") {
       return;
     }
 
+    const formData = new FormData(event.currentTarget);
+    setError("");
     setSubmitState("loading");
-    window.setTimeout(() => {
+
+    try {
+      await register({
+        username: String(formData.get("username") || "").trim(),
+        password: String(formData.get("password") || ""),
+        phone: String(formData.get("phone") || "").trim(),
+        email: String(formData.get("email") || "").trim(),
+        dob: String(formData.get("dob") || ""),
+      });
       setSubmitState("success");
-    }, 1500);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error ? requestError.message : "Đăng ký không thành công.",
+      );
+      setSubmitState("error");
+    }
   };
 
   return (
@@ -82,9 +99,9 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
                 <div className="space-y-xs">
               <label
                 className="ml-1 block font-label-md text-label-md text-on-surface-variant"
-                htmlFor="full_name"
+                htmlFor="username"
               >
-                Họ và tên
+                Tên đăng nhập
               </label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-lg text-outline">
@@ -92,13 +109,28 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
                 </span>
                 <input
                   className="w-full rounded-lg border border-outline-variant bg-surface py-3 pl-10 pr-4 font-body-md text-body-md text-on-surface outline-none transition-all placeholder:text-outline focus:border-transparent focus:ring-2 focus:ring-primary"
-                  id="full_name"
-                  name="full_name"
-                  placeholder="Nguyễn Văn A"
+                  id="username"
+                  name="username"
+                  placeholder="Nhập tên đăng nhập"
                   type="text"
                   autoComplete="name"
+                  required
                 />
               </div>
+            </div>
+
+            <div className="space-y-xs">
+              <label className="ml-1 block font-label-md text-label-md text-on-surface-variant" htmlFor="dob">
+                Ngày sinh
+              </label>
+              <input
+                className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 font-body-md text-body-md text-on-surface outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-primary"
+                id="dob"
+                name="dob"
+                type="date"
+                autoComplete="bday"
+                required
+              />
             </div>
 
             <div className="space-y-xs">
@@ -119,6 +151,7 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
                   placeholder="0901 234 567"
                   type="tel"
                   autoComplete="tel"
+                  required
                 />
               </div>
             </div>
@@ -141,6 +174,7 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
                   placeholder="example@servio.vn"
                   type="email"
                   autoComplete="email"
+                  required
                 />
               </div>
             </div>
@@ -163,6 +197,7 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
                   placeholder="••••••••"
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
+                  required
                 />
                 <button
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-outline transition-colors hover:text-on-surface"
@@ -176,6 +211,12 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
                 </button>
               </div>
             </div>
+
+            {error && (
+              <p className="rounded-lg bg-error-container px-3 py-2 font-body-sm text-body-sm text-on-error-container" role="alert">
+                {error}
+              </p>
+            )}
 
             <div className="flex items-start gap-3 px-1">
               <div className="flex h-5 items-center">
@@ -207,7 +248,7 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
                 submitState === "success" ? "bg-tertiary" : "bg-primary"
               }`}
               type="submit"
-              disabled={submitState !== "idle"}
+              disabled={submitState === "loading" || submitState === "success"}
             >
               {submitState === "loading" && (
                 <>

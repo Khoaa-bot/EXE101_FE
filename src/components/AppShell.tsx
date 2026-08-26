@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import AppSidebar, { type AppSection } from "./AppSidebar";
+import { getStoredAuthSession } from "../services/api";
 
 export type AppShellProps = {
   active: AppSection;
@@ -51,6 +52,8 @@ export default function AppShell({
   onLogout,
   contentClassName = "app-shell-content",
 }: AppShellProps) {
+  const username = getStoredAuthSession()?.username || "Tài khoản";
+  const avatarInitial = username.charAt(0).toUpperCase();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
@@ -140,11 +143,11 @@ export default function AppShell({
             onClick={() => setIsAccountMenuOpen((current) => !current)}
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
-              M
+              {avatarInitial}
             </div>
             <div className="min-w-0 flex-1 overflow-hidden">
               <p className="truncate font-label-md text-label-md text-on-surface">
-                Minh Nguyễn
+                {username}
               </p>
               <p className="text-[10px] text-outline">Thành viên Vàng</p>
             </div>
