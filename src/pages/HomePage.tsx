@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AppSidebar, { type AppSection } from "../components/AppSidebar";
+import { getStoredAuthSession } from "../services/api";
 
 type QuickAction = {
   label: string;
@@ -58,6 +59,8 @@ export default function Home({
   onTrackingClick,
 }: HomeProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const username = getStoredAuthSession()?.username || "bạn";
+  const avatarInitial = username.charAt(0).toUpperCase();
 
   const handleClickFeedback = () => {
     if (window.navigator.vibrate) {
@@ -155,11 +158,11 @@ export default function Home({
         <div className="border-t border-outline/20 p-lg">
           <div className="flex items-center gap-md">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
-              M
+              {avatarInitial}
             </div>
             <div className="overflow-hidden">
               <p className="truncate font-label-md text-label-md text-on-surface">
-                Minh Nguyễn
+                {username}
               </p>
               <p className="text-[10px] text-outline">Thành viên Vàng</p>
             </div>
@@ -211,7 +214,7 @@ export default function Home({
           <section className="flex flex-col justify-between gap-md md:flex-row md:items-end">
             <div>
               <h2 className="font-display-lg text-display-lg text-on-surface">
-                Xin chào, Minh!
+                Xin chào, {username}!
               </h2>
               <p className="font-body-lg text-body-lg text-on-surface-variant">
                 Hôm nay chiếc xe của bạn đang được chăm sóc tốt nhất.

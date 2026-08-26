@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { getStoredAuthSession } from "../services/api";
 
 export type AppSection =
   | "home"
@@ -39,6 +40,8 @@ export default function AppSidebar({
   onClose,
   onNavigate,
 }: AppSidebarProps) {
+  const username = getStoredAuthSession()?.username || "Tài khoản";
+  const avatarInitial = username.charAt(0).toUpperCase();
   useEffect(() => {
     document.body.classList.toggle("overflow-hidden", isOpen);
 
@@ -134,6 +137,14 @@ export default function AppSidebar({
         </nav>
 
         <div className="border-t border-outline-variant p-md">
+          <div className="mb-2 flex items-center gap-3 px-md py-sm">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
+              {avatarInitial}
+            </div>
+            <p className="truncate font-label-md text-label-md text-on-surface">
+              {username}
+            </p>
+          </div>
           <button
             type="button"
             className="flex w-full items-center gap-4 rounded-xl p-md text-error transition-colors hover:bg-error-container/10"
