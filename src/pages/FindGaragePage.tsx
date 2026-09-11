@@ -1,46 +1,55 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getGarages, type Garage } from "../services/api";
 
 type FindGaragePageProps = {
   onBookingClick: (garageId: string) => void;
 };
 
-const garages = [
-  {
-    id: "g1",
-    name: "Servio Central - Quận 1",
-    address: "123 Lê Lợi, P. Bến Thành, Q.1",
-    rating: 4.9,
-    reviews: 1204,
-    distance: "0.4 km",
-    time: "08:00 - 18:00",
-    tags: ["Bảo dưỡng", "Sửa chữa", "Đồng sơn"],
-    promo: "Giảm 20% thay dầu",
-  },
-  {
-    id: "g2",
-    name: "Servio Auto - Quận 7",
-    address: "45 Nguyễn Thị Thập, Q.7",
-    rating: 4.7,
-    reviews: 861,
-    distance: "3.2 km",
-    time: "08:00 - 19:00",
-    tags: ["Bảo dưỡng", "Lốp & Phanh"],
-  },
-  {
-    id: "g3",
-    name: "Servio Bình Thạnh",
-    address: "88 Điện Biên Phủ, Q. Bình Thạnh",
-    rating: 4.6,
-    reviews: 542,
-    distance: "5.8 km",
-    time: "07:30 - 18:30",
-    tags: ["Bảo dưỡng", "Điện - Điều hòa"],
-    promo: "Rửa xe miễn phí",
-  },
-];
-
 export default function FindGaragePage({ onBookingClick }: FindGaragePageProps) {
-  const [activeFilter, setActiveFilter] = useState<"near" | "rating">("near");
+  const [garages, setGarages] = useState<Garage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [sortByRating, setSortByRating] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getGarages()
+      .then((data) => {
+        if (!cancelled) setGarages(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Không tải được danh sách garage.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const visibleGarages = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    let list = garages;
+    if (query) {
+      list = list.filter(
+        (garage) =>
+          garage.name.toLowerCase().includes(query) ||
+          garage.address.toLowerCase().includes(query),
+      );
+    }
+    if (sortByRating) {
+      list = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    }
+    return list;
+  }, [garages, search, sortByRating]);
 
   return (
     <div className="mx-auto max-w-7xl p-6 md:p-8">
@@ -58,25 +67,27 @@ export default function FindGaragePage({ onBookingClick }: FindGaragePageProps) 
           </span>
           <input
             className="w-full rounded-full border border-outline-variant bg-surface-container-low py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
-            placeholder="Tìm garage, khu vực, dịch vụ..."
+            placeholder="Tìm garage, khu vực..."
             type="text"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
           />
         </div>
         <div className="flex gap-2 shrink-0">
           <button
-            onClick={() => setActiveFilter("near")}
+            onClick={() => setSortByRating(false)}
             className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
-              activeFilter === "near"
+              !sortByRating
                 ? "bg-primary text-white"
                 : "border border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
             }`}
           >
-            Gần nhất
+            Mặc định
           </button>
           <button
-            onClick={() => setActiveFilter("rating")}
+            onClick={() => setSortByRating(true)}
             className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
-              activeFilter === "rating"
+              sortByRating
                 ? "bg-primary text-white"
                 : "border border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
             }`}
@@ -86,84 +97,91 @@ export default function FindGaragePage({ onBookingClick }: FindGaragePageProps) 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {garages.map((garage) => (
-          <div
-            key={garage.id}
-            className="flex flex-col justify-between rounded-xl border border-outline-variant bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-          >
-            <div>
-              <div className="flex items-start justify-between">
-                <div className="flex gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-primary">
-                    <span className="material-symbols-outlined text-2xl">
-                      build
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-on-surface">
-                      {garage.name}
-                    </h3>
-                    <div className="mt-1 flex items-center gap-1 text-sm text-on-surface-variant">
-                      <span className="material-symbols-outlined text-[16px]">
-                        location_on
+      {isLoading && (
+        <div className="rounded-xl border border-outline-variant bg-white p-8 text-center text-on-surface-variant">
+          Đang tải danh sách garage...
+        </div>
+      )}
+
+      {!isLoading && error && (
+        <div className="rounded-xl border border-error/30 bg-error-container/10 p-8 text-center text-error">
+          {error}
+        </div>
+      )}
+
+      {!isLoading && !error && visibleGarages.length === 0 && (
+        <div className="rounded-xl border border-outline-variant bg-white p-8 text-center text-on-surface-variant">
+          Không tìm thấy garage phù hợp.
+        </div>
+      )}
+
+      {!isLoading && !error && visibleGarages.length > 0 && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {visibleGarages.map((garage) => (
+            <div
+              key={garage.id}
+              className="flex flex-col justify-between rounded-xl border border-outline-variant bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+            >
+              <div>
+                <div className="flex items-start justify-between">
+                  <div className="flex gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-primary">
+                      <span className="material-symbols-outlined text-2xl">
+                        build
                       </span>
-                      {garage.address}
                     </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-on-surface-variant">
-                      <div className="flex items-center gap-1 font-medium text-orange-500">
+                    <div>
+                      <h3 className="text-base font-bold text-on-surface">
+                        {garage.name}
+                      </h3>
+                      <div className="mt-1 flex items-center gap-1 text-sm text-on-surface-variant">
                         <span className="material-symbols-outlined text-[16px]">
-                          star
+                          location_on
                         </span>
-                        {garage.rating}{" "}
-                        <span className="text-on-surface-variant font-normal">
-                          ({garage.reviews})
-                        </span>
+                        {garage.address}
                       </div>
-                      <div>{garage.distance}</div>
-                      <div className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[16px]">
-                          schedule
-                        </span>
-                        {garage.time}
+                      <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-on-surface-variant">
+                        {garage.rating !== undefined && (
+                          <div className="flex items-center gap-1 font-medium text-orange-500">
+                            <span className="material-symbols-outlined text-[16px]">
+                              star
+                            </span>
+                            {garage.rating}
+                          </div>
+                        )}
+                        {garage.phone && (
+                          <div className="flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[16px]">
+                              call
+                            </span>
+                            {garage.phone}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
-                <button className="text-outline transition-colors hover:text-red-500">
-                  <span className="material-symbols-outlined">favorite_border</span>
-                </button>
-              </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                {garage.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700"
-                  >
-                    {tag}
-                  </span>
-                ))}
-                {garage.promo && (
-                  <span className="rounded-md bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
-                    {garage.promo}
-                  </span>
+                {garage.description && (
+                  <p className="mt-4 text-sm text-on-surface-variant">
+                    {garage.description}
+                  </p>
                 )}
               </div>
-            </div>
 
-            <button
-              onClick={() => onBookingClick(garage.id)}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-            >
-              Chọn garage này
-              <span className="material-symbols-outlined text-[18px]">
-                arrow_forward
-              </span>
-            </button>
-          </div>
-        ))}
-      </div>
+              <button
+                onClick={() => onBookingClick(String(garage.id))}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+              >
+                Chọn garage này
+                <span className="material-symbols-outlined text-[18px]">
+                  arrow_forward
+                </span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

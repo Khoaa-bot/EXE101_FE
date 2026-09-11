@@ -1,5 +1,16 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AppSidebar, { type AppSection } from "../components/AppSidebar";
+import {
+  createAppointment,
+  getAllServices,
+  getAvailableSchedules,
+  getGarages,
+  getMyFleet,
+  type Garage,
+  type MaintenanceService,
+  type Schedule,
+  type Vehicle,
+} from "../services/api";
 
 type BookingPageProps = {
   onHomeClick: () => void;
@@ -7,6 +18,8 @@ type BookingPageProps = {
   onNotificationsClick: () => void;
   onProfileClick: () => void;
   onTrackingClick: () => void;
+  garageId?: number | string | null;
+  serviceId?: number | string | null;
 };
 
 const garageImage =
@@ -15,14 +28,44 @@ const garageImage =
 const avatarImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuAoOtpd2mA6tCtPpc_xOKGgqUmp2z_Z-EfI2YOhRqwHtUTN9nhgCwDcip3VZDzsTcF9QqXS2OQOH4-0RXuePu4pK54_EjXHC3NKbjQTW7MQHtAFhC9x9A7N6FQkOxRGnLtLZ0A9seeVNnU1RnN2EAhFyDypvbKu8f_5qkTQZk1QVBYmjjAkVsdqd7FGvJt73-0TUO0k_DolFun55eyGrmB9A3JFcNmwDvtJJ31qXNF4gLLh1oT8xPVEKvvuRROeA6KOJhlFiAy8b3_u";
 
+function formatCurrency(value: number | null | undefined) {
+  if (value === null || value === undefined) return "Liên hệ";
+  return `${value.toLocaleString("vi-VN")}đ`;
+}
+
 export default function BookingPage({
   onHomeClick,
   onHistoryClick,
   onNotificationsClick,
   onProfileClick,
   onTrackingClick,
+  garageId,
+  serviceId,
 }: BookingPageProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [garages, setGarages] = useState<Garage[]>([]);
+  const [services, setServices] = useState<MaintenanceService[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+
+  const [isLoadingOptions, setIsLoadingOptions] = useState(true);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
+
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
+  const [selectedGarageId, setSelectedGarageId] = useState(
+    garageId !== null && garageId !== undefined ? String(garageId) : "",
+  );
+  const [selectedServiceId, setSelectedServiceId] = useState(
+    serviceId !== null && serviceId !== undefined ? String(serviceId) : "",
+  );
+  const [selectedScheduleId, setSelectedScheduleId] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const handleNavigate = (section: AppSection) => {
     if (section === "home") onHomeClick();
@@ -30,6 +73,100 @@ export default function BookingPage({
     if (section === "notifications") onNotificationsClick();
     if (section === "tracking") onTrackingClick();
     if (section === "profile") onProfileClick();
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoadingOptions(true);
+    setOptionsError(null);
+
+    Promise.all([getMyFleet(), getGarages(), getAllServices()])
+      .then(([vehicleData, garageData, serviceData]) => {
+        if (!cancelled) {
+          setVehicles(vehicleData);
+          setGarages(garageData);
+          setServices(serviceData);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setOptionsError(
+            err instanceof Error ? err.message : "Không tải được dữ liệu đặt lịch.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingOptions(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedGarageId) {
+      setSchedules([]);
+      setSelectedScheduleId("");
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingSchedules(true);
+    setSelectedScheduleId("");
+
+    getAvailableSchedules(selectedGarageId)
+      .then((data) => {
+        if (!cancelled) setSchedules(data);
+      })
+      .catch(() => {
+        if (!cancelled) setSchedules([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingSchedules(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedGarageId]);
+
+  const selectedGarage = useMemo(
+    () => garages.find((g) => String(g.id) === selectedGarageId),
+    [garages, selectedGarageId],
+  );
+  const selectedService = useMemo(
+    () => services.find((s) => String(s.id) === selectedServiceId),
+    [services, selectedServiceId],
+  );
+
+  const canSubmit =
+    Boolean(selectedVehicleId) &&
+    Boolean(selectedGarageId) &&
+    Boolean(selectedServiceId) &&
+    Boolean(selectedScheduleId) &&
+    !isSubmitting;
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      await createAppointment({
+        vehicleId: Number(selectedVehicleId),
+        serviceId: Number(selectedServiceId),
+        scheduleId: Number(selectedScheduleId),
+        notes: notes.trim() || undefined,
+      });
+      setSubmitSuccess(true);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Đặt lịch không thành công. Vui lòng thử lại.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -135,96 +272,148 @@ export default function BookingPage({
                 </p>
               </div>
 
-              <form className="space-y-lg">
-                <div className="mb-xl flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-label-md text-label-md text-on-primary">
-                      1
-                    </span>
-                    <span className="font-label-md text-label-md text-primary">
-                      Thông tin chính
-                    </span>
-                  </div>
-                  <div className="h-px flex-1 bg-outline-variant" />
-                  <div className="flex items-center gap-2 opacity-40">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-highest font-label-md text-label-md text-on-surface">
-                      2
-                    </span>
-                    <span className="font-label-md text-label-md text-on-surface">
-                      Xác nhận
-                    </span>
-                  </div>
+              {isLoadingOptions && (
+                <div className="rounded-lg border border-outline-variant bg-surface-container-low p-lg text-center font-body-md text-body-md text-on-surface-variant">
+                  Đang tải dữ liệu đặt lịch...
                 </div>
+              )}
 
-                <div className="grid grid-cols-1 gap-lg md:grid-cols-2">
-                  <SelectField
-                    label="Chọn Garage"
-                    icon="expand_more"
-                    options={[
-                      "Servio Central - Quận 1",
-                      "Servio Premium - Quận 7",
-                      "Servio Express - Thủ Đức",
-                    ]}
-                  />
-                  <SelectField
-                    label="Loại dịch vụ"
-                    icon="build"
-                    options={[
-                      "Bảo dưỡng định kỳ",
-                      "Kiểm tra động cơ",
-                      "Thay dầu & Lọc gió",
-                      "Sửa chữa hệ thống phanh",
-                    ]}
-                  />
-                  <div className="space-y-sm">
-                    <label className="px-1 font-label-md text-label-md text-on-surface-variant">
-                      Ngày hẹn
-                    </label>
-                    <div className="relative">
-                      <input
-                        className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary"
-                        type="date"
-                        min="2026-06-26"
-                      />
-                      <span className="material-symbols-outlined pointer-events-none absolute right-3 top-3 text-on-surface-variant">
-                        calendar_today
+              {!isLoadingOptions && optionsError && (
+                <div className="rounded-lg border border-error/30 bg-error-container/10 p-lg text-center font-body-md text-body-md text-error">
+                  {optionsError}
+                </div>
+              )}
+
+              {!isLoadingOptions && !optionsError && submitSuccess && (
+                <div className="mb-lg flex items-center justify-between gap-md rounded-lg border border-tertiary/30 bg-tertiary-container/20 p-lg">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-tertiary">
+                      check_circle
+                    </span>
+                    <p className="font-body-md text-body-md text-on-surface">
+                      Đặt lịch thành công! Bạn có thể theo dõi tiến độ ngay bây giờ.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onTrackingClick}
+                    className="shrink-0 rounded-lg bg-primary px-4 py-2 font-label-md text-label-md text-white transition-colors hover:bg-blue-700"
+                  >
+                    Theo dõi
+                  </button>
+                </div>
+              )}
+
+              {!isLoadingOptions && !optionsError && vehicles.length === 0 && (
+                <div className="mb-lg rounded-lg border border-outline-variant bg-surface-container-low p-lg font-body-md text-body-md text-on-surface-variant">
+                  Bạn chưa có phương tiện nào. Vui lòng thêm xe trước khi đặt lịch.
+                </div>
+              )}
+
+              {!isLoadingOptions && !optionsError && (
+                <form
+                  className="space-y-lg"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleSubmit();
+                  }}
+                >
+                  <div className="mb-xl flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-label-md text-label-md text-on-primary">
+                        1
+                      </span>
+                      <span className="font-label-md text-label-md text-primary">
+                        Thông tin chính
                       </span>
                     </div>
                   </div>
-                  <SelectField
-                    label="Giờ hẹn"
-                    icon="schedule"
-                    options={[
-                      "08:00 - 09:00",
-                      "09:00 - 10:00",
-                      "10:00 - 11:00",
-                      "14:00 - 15:00",
-                      "15:00 - 16:00",
-                    ]}
-                  />
-                </div>
 
-                <div className="space-y-sm pt-4">
-                  <label className="px-1 font-label-md text-label-md text-on-surface-variant">
-                    Ghi chú thêm (Tình trạng xe, yêu cầu đặc biệt)
-                  </label>
-                  <textarea
-                    className="w-full resize-none rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary"
-                    placeholder="Ví dụ: Xe có tiếng kêu lạ ở phía sau khi phanh..."
-                    rows={4}
-                  />
-                </div>
+                  <div className="grid grid-cols-1 gap-lg md:grid-cols-2">
+                    <SelectField
+                      label="Chọn xe"
+                      icon="directions_car"
+                      value={selectedVehicleId}
+                      onChange={setSelectedVehicleId}
+                      placeholder="Chọn xe của bạn"
+                      options={vehicles.map((vehicle) => ({
+                        value: String(vehicle.id),
+                        label: `${vehicle.model} · ${vehicle.vin}`,
+                      }))}
+                    />
+                    <SelectField
+                      label="Chọn Garage"
+                      icon="expand_more"
+                      value={selectedGarageId}
+                      onChange={setSelectedGarageId}
+                      placeholder="Chọn garage"
+                      options={garages.map((garage) => ({
+                        value: String(garage.id),
+                        label: garage.name,
+                      }))}
+                    />
+                    <SelectField
+                      label="Loại dịch vụ"
+                      icon="build"
+                      value={selectedServiceId}
+                      onChange={setSelectedServiceId}
+                      placeholder="Chọn dịch vụ"
+                      options={services.map((service) => ({
+                        value: String(service.id),
+                        label: `${service.name} — ${formatCurrency(service.price)}`,
+                      }))}
+                    />
+                    <SelectField
+                      label="Lịch hẹn còn trống"
+                      icon="schedule"
+                      value={selectedScheduleId}
+                      onChange={setSelectedScheduleId}
+                      placeholder={
+                        !selectedGarageId
+                          ? "Chọn garage trước"
+                          : isLoadingSchedules
+                            ? "Đang tải lịch..."
+                            : schedules.length === 0
+                              ? "Garage chưa có lịch trống"
+                              : "Chọn ngày & giờ"
+                      }
+                      disabled={!selectedGarageId || isLoadingSchedules || schedules.length === 0}
+                      options={schedules.map((schedule) => ({
+                        value: String(schedule.id),
+                        label: `${schedule.date} • ${schedule.timeFrame}`,
+                      }))}
+                    />
+                  </div>
 
-                <div className="flex justify-end pt-8">
-                  <button
-                    className="flex items-center gap-3 rounded-lg bg-primary px-xl py-4 font-headline-md text-headline-md text-on-primary shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] hover:bg-surface-tint active:scale-95"
-                    type="button"
-                  >
-                    Xác nhận đặt lịch
-                    <span className="material-symbols-outlined">arrow_forward</span>
-                  </button>
-                </div>
-              </form>
+                  <div className="space-y-sm pt-4">
+                    <label className="px-1 font-label-md text-label-md text-on-surface-variant">
+                      Ghi chú thêm (Tình trạng xe, yêu cầu đặc biệt)
+                    </label>
+                    <textarea
+                      className="w-full resize-none rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary"
+                      placeholder="Ví dụ: Xe có tiếng kêu lạ ở phía sau khi phanh..."
+                      rows={4}
+                      value={notes}
+                      onChange={(event) => setNotes(event.target.value)}
+                    />
+                  </div>
+
+                  {submitError && (
+                    <p className="font-body-md text-body-md text-error">{submitError}</p>
+                  )}
+
+                  <div className="flex justify-end pt-8">
+                    <button
+                      className="flex items-center gap-3 rounded-lg bg-primary px-xl py-4 font-headline-md text-headline-md text-on-primary shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] hover:bg-surface-tint active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                      type="submit"
+                      disabled={!canSubmit}
+                    >
+                      {isSubmitting ? "Đang gửi..." : "Xác nhận đặt lịch"}
+                      <span className="material-symbols-outlined">arrow_forward</span>
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </section>
 
@@ -236,39 +425,23 @@ export default function BookingPage({
                   src={garageImage}
                   alt="Garage Servio hiện đại"
                 />
-                <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-tertiary px-3 py-1 font-label-sm text-label-sm text-on-tertiary">
-                  <span className="material-symbols-outlined text-[14px]">star</span>
-                  4.9 (1.2k review)
-                </div>
+                {selectedGarage?.rating !== undefined && (
+                  <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-tertiary px-3 py-1 font-label-sm text-label-sm text-on-tertiary">
+                    <span className="material-symbols-outlined text-[14px]">star</span>
+                    {selectedGarage.rating}
+                  </div>
+                )}
               </div>
               <div className="p-lg">
                 <h3 className="mb-1 font-headline-md text-headline-md text-on-surface">
-                  Servio Central - Quận 1
+                  {selectedGarage?.name ?? "Chưa chọn garage"}
                 </h3>
                 <p className="mb-4 flex items-center gap-2 font-body-md text-body-md text-on-surface-variant">
                   <span className="material-symbols-outlined text-[18px] text-primary">
                     location_on
                   </span>
-                  123 Lê Lợi, Phường Bến Thành, Q.1
+                  {selectedGarage?.address ?? "Vui lòng chọn garage để xem địa chỉ"}
                 </p>
-                <div className="grid grid-cols-2 gap-sm">
-                  <div className="rounded-lg border border-outline-variant/30 bg-surface-container p-3">
-                    <span className="mb-1 block font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">
-                      Mở cửa
-                    </span>
-                    <span className="block font-body-md text-body-md font-semibold text-on-surface">
-                      08:00 - 18:00
-                    </span>
-                  </div>
-                  <div className="rounded-lg border border-outline-variant/30 bg-surface-container p-3">
-                    <span className="mb-1 block font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">
-                      Thiết bị
-                    </span>
-                    <span className="block font-body-md text-body-md font-semibold text-on-surface">
-                      Chuẩn 5 Sao
-                    </span>
-                  </div>
-                </div>
               </div>
             </section>
 
@@ -287,15 +460,15 @@ export default function BookingPage({
                     </span>
                   </div>
                   <span className="text-right font-label-md text-label-md text-on-surface">
-                    Bảo dưỡng định kỳ
+                    {selectedService?.name ?? "Chưa chọn"}
                   </span>
                 </li>
                 <li className="flex items-center justify-between border-t border-primary/10 pt-4">
                   <span className="font-body-md text-on-surface-variant">
-                    Phí kiểm tra tạm tính
+                    Chi phí tạm tính
                   </span>
                   <span className="font-headline-md text-headline-md text-primary">
-                    250.000đ
+                    {formatCurrency(selectedService?.price)}
                   </span>
                 </li>
               </ul>
@@ -362,11 +535,19 @@ export default function BookingPage({
 function SelectField({
   label,
   icon,
+  value,
+  onChange,
   options,
+  placeholder = "Chọn...",
+  disabled = false,
 }: {
   label: string;
   icon: string;
-  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="space-y-sm">
@@ -374,9 +555,17 @@ function SelectField({
         {label}
       </label>
       <div className="relative">
-        <select className="w-full appearance-none rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary">
+        <select
+          className="w-full appearance-none rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
+        >
+          <option value="">{placeholder}</option>
           {options.map((option) => (
-            <option key={option}>{option}</option>
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
           ))}
         </select>
         <span className="material-symbols-outlined pointer-events-none absolute right-3 top-3 text-on-surface-variant">

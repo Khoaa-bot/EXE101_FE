@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../components/AppSidebar";
+import { getActiveAppointments, type AppointmentDto } from "../services/api";
 
 type TrackingPageProps = {
   onHomeClick: () => void;
@@ -11,57 +12,39 @@ type TrackingPageProps = {
 const vehicleImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuC4k_UBSnuCnHjpDC6k50szf5Z3Oo4yKM2t9kU0_R1EYLEmXpR0OSok5ddQjJKptTrZiaGqjLiqjmrK821UZXKaZU4DAlIFMyHtJNs5xifBwtqU8U8jFBH4JPInp-jTyem1LZ8dPLVQepnt_2x7W53JBaxfQTFx-eVXGWMHwTO3wz9Y1Nl6yI5T51yPVUirOsHzPJG680yTqdfQti0ppIrzpB_7xB-5dt6zBRSRQuha_nUdcNZn84d8nHFNkYWPlwQmzJ108PAm1mVj";
 
-const steps = [
-  {
-    title: "Tiếp nhận xe",
-    time: "09:35 - 10/10",
-    icon: "check",
-    status: "done",
-  },
-  {
-    title: "Kiểm tra lỗi",
-    time: "10:15 - 10/10",
-    icon: "check",
-    status: "done",
-  },
-  {
-    title: "Đang sửa chữa",
-    time: "Bắt đầu lúc 10:30",
-    icon: "build",
-    status: "active",
-  },
-  {
-    title: "Kiểm tra chất lượng",
-    time: "Dự kiến 15:45",
-    icon: "fact_check",
-    status: "pending",
-  },
-  {
-    title: "Hoàn thành",
-    time: "Dự kiến 16:30",
-    icon: "flag",
-    status: "pending",
-  },
-];
+const STEP_ORDER = ["PENDING", "CONFIRMED", "IN_PROGRESS", "COMPLETED"];
 
-const workLogs = [
-  {
-    title: "Hoàn tất kiểm tra tổng quát",
-    subtitle: "Kỹ thuật viên: Trần Bình Trọng",
-    time: "10:10",
-  },
-  {
-    title: "Đã nhận linh kiện: Bố thắng Brembo",
-    subtitle: "Kho vận: Lê Lợi",
-    time: "10:25",
-  },
-  {
-    title: "Bắt đầu tháo lắp hệ thống phanh",
-    subtitle: "Đang xử lý...",
-    time: "Vừa xong",
-    active: true,
-  },
-];
+const STEP_META: Record<string, { title: string; icon: string }> = {
+  PENDING: { title: "Chờ xác nhận", icon: "hourglass_empty" },
+  CONFIRMED: { title: "Đã xác nhận", icon: "check" },
+  IN_PROGRESS: { title: "Đang sửa chữa", icon: "build" },
+  COMPLETED: { title: "Hoàn thành", icon: "flag" },
+};
+
+function formatCurrency(value: number | null | undefined) {
+  if (value === null || value === undefined) return "—";
+  return `${value.toLocaleString("vi-VN")}đ`;
+}
+
+function getSteps(currentStatus: string) {
+  if (currentStatus === "CANCELLED") {
+    return [{ key: "CANCELLED", title: "Đã huỷ lịch hẹn", icon: "cancel", status: "active" as const }];
+  }
+
+  const currentIndex = STEP_ORDER.indexOf(currentStatus);
+
+  return STEP_ORDER.map((key, index) => {
+    let status: "done" | "active" | "pending" = "pending";
+    if (currentIndex === -1) {
+      status = "pending";
+    } else if (index < currentIndex) {
+      status = "done";
+    } else if (index === currentIndex) {
+      status = "active";
+    }
+    return { key, title: STEP_META[key].title, icon: STEP_META[key].icon, status };
+  });
+}
 
 export default function TrackingPage({
   onHomeClick,
@@ -70,6 +53,34 @@ export default function TrackingPage({
   onProfileClick,
 }: TrackingPageProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getActiveAppointments()
+      .then((data) => {
+        if (!cancelled) setAppointments(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Không tải được lịch hẹn đang xử lý.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleNavigate = (section: AppSection) => {
     if (section === "home") onHomeClick();
@@ -77,6 +88,9 @@ export default function TrackingPage({
     if (section === "notifications") onNotificationsClick();
     if (section === "profile") onProfileClick();
   };
+
+  const appointment = appointments[0];
+  const steps = appointment ? getSteps(appointment.status) : [];
 
   return (
     <div className="min-h-dvh bg-background font-sans text-on-surface">
@@ -107,19 +121,6 @@ export default function TrackingPage({
           />
           <SidebarButton icon="person" label="Cá nhân" onClick={onProfileClick} />
         </nav>
-        <div className="mt-auto border-t border-outline-variant px-lg pt-lg">
-          <div className="flex items-center gap-md">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container font-bold text-on-primary-container">
-              AD
-            </div>
-            <div>
-              <p className="font-label-md text-label-md text-on-surface">An Dương</p>
-              <p className="text-[10px] uppercase tracking-wider text-on-surface-variant opacity-70">
-                Premium Member
-              </p>
-            </div>
-          </div>
-        </div>
       </aside>
 
       <header className="fixed top-0 z-50 flex h-16 w-full items-center justify-between border-b border-outline-variant bg-surface px-margin-mobile md:hidden">
@@ -158,167 +159,173 @@ export default function TrackingPage({
             </span>
           </nav>
 
-          <div className="grid grid-cols-1 gap-lg lg:grid-cols-12">
-            <section className="flex flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest md:flex-row lg:col-span-8">
-              <div className="relative h-64 md:h-auto md:w-1/2">
-                <img
-                  className="h-full w-full object-cover"
-                  src={vehicleImage}
-                  alt="VinFast VF8 Plus trong trung tâm dịch vụ"
-                />
-                <div className="absolute left-4 top-4 rounded-full bg-primary px-3 py-1 font-label-md text-label-md text-white shadow-lg">
-                  Đang xử lý
-                </div>
-              </div>
+          {isLoading && (
+            <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-xl text-center font-body-md text-body-md text-on-surface-variant">
+              Đang tải lịch hẹn đang xử lý...
+            </div>
+          )}
 
-              <div className="flex flex-col justify-between p-lg md:w-1/2">
-                <div>
-                  <h1 className="mb-xs font-headline-lg text-headline-lg text-primary">
-                    VinFast VF8 Plus
-                  </h1>
-                  <p className="mb-lg font-body-md text-body-md text-on-surface-variant">
-                    ID Dịch vụ: #SRV-99210
-                  </p>
-                  <div className="mb-lg inline-flex items-center gap-md rounded-lg border border-outline-variant bg-surface-container px-lg py-sm">
-                    <span className="material-symbols-outlined text-on-surface-variant">
-                      branding_watermark
-                    </span>
-                    <span className="font-headline-md text-headline-md font-bold tracking-widest">
-                      30L - 888.88
-                    </span>
-                  </div>
-                </div>
+          {!isLoading && error && (
+            <div className="rounded-xl border border-error/30 bg-error-container/10 p-xl text-center font-body-md text-body-md text-error">
+              {error}
+            </div>
+          )}
 
-                <div className="space-y-md">
-                  <div className="flex items-center justify-between border-b border-outline-variant pb-sm">
-                    <span className="font-label-md text-on-surface-variant">
-                      Cố vấn dịch vụ
-                    </span>
-                    <span className="font-label-md">Nguyễn Văn A</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-label-md text-on-surface-variant">
-                      Ngày tiếp nhận
-                    </span>
-                    <span className="font-label-md">10/10/2023 - 09:30</span>
-                  </div>
-                </div>
-              </div>
-            </section>
+          {!isLoading && !error && !appointment && (
+            <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-xl text-center font-body-md text-body-md text-on-surface-variant">
+              Hiện bạn không có lịch hẹn nào đang được xử lý.
+            </div>
+          )}
 
-            <section className="relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-primary-container p-xl text-center text-on-primary-container shadow-lg lg:col-span-4">
-              <div className="absolute right-0 top-0 -mr-16 -mt-16 h-32 w-32 rounded-full bg-white/10" />
-              <span
-                className="material-symbols-outlined mb-md text-[64px]"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                schedule
-              </span>
-              <h3 className="mb-sm font-label-md text-label-md uppercase tracking-widest opacity-80">
-                Thời gian hoàn thành dự kiến
-              </h3>
-              <div className="mb-xs font-display-lg text-display-lg">16:30</div>
-              <div className="font-headline-md text-headline-md">
-                Hôm nay, 10/10
-              </div>
-              <p className="mt-lg px-md font-body-md text-body-md opacity-90">
-                Xe của bạn đang được kỹ thuật viên giàu kinh nghiệm nhất xử lý.
-              </p>
-            </section>
-
-            <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg md:p-xl lg:col-span-12">
-              <div className="mb-xl flex flex-col justify-between gap-sm sm:flex-row sm:items-center">
-                <h2 className="font-headline-md text-headline-md">
-                  Tiến độ sửa chữa
-                </h2>
-                <span className="flex items-center gap-xs font-label-md text-tertiary">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-tertiary" />
-                  Cập nhật 2 phút trước
-                </span>
-              </div>
-
-              <div className="hidden w-full items-start px-lg md:flex">
-                {steps.map((step, index) => (
-                  <DesktopStep
-                    key={step.title}
-                    step={step}
-                    isLast={index === steps.length - 1}
+          {!isLoading && !error && appointment && (
+            <div className="grid grid-cols-1 gap-lg lg:grid-cols-12">
+              <section className="flex flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest md:flex-row lg:col-span-8">
+                <div className="relative h-64 md:h-auto md:w-1/2">
+                  <img
+                    className="h-full w-full object-cover"
+                    src={vehicleImage}
+                    alt={appointment.vehicleModel}
                   />
-                ))}
-              </div>
+                  <div className="absolute left-4 top-4 rounded-full bg-primary px-3 py-1 font-label-md text-label-md text-white shadow-lg">
+                    {STEP_META[appointment.status]?.title ?? appointment.status}
+                  </div>
+                </div>
 
-              <div className="flex flex-col gap-lg md:hidden">
-                {steps.map((step, index) => (
-                  <MobileStep
-                    key={step.title}
-                    step={step}
-                    isLast={index === steps.length - 1}
-                  />
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg lg:col-span-6">
-              <h3 className="mb-lg flex items-center gap-md font-headline-md text-headline-md">
-                <span className="material-symbols-outlined text-primary">history</span>
-                Nhật ký công việc
-              </h3>
-              <div className="space-y-md">
-                {workLogs.map((log) => (
-                  <div
-                    key={log.title}
-                    className={`flex items-start justify-between rounded-lg p-md transition-colors hover:bg-surface-container ${
-                      log.active ? "border-l-4 border-primary" : ""
-                    }`}
-                  >
-                    <div>
-                      <p
-                        className={`font-label-md text-label-md ${
-                          log.active ? "text-primary" : ""
-                        }`}
-                      >
-                        {log.title}
-                      </p>
-                      <p className="font-label-sm text-label-sm text-on-surface-variant">
-                        {log.subtitle}
-                      </p>
+                <div className="flex flex-col justify-between p-lg md:w-1/2">
+                  <div>
+                    <h1 className="mb-xs font-headline-lg text-headline-lg text-primary">
+                      {appointment.vehicleModel}
+                    </h1>
+                    <p className="mb-lg font-body-md text-body-md text-on-surface-variant">
+                      ID Dịch vụ: #{appointment.id}
+                    </p>
+                    <div className="mb-lg inline-flex items-center gap-md rounded-lg border border-outline-variant bg-surface-container px-lg py-sm">
+                      <span className="material-symbols-outlined text-on-surface-variant">
+                        branding_watermark
+                      </span>
+                      <span className="font-headline-md text-headline-md font-bold tracking-widest">
+                        {appointment.vehicleVin}
+                      </span>
                     </div>
-                    <span
-                      className={`font-label-sm text-label-sm ${
-                        log.active ? "text-primary" : "text-on-surface-variant"
-                      }`}
-                    >
-                      {log.time}
+                  </div>
+
+                  <div className="space-y-md">
+                    <div className="flex items-center justify-between border-b border-outline-variant pb-sm">
+                      <span className="font-label-md text-on-surface-variant">
+                        Kỹ thuật viên
+                      </span>
+                      <span className="font-label-md">
+                        {appointment.engineerName || "Chưa phân công"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-label-md text-on-surface-variant">
+                        Ngày hẹn
+                      </span>
+                      <span className="font-label-md">
+                        {appointment.scheduleDate} - {appointment.timeFrame}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-label-md text-on-surface-variant">
+                        Garage
+                      </span>
+                      <span className="font-label-md">{appointment.garageName}</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-primary-container p-xl text-center text-on-primary-container shadow-lg lg:col-span-4">
+                <div className="absolute right-0 top-0 -mr-16 -mt-16 h-32 w-32 rounded-full bg-white/10" />
+                <span
+                  className="material-symbols-outlined mb-md text-[64px]"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  schedule
+                </span>
+                <h3 className="mb-sm font-label-md text-label-md uppercase tracking-widest opacity-80">
+                  Khung giờ hẹn
+                </h3>
+                <div className="mb-xs font-display-lg text-display-lg">
+                  {appointment.timeFrame}
+                </div>
+                <div className="font-headline-md text-headline-md">
+                  {appointment.scheduleDate}
+                </div>
+                <p className="mt-lg px-md font-body-md text-body-md opacity-90">
+                  {appointment.notes || "Xe của bạn đang được đội ngũ kỹ thuật xử lý."}
+                </p>
+              </section>
+
+              <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg md:p-xl lg:col-span-12">
+                <div className="mb-xl flex flex-col justify-between gap-sm sm:flex-row sm:items-center">
+                  <h2 className="font-headline-md text-headline-md">
+                    Tiến độ sửa chữa
+                  </h2>
+                </div>
+
+                <div className="hidden w-full items-start px-lg md:flex">
+                  {steps.map((step, index) => (
+                    <DesktopStep
+                      key={step.key}
+                      step={step}
+                      isLast={index === steps.length - 1}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-lg md:hidden">
+                  {steps.map((step, index) => (
+                    <MobileStep
+                      key={step.key}
+                      step={step}
+                      isLast={index === steps.length - 1}
+                    />
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg lg:col-span-6">
+                <h3 className="mb-lg flex items-center gap-md font-headline-md text-headline-md">
+                  <span className="material-symbols-outlined text-primary">
+                    engineering
+                  </span>
+                  Ghi chú kỹ thuật viên
+                </h3>
+                <p className="font-body-md text-body-md text-on-surface-variant">
+                  {appointment.engineerNotes || "Chưa có ghi chú mới từ kỹ thuật viên."}
+                </p>
+                {appointment.partsUsed && (
+                  <p className="mt-md font-body-md text-body-md text-on-surface-variant">
+                    <span className="font-semibold text-on-surface">Phụ tùng sử dụng: </span>
+                    {appointment.partsUsed}
+                  </p>
+                )}
+              </section>
+
+              <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg lg:col-span-6">
+                <h3 className="mb-lg flex items-center gap-md font-headline-md text-headline-md">
+                  <span className="material-symbols-outlined text-primary">
+                    receipt_long
+                  </span>
+                  Chi phí dịch vụ
+                </h3>
+                <div className="space-y-sm">
+                  <div className="flex justify-between py-sm font-body-md text-body-md">
+                    <span className="text-on-surface-variant">{appointment.serviceName}</span>
+                    <span className="font-bold">{formatCurrency(appointment.servicePrice)}</span>
+                  </div>
+                  <div className="mt-lg flex items-center justify-between border-t border-outline-variant pt-lg">
+                    <span className="font-headline-md text-headline-md">Tổng cộng</span>
+                    <span className="font-display-lg text-display-lg text-primary">
+                      {formatCurrency(appointment.servicePrice)}
                     </span>
                   </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg lg:col-span-6">
-              <h3 className="mb-lg flex items-center gap-md font-headline-md text-headline-md">
-                <span className="material-symbols-outlined text-primary">
-                  receipt_long
-                </span>
-                Chi phí dự tính
-              </h3>
-              <div className="space-y-sm">
-                <CostRow label="Thay bố thắng trước (VF8)" value="1.250.000đ" />
-                <CostRow label="Công thay thế & Cân chỉnh" value="450.000đ" />
-                <CostRow label="Dịch vụ rửa xe cao cấp" value="Miễn phí" free />
-                <div className="mt-lg flex items-center justify-between border-t border-outline-variant pt-lg">
-                  <span className="font-headline-md text-headline-md">Tổng cộng</span>
-                  <span className="font-display-lg text-display-lg text-primary">
-                    1.700.000đ
-                  </span>
                 </div>
-                <button className="mt-lg flex w-full items-center justify-center gap-md rounded-lg bg-surface-container-highest py-md font-label-md text-on-surface transition-colors hover:bg-outline-variant">
-                  <span className="material-symbols-outlined">download</span>
-                  Tải báo giá chi tiết (.PDF)
-                </button>
-              </div>
-            </section>
-          </div>
+              </section>
+            </div>
+          )}
         </div>
       </main>
 
@@ -352,15 +359,6 @@ export default function TrackingPage({
           <span className="font-label-sm text-label-sm">Cá nhân</span>
         </button>
       </nav>
-
-      <button className="group fixed bottom-24 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-all hover:scale-110 active:scale-95 md:bottom-12 md:right-12">
-        <span className="material-symbols-outlined transition-transform group-hover:rotate-12">
-          support_agent
-        </span>
-        <span className="absolute right-full mr-4 whitespace-nowrap rounded bg-inverse-surface px-3 py-1 font-label-sm text-label-sm text-white opacity-0 transition-opacity group-hover:opacity-100">
-          Hỗ trợ trực tuyến
-        </span>
-      </button>
     </div>
   );
 }
@@ -386,13 +384,14 @@ function SidebarButton({
   );
 }
 
-function DesktopStep({
-  step,
-  isLast,
-}: {
-  step: (typeof steps)[number];
-  isLast: boolean;
-}) {
+type StepData = {
+  key: string;
+  title: string;
+  icon: string;
+  status: "done" | "active" | "pending";
+};
+
+function DesktopStep({ step, isLast }: { step: StepData; isLast: boolean }) {
   const isDone = step.status === "done";
   const isActive = step.status === "active";
 
@@ -429,19 +428,12 @@ function DesktopStep({
         >
           {step.title}
         </p>
-        <p className="text-[10px] text-on-surface-variant">{step.time}</p>
       </div>
     </div>
   );
 }
 
-function MobileStep({
-  step,
-  isLast,
-}: {
-  step: (typeof steps)[number];
-  isLast: boolean;
-}) {
+function MobileStep({ step, isLast }: { step: StepData; isLast: boolean }) {
   const isDone = step.status === "done";
   const isActive = step.status === "active";
 
@@ -479,34 +471,7 @@ function MobileStep({
         >
           {step.title}
         </h4>
-        <p className="font-label-sm text-label-sm text-on-surface-variant">
-          {step.time}
-        </p>
-        {isActive && (
-          <div className="mt-sm rounded-lg bg-surface-container p-md">
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              Thay thế bố thắng và kiểm tra hệ thống phanh điện tử.
-            </p>
-          </div>
-        )}
       </div>
-    </div>
-  );
-}
-
-function CostRow({
-  label,
-  value,
-  free = false,
-}: {
-  label: string;
-  value: string;
-  free?: boolean;
-}) {
-  return (
-    <div className="flex justify-between py-sm font-body-md text-body-md">
-      <span className="text-on-surface-variant">{label}</span>
-      <span className={`font-bold ${free ? "text-tertiary" : ""}`}>{value}</span>
     </div>
   );
 }
