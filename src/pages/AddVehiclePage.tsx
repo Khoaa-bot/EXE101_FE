@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { addVehicle, getStoredAuthSession } from "../services/api";
+
 type AddVehiclePageProps = {
   onBackClick: () => void;
 };
@@ -8,6 +11,54 @@ const avatarImage =
 const models = ["VF e34", "VF 5", "VF 6", "VF 7", "VF 8", "VF 9"];
 
 export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
+  const [brand, setBrand] = useState("VinFast");
+  const [selectedModel, setSelectedModel] = useState("VF 8");
+  const [vin, setVin] = useState("");
+  const [color, setColor] = useState("");
+  const [odometer, setOdometer] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isSubmitting) return;
+
+    const session = getStoredAuthSession();
+    if (!session) {
+      setError("Bạn cần đăng nhập lại để thêm phương tiện.");
+      return;
+    }
+    if (!vin.trim()) {
+      setError("Vui lòng nhập số khung (VIN).");
+      return;
+    }
+
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      // Backend (VehicleController/VehicleRequest) chỉ lưu vin / model /
+      // color / odometer — không có field "biển số xe" riêng, nên tên
+      // thương hiệu được gộp chung vào "model" (VD: "VinFast VF 8").
+      await addVehicle({
+        customerId: session.id,
+        vin: vin.trim(),
+        model: `${brand.trim()} ${selectedModel}`.trim(),
+        color,
+        odometer: odometer ? Number(odometer) : undefined,
+      });
+      onBackClick();
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Thêm phương tiện không thành công.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-dvh overflow-x-hidden bg-background font-sans text-on-background">
       <aside className="fixed left-0 top-0 z-50 hidden h-full w-[240px] flex-col border-r border-outline-variant bg-surface-container-lowest py-xl md:flex">
@@ -83,40 +134,17 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-          <div className="relative hidden w-full md:block">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-              search
-            </span>
-            <input
-              className="w-full rounded-full border-none bg-surface-container-low py-2 pl-10 pr-4 font-body-md text-body-md outline-none transition-all focus:bg-white focus:ring-2 focus:ring-primary"
-              placeholder="Tìm kiếm đơn hàng, khách hàng..."
-              type="text"
-            />
-          </div>
           <h1 className="font-headline-lg text-headline-lg font-bold text-primary md:hidden">
             Thêm phương tiện
           </h1>
         </div>
 
         <div className="flex items-center gap-4">
-          <button className="relative flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low">
-            <span className="material-symbols-outlined">notifications</span>
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-error" />
-          </button>
-          <div className="hidden h-8 w-px bg-outline-variant md:block" />
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right lg:block">
-              <p className="font-label-md text-label-md text-on-surface">
-                Hoàng Minh
-              </p>
-              <p className="text-[10px] text-secondary">Pro User</p>
-            </div>
-            <img
-              className="h-10 w-10 rounded-full border-2 border-primary-fixed object-cover"
-              src={avatarImage}
-              alt="Ảnh đại diện"
-            />
-          </div>
+          <img
+            className="h-10 w-10 rounded-full border-2 border-primary-fixed object-cover"
+            src={avatarImage}
+            alt="Ảnh đại diện"
+          />
         </div>
       </header>
 
@@ -142,29 +170,50 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
             </div>
 
             <div className="p-lg md:p-8">
-              <form className="space-y-10">
+              <form className="space-y-10" onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-                  <TextField label="Tên thương hiệu" placeholder="VD: VinFast" />
-                  <TextField label="Biển số xe" placeholder="VD: 30A - 123.45" />
-                  <TextField label="Số khung (VIN)" placeholder="Nhập mã VIN của bạn" />
+                  <TextField
+                    label="Tên thương hiệu"
+                    placeholder="VD: VinFast"
+                    value={brand}
+                    onChange={setBrand}
+                  />
+                  <TextField
+                    label="Số khung (VIN)"
+                    placeholder="Nhập mã VIN của bạn"
+                    value={vin}
+                    onChange={setVin}
+                    required
+                  />
                   <div className="space-y-2">
                     <label className="px-1 font-label-md text-label-md text-on-surface-variant">
                       Màu sắc
                     </label>
                     <div className="relative">
-                      <select className="w-full appearance-none rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20">
+                      <select
+                        className="w-full appearance-none rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        value={color}
+                        onChange={(event) => setColor(event.target.value)}
+                      >
                         <option value="">Chọn màu sắc</option>
-                        <option value="white">Trắng (White Pearl)</option>
-                        <option value="black">Đen (Jet Black)</option>
-                        <option value="blue">Xanh dương (Deep Blue)</option>
-                        <option value="red">Đỏ (Crimson Red)</option>
-                        <option value="silver">Bạc (Metallic Silver)</option>
+                        <option value="Trắng (White Pearl)">Trắng (White Pearl)</option>
+                        <option value="Đen (Jet Black)">Đen (Jet Black)</option>
+                        <option value="Xanh dương (Deep Blue)">Xanh dương (Deep Blue)</option>
+                        <option value="Đỏ (Crimson Red)">Đỏ (Crimson Red)</option>
+                        <option value="Bạc (Metallic Silver)">Bạc (Metallic Silver)</option>
                       </select>
                       <span className="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-secondary">
                         expand_more
                       </span>
                     </div>
                   </div>
+                  <TextField
+                    label="Số km đã đi (odometer)"
+                    placeholder="VD: 12000"
+                    value={odometer}
+                    onChange={setOdometer}
+                    type="number"
+                  />
                 </div>
 
                 <section className="space-y-4">
@@ -184,7 +233,8 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
                           name="model"
                           type="radio"
                           value={model}
-                          defaultChecked={model === "VF 8"}
+                          checked={selectedModel === model}
+                          onChange={() => setSelectedModel(model)}
                         />
                         <div className="flex h-full flex-col items-center gap-3 rounded-xl border border-outline-variant bg-white p-4 transition-all hover:border-primary hover:bg-surface-container-low peer-checked:border-primary peer-checked:bg-surface-container-low peer-checked:shadow-[0_0_0_1px_var(--color-primary)]">
                           <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-lg bg-surface-container p-2">
@@ -194,7 +244,7 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
                           </div>
                           <span
                             className={`font-label-md text-label-md ${
-                              model === "VF 8" ? "font-bold text-primary" : "text-on-surface"
+                              selectedModel === model ? "font-bold text-primary" : "text-on-surface"
                             }`}
                           >
                             {model}
@@ -205,6 +255,12 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
                   </div>
                 </section>
 
+                {error && (
+                  <p className="rounded-lg bg-error-container px-4 py-3 text-sm text-on-error-container" role="alert">
+                    {error}
+                  </p>
+                )}
+
                 <div className="flex flex-col items-center justify-end gap-4 border-t border-outline-variant pt-8 sm:flex-row">
                   <button
                     className="w-full rounded-lg border border-outline px-10 py-3 font-headline-md text-headline-md text-on-surface-variant transition-colors hover:bg-surface-container-low active:scale-95 sm:w-auto"
@@ -214,10 +270,11 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
                     Hủy bỏ
                   </button>
                   <button
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-10 py-3 font-headline-md text-headline-md text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-container active:scale-95 sm:w-auto"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-10 py-3 font-headline-md text-headline-md text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-container active:scale-95 sm:w-auto disabled:cursor-not-allowed disabled:opacity-70"
                     type="submit"
+                    disabled={isSubmitting}
                   >
-                    Xác nhận thêm xe
+                    {isSubmitting ? "Đang lưu..." : "Xác nhận thêm xe"}
                     <span className="material-symbols-outlined text-[20px]">
                       add_circle
                     </span>
@@ -252,7 +309,21 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
   );
 }
 
-function TextField({ label, placeholder }: { label: string; placeholder: string }) {
+function TextField({
+  label,
+  placeholder,
+  value,
+  onChange,
+  type = "text",
+  required = false,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  required?: boolean;
+}) {
   return (
     <div className="space-y-2">
       <label className="px-1 font-label-md text-label-md text-on-surface-variant">
@@ -261,7 +332,10 @@ function TextField({ label, placeholder }: { label: string; placeholder: string 
       <input
         className="w-full rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
         placeholder={placeholder}
-        type="text"
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required={required}
       />
     </div>
   );
