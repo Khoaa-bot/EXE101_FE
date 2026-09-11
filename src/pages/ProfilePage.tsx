@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../components/AppSidebar";
-import { deleteVehicle, getMyFleet, type Vehicle } from "../services/api";
+import { deleteVehicle, getMyFleet, updateVehicle, type Vehicle } from "../services/api";
 
 type ProfilePageProps = {
   onAddVehicleClick: () => void;
@@ -27,6 +27,8 @@ export default function ProfilePage({
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
   const [vehiclesError, setVehiclesError] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const handleNavigate = (section: AppSection) => {
     if (section === "home") onHomeClick();
@@ -70,6 +72,29 @@ export default function ProfilePage({
       );
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleSaveEdit = async (
+    vehicleId: number,
+    payload: { color: string; odometer: number | undefined },
+  ) => {
+    setIsSavingEdit(true);
+    setVehiclesError("");
+    try {
+      const updated = await updateVehicle(vehicleId, payload);
+      setVehicles((current) =>
+        current.map((vehicle) => (vehicle.id === vehicleId ? updated : vehicle)),
+      );
+      setEditingId(null);
+    } catch (requestError) {
+      setVehiclesError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Cập nhật phương tiện không thành công.",
+      );
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -312,6 +337,11 @@ export default function ProfilePage({
                       vehicle={vehicle}
                       isDeleting={deletingId === vehicle.id}
                       onDelete={() => handleDeleteVehicle(vehicle.id)}
+                      isEditing={editingId === vehicle.id}
+                      isSavingEdit={isSavingEdit}
+                      onStartEdit={() => setEditingId(vehicle.id)}
+                      onCancelEdit={() => setEditingId(null)}
+                      onSaveEdit={(payload) => handleSaveEdit(vehicle.id, payload)}
                     />
                   ))}
                 </div>
@@ -418,11 +448,90 @@ function VehicleCard({
   vehicle,
   isDeleting,
   onDelete,
+  isEditing,
+  isSavingEdit,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
 }: {
   vehicle: Vehicle;
   isDeleting: boolean;
   onDelete: () => void;
+  isEditing: boolean;
+  isSavingEdit: boolean;
+  onStartEdit: () => void;
+  onCancelEdit: () => void;
+  onSaveEdit: (payload: { color: string; odometer: number | undefined }) => void;
 }) {
+  const [editColor, setEditColor] = useState(vehicle.color ?? "");
+  const [editOdometer, setEditOdometer] = useState(
+    vehicle.odometer != null ? String(vehicle.odometer) : "",
+  );
+
+  if (isEditing) {
+    return (
+      <article className="rounded-xl border border-primary bg-surface-container-low p-4">
+        <h4 className="mb-1 font-headline-md text-headline-md text-on-surface">
+          {vehicle.model}
+        </h4>
+        <span className="mb-4 inline-block rounded bg-secondary-container px-2 py-0.5 font-label-md text-label-md uppercase text-on-secondary-container">
+          {vehicle.vin}
+        </span>
+
+        <div className="mt-4 space-y-3">
+          <label className="block">
+            <span className="mb-1 block font-label-sm text-label-sm text-secondary">
+              Màu sắc
+            </span>
+            <input
+              className="w-full rounded-lg border border-outline-variant bg-white px-3 py-2 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+              type="text"
+              value={editColor}
+              onChange={(event) => setEditColor(event.target.value)}
+              placeholder="VD: Trắng (White Pearl)"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block font-label-sm text-label-sm text-secondary">
+              Số km đã đi (odometer)
+            </span>
+            <input
+              className="w-full rounded-lg border border-outline-variant bg-white px-3 py-2 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+              type="number"
+              value={editOdometer}
+              onChange={(event) => setEditOdometer(event.target.value)}
+              placeholder="VD: 12000"
+            />
+          </label>
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            disabled={isSavingEdit}
+            className="rounded-lg border border-outline px-4 py-2 font-label-md text-label-md text-on-surface-variant transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Huỷ
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              onSaveEdit({
+                color: editColor,
+                odometer: editOdometer ? Number(editOdometer) : undefined,
+              })
+            }
+            disabled={isSavingEdit}
+            className="rounded-lg bg-primary px-4 py-2 font-label-md text-label-md text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSavingEdit ? "Đang lưu..." : "Lưu"}
+          </button>
+        </div>
+      </article>
+    );
+  }
+
   return (
     <article className="group rounded-xl border border-outline-variant p-4 transition-all hover:border-primary hover:bg-surface-container-low">
       <div className="mb-4 flex aspect-video items-center justify-center overflow-hidden rounded-lg bg-surface-variant">
@@ -439,17 +548,27 @@ function VehicleCard({
             {vehicle.vin}
           </span>
         </div>
-        <button
-          type="button"
-          aria-label="Xoá xe"
-          disabled={isDeleting}
-          onClick={onDelete}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-on-surface-variant transition-colors hover:bg-error hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <span className="material-symbols-outlined text-[20px]">
-            {isDeleting ? "hourglass_empty" : "delete"}
-          </span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Sửa xe"
+            onClick={onStartEdit}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-on-surface-variant transition-colors hover:bg-primary hover:text-white"
+          >
+            <span className="material-symbols-outlined text-[20px]">edit</span>
+          </button>
+          <button
+            type="button"
+            aria-label="Xoá xe"
+            disabled={isDeleting}
+            onClick={onDelete}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-on-surface-variant transition-colors hover:bg-error hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              {isDeleting ? "hourglass_empty" : "delete"}
+            </span>
+          </button>
+        </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-4 font-label-sm text-label-sm text-secondary">
         <span className="flex items-center gap-1">
