@@ -43,3 +43,4 @@ coverage/
 
 # AI agents
 .agents/
+.claude/
