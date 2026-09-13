@@ -1,6 +1,6 @@
 import { useState } from "react";
-import AppSidebar, { type AppSection } from "../components/AppSidebar";
-import { getStoredAuthSession } from "../services/api";
+import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import { getStoredAuthSession } from "../../services/api";
 
 type QuickAction = {
   label: string;

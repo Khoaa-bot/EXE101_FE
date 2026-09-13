@@ -1,5 +1,5 @@
 import { useState } from "react";
-import AppSidebar, { type AppSection } from "../components/AppSidebar";
+import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 
 type HistoryPageProps = {
   onHomeClick: () => void;

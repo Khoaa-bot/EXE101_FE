@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { login } from "../services/api";
+import { login, type AuthSession } from "../../services/api";
 
 type LoginPageProps = {
-  onLogin: () => void;
+  onLogin: (session: AuthSession) => void;
   onRegisterClick: () => void;
 };
 
@@ -28,7 +28,7 @@ export default function LoginPage({
         password: String(formData.get("password") || ""),
       });
       localStorage.setItem("auth_session", JSON.stringify(session));
-      onLogin();
+      onLogin(session);
     } catch (requestError) {
       setError(
         requestError instanceof Error ? requestError.message : "Đăng nhập không thành công.",

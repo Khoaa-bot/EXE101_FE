@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { register } from "../services/api";
+import { register } from "../../services/api";
 
 type RegisterPageProps = {
   onBackToLogin: () => void;
