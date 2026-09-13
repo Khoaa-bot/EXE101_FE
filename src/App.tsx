@@ -144,8 +144,9 @@ function App() {
   const [pathname, setPathname] = useState(() =>
     normalizePath(window.location.pathname),
   );
-  const role = useMemo(() => getStoredAuthSession()?.role?.toUpperCase() || "CUSTOMER", [isAuthenticated]);
-  const routePath = getRoutePath(isAuthenticated, pathname, role);
+  const [selectedGarageId, setSelectedGarageId] = useState<string | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  const routePath = getRoutePath(isAuthenticated, pathname);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -513,6 +514,8 @@ function App() {
           onNotificationsClick={shellProps.onNotificationsClick}
           onTrackingClick={shellProps.onTrackingClick}
           onProfileClick={shellProps.onProfileClick}
+          garageId={selectedGarageId}
+          serviceId={selectedServiceId}
         />
       </AppShell>
     );
@@ -521,7 +524,13 @@ function App() {
   if (routePath === "/find-garage") {
     return (
       <AppShell active="find_garage" title="Tìm garage" {...shellProps}>
-        <FindGaragePage onBookingClick={() => navigate("/garage-detail")} />
+        <FindGaragePage
+          onBookingClick={(garageId) => {
+            setSelectedGarageId(garageId);
+            setSelectedServiceId(null);
+            navigate("/garage-detail");
+          }}
+        />
       </AppShell>
     );
   }
@@ -530,8 +539,12 @@ function App() {
     return (
       <AppShell active="find_garage" title="Chi tiết garage" {...shellProps}>
         <GarageDetailPage
+          garageId={selectedGarageId}
           onBackClick={() => navigate("/find-garage")}
-          onBookingClick={() => navigate("/booking")}
+          onBookingClick={(serviceId) => {
+            setSelectedServiceId(serviceId);
+            navigate("/booking");
+          }}
         />
       </AppShell>
     );
@@ -544,7 +557,11 @@ function App() {
       {...shellProps}
     >
       <Home
-        onBookingClick={() => navigate("/booking")}
+        onBookingClick={() => {
+          setSelectedGarageId(null);
+          setSelectedServiceId(null);
+          navigate("/booking");
+        }}
         onHistoryClick={shellProps.onHistoryClick}
         onNotificationsClick={shellProps.onNotificationsClick}
         onTrackingClick={shellProps.onTrackingClick}
