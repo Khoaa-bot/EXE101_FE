@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import AppSidebar, { type AppSection } from "../components/AppSidebar";
-import { deleteVehicle, getMyFleet, updateVehicle, type Vehicle } from "../services/api";
+import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import { deleteVehicle, getMyFleet, updateVehicle, type Vehicle } from "../../services/api";
 
 type ProfilePageProps = {
   onAddVehicleClick: () => void;

@@ -4,7 +4,7 @@ import {
   getGarageById,
   type Garage,
   type MaintenanceService,
-} from "../services/api";
+} from "../../services/api";
 
 type GarageDetailPageProps = {
   garageId: number | string | null;
