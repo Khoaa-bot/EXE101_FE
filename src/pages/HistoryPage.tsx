@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../components/AppSidebar";
+import { getAppointmentHistory, type AppointmentDto } from "../services/api";
 
 type HistoryPageProps = {
   onHomeClick: () => void;
@@ -8,55 +9,45 @@ type HistoryPageProps = {
   onTrackingClick: () => void;
 };
 
-type ServiceRecord = {
-  title: string;
-  subtitle: string;
-  type: "Bảo dưỡng" | "Sửa chữa";
-  date: string;
-  time: string;
-  garage: string;
-  price: string;
-  icon: string;
-  tone: string;
-};
-
-const filters = ["Tất cả", "Bảo dưỡng", "Sửa chữa"];
-
-const serviceRecords: ServiceRecord[] = [
-  {
-    title: "Thay nhớt động cơ",
-    subtitle: "Định kỳ 10,000km",
-    type: "Bảo dưỡng",
-    date: "15 Thg 05, 2024",
-    time: "09:30 AM",
-    garage: "Servio Auto Quận 7",
-    price: "1,450,000đ",
-    icon: "oil_barrel",
-    tone: "bg-primary-container/10 text-primary",
-  },
-  {
-    title: "Thay má phanh trước",
-    subtitle: "Hỏng hóc phát sinh",
-    type: "Sửa chữa",
-    date: "02 Thg 04, 2024",
-    time: "02:15 PM",
-    garage: "Garage Hữu Tâm",
-    price: "2,800,000đ",
-    icon: "settings_suggest",
-    tone: "bg-error-container/20 text-error",
-  },
-  {
-    title: "Kiểm tra tổng quát 40k",
-    subtitle: "Bảo dưỡng mốc lớn",
-    type: "Bảo dưỡng",
-    date: "20 Thg 01, 2024",
-    time: "08:00 AM",
-    garage: "Servio Auto Bình Thạnh",
-    price: "5,200,000đ",
-    icon: "car_repair",
-    tone: "bg-tertiary-container/10 text-tertiary",
-  },
+const filters = [
+  { value: "ALL", label: "Tất cả" },
+  { value: "COMPLETED", label: "Hoàn thành" },
+  { value: "CANCELLED", label: "Đã huỷ" },
 ];
+
+function statusLabel(status: string) {
+  switch (status) {
+    case "COMPLETED":
+      return "Hoàn thành";
+    case "CANCELLED":
+      return "Đã huỷ";
+    case "IN_PROGRESS":
+      return "Đang xử lý";
+    case "CONFIRMED":
+      return "Đã xác nhận";
+    case "PENDING":
+      return "Chờ xác nhận";
+    default:
+      return status;
+  }
+}
+
+function statusTone(status: string) {
+  if (status === "CANCELLED") return "bg-error-container/30 text-on-error-container";
+  if (status === "COMPLETED") return "bg-secondary-container/30 text-on-secondary-container";
+  return "bg-primary-container/20 text-primary";
+}
+
+function statusIcon(status: string) {
+  if (status === "CANCELLED") return "cancel";
+  if (status === "COMPLETED") return "task_alt";
+  return "build";
+}
+
+function formatCurrency(value: number | null | undefined) {
+  if (value === null || value === undefined) return "—";
+  return `${value.toLocaleString("vi-VN")}đ`;
+}
 
 export default function HistoryPage({
   onHomeClick,
@@ -65,7 +56,35 @@ export default function HistoryPage({
   onTrackingClick,
 }: HistoryPageProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState(filters[0]);
+  const [activeFilter, setActiveFilter] = useState(filters[0].value);
+  const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getAppointmentHistory()
+      .then((data) => {
+        if (!cancelled) setAppointments(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Không tải được lịch sử dịch vụ.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleNavigate = (section: AppSection) => {
     if (section === "home") onHomeClick();
@@ -75,9 +94,13 @@ export default function HistoryPage({
   };
 
   const visibleRecords =
-    activeFilter === "Tất cả"
-      ? serviceRecords
-      : serviceRecords.filter((record) => record.type === activeFilter);
+    activeFilter === "ALL"
+      ? appointments
+      : appointments.filter((record) => record.status === activeFilter);
+
+  const totalCost = appointments
+    .filter((record) => record.status === "COMPLETED")
+    .reduce((sum, record) => sum + (record.servicePrice || 0), 0);
 
   return (
     <div className="min-h-dvh bg-surface font-sans text-on-surface">
@@ -169,16 +192,6 @@ export default function HistoryPage({
           </div>
 
           <div className="flex items-center gap-md">
-            <div className="relative hidden lg:block">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-xl text-on-surface-variant">
-                search
-              </span>
-              <input
-                className="w-64 rounded-lg border border-outline-variant bg-surface-container-low py-2 pl-10 pr-4 font-body-md text-body-md outline-none transition-all focus:ring-2 focus:ring-primary"
-                placeholder="Tìm kiếm dịch vụ..."
-                type="text"
-              />
-            </div>
             <button
               className="rounded-full p-2 transition-colors hover:bg-surface-container-high"
               type="button"
@@ -193,14 +206,10 @@ export default function HistoryPage({
           <section className="grid grid-cols-1 gap-lg md:grid-cols-3">
             <div className="flex flex-col gap-xs rounded-xl border border-outline-variant bg-surface-container-lowest p-lg">
               <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">
-                Tổng chi phí (năm)
+                Tổng chi phí đã hoàn thành
               </span>
               <span className="font-display-lg text-display-lg text-primary">
-                12,450,000đ
-              </span>
-              <span className="flex items-center gap-1 font-label-md text-label-md text-tertiary">
-                <span className="material-symbols-outlined text-sm">trending_up</span>
-                +5% so với năm ngoái
+                {formatCurrency(totalCost)}
               </span>
             </div>
 
@@ -208,22 +217,18 @@ export default function HistoryPage({
               <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">
                 Số lần dịch vụ
               </span>
-              <span className="font-display-lg text-display-lg text-on-surface">08</span>
-              <span className="font-label-md text-label-md text-on-surface-variant">
-                Lần cuối: 12 ngày trước
+              <span className="font-display-lg text-display-lg text-on-surface">
+                {appointments.length.toString().padStart(2, "0")}
               </span>
             </div>
 
             <div className="flex items-center justify-between rounded-xl bg-primary-container p-lg text-on-primary-container shadow-lg shadow-primary-container/20">
               <div className="flex flex-col gap-xs">
                 <span className="font-label-sm text-label-sm uppercase tracking-wider opacity-90">
-                  Dịch vụ kế tiếp
+                  Đang xử lý
                 </span>
                 <span className="font-headline-md text-headline-md">
-                  Bảo dưỡng 50,000km
-                </span>
-                <span className="font-label-md text-label-md opacity-90">
-                  Còn 1,200 km nữa
+                  {appointments.filter((a) => a.status === "IN_PROGRESS").length} lịch hẹn
                 </span>
               </div>
               <span className="material-symbols-outlined text-4xl opacity-50">
@@ -236,212 +241,165 @@ export default function HistoryPage({
             <div className="flex w-full rounded-lg bg-surface-container-high p-1 sm:w-auto">
               {filters.map((filter) => (
                 <button
-                  key={filter}
+                  key={filter.value}
                   className={`flex-1 rounded-md px-lg py-2 font-label-md text-label-md transition-all sm:flex-none ${
-                    activeFilter === filter
+                    activeFilter === filter.value
                       ? "bg-primary text-on-primary shadow-sm"
                       : "text-on-surface-variant hover:text-primary"
                   }`}
                   type="button"
-                  onClick={() => setActiveFilter(filter)}
+                  onClick={() => setActiveFilter(filter.value)}
                 >
-                  {filter}
+                  {filter.label}
                 </button>
               ))}
             </div>
-            <div className="flex w-full items-center gap-sm sm:w-auto">
-              <button
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-outline-variant px-md py-2 font-label-md text-label-md transition-all hover:bg-surface-container sm:flex-none"
-                type="button"
-              >
-                <span className="material-symbols-outlined text-xl">filter_list</span>
-                <span>Bộ lọc</span>
-              </button>
-              <button
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-outline-variant px-md py-2 font-label-md text-label-md transition-all hover:bg-surface-container sm:flex-none"
-                type="button"
-              >
-                <span className="material-symbols-outlined text-xl">file_download</span>
-                <span>Xuất báo cáo</span>
-              </button>
-            </div>
           </section>
 
-          <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
-            <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full border-collapse text-left">
-                <thead className="border-b border-outline-variant bg-surface-container-low">
-                  <tr>
-                    {["DỊCH VỤ", "LOẠI", "NGÀY THỰC HIỆN", "GARAGE", "CHI PHÍ", ""].map(
-                      (heading) => (
-                        <th
-                          key={heading}
-                          className="px-xl py-md font-label-md text-label-md text-on-surface-variant"
-                        >
-                          {heading}
-                        </th>
-                      ),
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant">
-                  {visibleRecords.map((record) => (
-                    <tr
-                      key={`${record.title}-${record.date}`}
-                      className="group cursor-pointer transition-colors hover:bg-surface-container-low"
-                    >
-                      <td className="px-xl py-lg">
-                        <div className="flex items-center gap-md">
-                          <div
-                            className={`flex h-10 w-10 items-center justify-center rounded-lg ${record.tone}`}
+          {isLoading && (
+            <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-xl text-center font-body-md text-body-md text-on-surface-variant">
+              Đang tải lịch sử dịch vụ...
+            </div>
+          )}
+
+          {!isLoading && error && (
+            <div className="rounded-xl border border-error/30 bg-error-container/10 p-xl text-center font-body-md text-body-md text-error">
+              {error}
+            </div>
+          )}
+
+          {!isLoading && !error && visibleRecords.length === 0 && (
+            <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-xl text-center font-body-md text-body-md text-on-surface-variant">
+              Chưa có lịch sử dịch vụ nào.
+            </div>
+          )}
+
+          {!isLoading && !error && visibleRecords.length > 0 && (
+            <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
+              <div className="hidden overflow-x-auto lg:block">
+                <table className="w-full border-collapse text-left">
+                  <thead className="border-b border-outline-variant bg-surface-container-low">
+                    <tr>
+                      {["DỊCH VỤ", "TRẠNG THÁI", "NGÀY HẸN", "GARAGE", "CHI PHÍ"].map(
+                        (heading) => (
+                          <th
+                            key={heading}
+                            className="px-xl py-md font-label-md text-label-md text-on-surface-variant"
                           >
-                            <span className="material-symbols-outlined">
-                              {record.icon}
+                            {heading}
+                          </th>
+                        ),
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant">
+                    {visibleRecords.map((record) => (
+                      <tr
+                        key={record.id}
+                        className="group transition-colors hover:bg-surface-container-low"
+                      >
+                        <td className="px-xl py-lg">
+                          <div className="flex items-center gap-md">
+                            <div
+                              className={`flex h-10 w-10 items-center justify-center rounded-lg ${statusTone(record.status)}`}
+                            >
+                              <span className="material-symbols-outlined">
+                                {statusIcon(record.status)}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-body-lg text-body-lg font-semibold text-on-surface">
+                                {record.serviceName}
+                              </p>
+                              <p className="font-label-sm text-label-sm text-on-surface-variant">
+                                {record.vehicleModel} · {record.vehicleVin}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-xl py-lg">
+                          <span
+                            className={`rounded-full px-sm py-xs font-label-sm text-label-sm ${statusTone(record.status)}`}
+                          >
+                            {statusLabel(record.status)}
+                          </span>
+                        </td>
+                        <td className="px-xl py-lg">
+                          <p className="font-body-md text-body-md text-on-surface">
+                            {record.scheduleDate}
+                          </p>
+                          <p className="font-label-sm text-label-sm text-on-surface-variant">
+                            {record.timeFrame}
+                          </p>
+                        </td>
+                        <td className="px-xl py-lg">
+                          <div className="flex items-center gap-xs">
+                            <span className="material-symbols-outlined text-sm text-on-surface-variant">
+                              location_on
+                            </span>
+                            <span className="font-body-md text-body-md text-on-surface">
+                              {record.garageName}
                             </span>
                           </div>
-                          <div>
-                            <p className="font-body-lg text-body-lg font-semibold text-on-surface">
-                              {record.title}
-                            </p>
-                            <p className="font-label-sm text-label-sm text-on-surface-variant">
-                              {record.subtitle}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-xl py-lg">
-                        <span
-                          className={`rounded-full px-sm py-xs font-label-sm text-label-sm ${
-                            record.type === "Bảo dưỡng"
-                              ? "bg-secondary-container/30 text-on-secondary-container"
-                              : "bg-error-container/30 text-on-error-container"
-                          }`}
-                        >
-                          {record.type}
+                        </td>
+                        <td className="px-xl py-lg">
+                          <span className="font-body-lg text-body-lg font-bold text-on-surface">
+                            {formatCurrency(record.servicePrice)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="divide-y divide-outline-variant lg:hidden">
+                {visibleRecords.map((record) => (
+                  <article key={`${record.id}-mobile`} className="p-lg">
+                    <div className="mb-md flex items-start gap-md">
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${statusTone(record.status)}`}
+                      >
+                        <span className="material-symbols-outlined">
+                          {statusIcon(record.status)}
                         </span>
-                      </td>
-                      <td className="px-xl py-lg">
-                        <p className="font-body-md text-body-md text-on-surface">
-                          {record.date}
-                        </p>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-body-lg text-body-lg font-semibold">
+                          {record.serviceName}
+                        </h3>
                         <p className="font-label-sm text-label-sm text-on-surface-variant">
-                          {record.time}
+                          {record.vehicleModel} · {record.vehicleVin}
                         </p>
-                      </td>
-                      <td className="px-xl py-lg">
-                        <div className="flex items-center gap-xs">
-                          <span className="material-symbols-outlined text-sm text-on-surface-variant">
-                            location_on
-                          </span>
-                          <span className="font-body-md text-body-md text-on-surface">
-                            {record.garage}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-xl py-lg">
-                        <span className="font-body-lg text-body-lg font-bold text-on-surface">
-                          {record.price}
-                        </span>
-                      </td>
-                      <td className="px-xl py-lg text-right">
-                        <button
-                          className="rounded-full p-2 text-on-surface-variant opacity-0 transition-all hover:bg-surface-container-high group-hover:opacity-100"
-                          type="button"
-                        >
-                          <span className="material-symbols-outlined">
-                            chevron_right
-                          </span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="divide-y divide-outline-variant lg:hidden">
-              {visibleRecords.map((record) => (
-                <article
-                  key={`${record.title}-${record.date}-mobile`}
-                  className="p-lg"
-                >
-                  <div className="mb-md flex items-start gap-md">
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${record.tone}`}
-                    >
-                      <span className="material-symbols-outlined">{record.icon}</span>
+                      </div>
+                      <span
+                        className={`rounded-full px-sm py-xs font-label-sm text-label-sm ${statusTone(record.status)}`}
+                      >
+                        {statusLabel(record.status)}
+                      </span>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-body-lg text-body-lg font-semibold">
-                        {record.title}
-                      </h3>
-                      <p className="font-label-sm text-label-sm text-on-surface-variant">
-                        {record.subtitle}
+                    <div className="grid gap-sm font-body-md text-body-md text-on-surface-variant">
+                      <p>
+                        {record.scheduleDate} - {record.timeFrame}
                       </p>
+                      <p>{record.garageName}</p>
                     </div>
-                    <span
-                      className={`rounded-full px-sm py-xs font-label-sm text-label-sm ${
-                        record.type === "Bảo dưỡng"
-                          ? "bg-secondary-container/30 text-on-secondary-container"
-                          : "bg-error-container/30 text-on-error-container"
-                      }`}
-                    >
-                      {record.type}
-                    </span>
-                  </div>
-                  <div className="grid gap-sm font-body-md text-body-md text-on-surface-variant">
-                    <p>{record.date} - {record.time}</p>
-                    <p>{record.garage}</p>
-                  </div>
-                  <div className="mt-md flex items-center justify-between border-t border-outline-variant pt-md">
-                    <span className="font-label-md text-label-md text-outline">
-                      Chi phí
-                    </span>
-                    <span className="font-headline-md text-headline-md text-primary">
-                      {record.price}
-                    </span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="relative flex items-center justify-between overflow-hidden rounded-xl bg-inverse-surface p-xl text-inverse-on-surface">
-            <div className="relative z-10 min-w-0 max-w-[512px]">
-              <h2 className="mb-sm font-headline-lg text-headline-lg">
-                Tiết kiệm 20% cho lần bảo dưỡng tới
-              </h2>
-              <p className="mb-lg font-body-md text-body-md opacity-80">
-                Đăng ký gói Servio Care Plus để nhận ưu đãi chi phí nhân công và
-                linh kiện chính hãng trọn đời.
-              </p>
-              <button
-                className="rounded-lg bg-primary px-xl py-md font-label-md text-label-md text-on-primary shadow-lg transition-all hover:bg-primary-container active:scale-95"
-                type="button"
-              >
-                Tìm hiểu thêm
-              </button>
-            </div>
-            <div className="pointer-events-none absolute right-[-5%] top-1/2 hidden w-[40%] -translate-y-1/2 opacity-20 lg:block">
-              <span
-                className="material-symbols-outlined text-[240px]"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                shield_with_heart
-              </span>
-            </div>
-          </section>
+                    <div className="mt-md flex items-center justify-between border-t border-outline-variant pt-md">
+                      <span className="font-label-md text-label-md text-outline">
+                        Chi phí
+                      </span>
+                      <span className="font-headline-md text-headline-md text-primary">
+                        {formatCurrency(record.servicePrice)}
+                      </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
 
           <footer className="flex flex-col gap-md pb-xl font-label-sm text-label-sm text-on-surface-variant sm:flex-row sm:items-center sm:justify-between">
             <p>© 2024 Servio Automotive Management. All rights reserved.</p>
-            <div className="flex gap-lg">
-              <a className="transition-colors hover:text-primary" href="#">
-                Điều khoản dịch vụ
-              </a>
-              <a className="transition-colors hover:text-primary" href="#">
-                Chính sách bảo mật
-              </a>
-            </div>
           </footer>
         </div>
       </main>

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../components/AppSidebar";
+import { deleteVehicle, getMyFleet, updateVehicle, type Vehicle } from "../services/api";
 
 type ProfilePageProps = {
   onAddVehicleClick: () => void;
@@ -11,10 +12,6 @@ type ProfilePageProps = {
 
 const avatarImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuBl6W8I5H3BfDFb22UjJQatw0FPp5xydKMsK-jUyjMA-FwrvcPV3RNKiFv1p8QBVLeYlaGIDEo5W6KFS_72jfZTewB9MVEh78wMhnMxtyJec2e6FaXvgzKuPm7PnswzNmLkKmZwbTd37kI2gyxZHxCosroonYa_A1v-0pLA-2lsgZGhyXQw8JfWYSAkBFE2bsY3dZMR-HJj5UE5yEQSIu-3oUPaLXtUAT4ZeOntJFVoLrrat_P30uF6EeSdGKM0NUpakECPHcMF0KNY";
-const vf8Image =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDsiNEIMEDIrsbu_T4VPeaMS7TXxi40z0HECInm8QEL5wHbZcoW8mB9DyVGD2z3SYITGi4NyiidaJt-VYr-Yp2NFsiXknirVB45gf2HpT2DiHV0e__NJ3wdUjnCJtl0O8qJaU2v_6AcnQ3Yx-XAJQ-MMBWIxjI2TEE_ySL_wlNJOBvI3Xl0cOnjXgDSeNh-uplkGZyBWxaKXWe2iQ7-cnkxtGJ2_-Mn15yPj1RGbgebJ5Zf51koAvM1aPclk_emMTRtrgHFiCCDpX_3";
-const vfe34Image =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDmX8N_VN1i2r7JlPCQR51PDfICv6y38XkjOBDlFp8v02SZtPQMoQL64tFtKKNAmZQ2gwW_TQiRL0dzFKCz-4h49AZdPiAXFqMkGA8c7Wc2l6rKzQuJmdlAOK-Ht0NvIIEW1ADsC4au6diXF6RH0SSGDQ5B5A7nRMCVKlqPr5Ri4pzkSJu-43kCdSKbAmMwpqPy80Vs8dh8iy4yEhifLQLHiFTONTyg2I14pRlDEe_DpBT52URuQ-SpOsr9OChyLz9RC0MoOYrVekyo";
 const topAvatarImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCq7cLuR28NLZYDSnck17DV8qG7n3tF_B7rNhoMNrib2fG2p2rKRCqQYZolZj5T2Mu_JuQSmU4WRs9bblBGdV9L4c_OqWhDx7CfjFRVzLVNyQjpHWWpw4vOzgRu24QbzH2ov76-r9IDfTMPPple7SoRbOyo3BLH7CtQy2B19gdNrdt5a2PZv4TBd3pfx5X1aIl2oxTGPoXWl_NgbEq2GQE70wjGMu6RjUSZyqHWLk5q1AZ8SFMKbVq-sAYt2JvqT0SF4ak8qMboFVil";
 
@@ -26,12 +23,79 @@ export default function ProfilePage({
   onNotificationsClick,
 }: ProfilePageProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
+  const [vehiclesError, setVehiclesError] = useState("");
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const handleNavigate = (section: AppSection) => {
     if (section === "home") onHomeClick();
     if (section === "history") onHistoryClick();
     if (section === "tracking") onTrackingClick();
     if (section === "notifications") onNotificationsClick();
+  };
+
+  const loadVehicles = () => {
+    setIsLoadingVehicles(true);
+    setVehiclesError("");
+    getMyFleet()
+      .then(setVehicles)
+      .catch((requestError) => {
+        setVehiclesError(
+          requestError instanceof Error
+            ? requestError.message
+            : "Không tải được danh sách xe.",
+        );
+      })
+      .finally(() => setIsLoadingVehicles(false));
+  };
+
+  useEffect(() => {
+    loadVehicles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleDeleteVehicle = async (vehicleId: number) => {
+    if (!window.confirm("Xoá phương tiện này khỏi hồ sơ của bạn?")) return;
+
+    setDeletingId(vehicleId);
+    try {
+      await deleteVehicle(vehicleId);
+      setVehicles((current) => current.filter((vehicle) => vehicle.id !== vehicleId));
+    } catch (requestError) {
+      setVehiclesError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Xoá phương tiện không thành công.",
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleSaveEdit = async (
+    vehicleId: number,
+    payload: { color: string; odometer: number | undefined },
+  ) => {
+    setIsSavingEdit(true);
+    setVehiclesError("");
+    try {
+      const updated = await updateVehicle(vehicleId, payload);
+      setVehicles((current) =>
+        current.map((vehicle) => (vehicle.id === vehicleId ? updated : vehicle)),
+      );
+      setEditingId(null);
+    } catch (requestError) {
+      setVehiclesError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Cập nhật phương tiện không thành công.",
+      );
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   return (
@@ -252,23 +316,34 @@ export default function ProfilePage({
                   </button>
                 </div>
 
+                {isLoadingVehicles && (
+                  <p className="text-sm text-on-surface-variant">Đang tải danh sách xe...</p>
+                )}
+                {!isLoadingVehicles && vehiclesError && (
+                  <p className="rounded-lg bg-error-container px-4 py-3 text-sm text-on-error-container">
+                    {vehiclesError}
+                  </p>
+                )}
+                {!isLoadingVehicles && !vehiclesError && vehicles.length === 0 && (
+                  <p className="text-sm text-on-surface-variant">
+                    Bạn chưa có xe nào. Bấm "Thêm phương tiện mới" để bắt đầu.
+                  </p>
+                )}
+
                 <div className="grid grid-cols-1 gap-md md:grid-cols-2">
-                  <VehicleCard
-                    image={vf8Image}
-                    name="VinFast VF8"
-                    plate="30A - 123.45"
-                    batteryIcon="battery_charging_full"
-                    battery="82%"
-                    distance="12,400 km"
-                  />
-                  <VehicleCard
-                    image={vfe34Image}
-                    name="VinFast VF e34"
-                    plate="29D - 987.65"
-                    batteryIcon="battery_horiz_050"
-                    battery="45%"
-                    distance="8,150 km"
-                  />
+                  {vehicles.map((vehicle) => (
+                    <VehicleCard
+                      key={vehicle.id}
+                      vehicle={vehicle}
+                      isDeleting={deletingId === vehicle.id}
+                      onDelete={() => handleDeleteVehicle(vehicle.id)}
+                      isEditing={editingId === vehicle.id}
+                      isSavingEdit={isSavingEdit}
+                      onStartEdit={() => setEditingId(vehicle.id)}
+                      onCancelEdit={() => setEditingId(null)}
+                      onSaveEdit={(payload) => handleSaveEdit(vehicle.id, payload)}
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -370,52 +445,139 @@ function SideNavItem({
 }
 
 function VehicleCard({
-  image,
-  name,
-  plate,
-  batteryIcon,
-  battery,
-  distance,
+  vehicle,
+  isDeleting,
+  onDelete,
+  isEditing,
+  isSavingEdit,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
 }: {
-  image: string;
-  name: string;
-  plate: string;
-  batteryIcon: string;
-  battery: string;
-  distance: string;
+  vehicle: Vehicle;
+  isDeleting: boolean;
+  onDelete: () => void;
+  isEditing: boolean;
+  isSavingEdit: boolean;
+  onStartEdit: () => void;
+  onCancelEdit: () => void;
+  onSaveEdit: (payload: { color: string; odometer: number | undefined }) => void;
 }) {
+  const [editColor, setEditColor] = useState(vehicle.color ?? "");
+  const [editOdometer, setEditOdometer] = useState(
+    vehicle.odometer != null ? String(vehicle.odometer) : "",
+  );
+
+  if (isEditing) {
+    return (
+      <article className="rounded-xl border border-primary bg-surface-container-low p-4">
+        <h4 className="mb-1 font-headline-md text-headline-md text-on-surface">
+          {vehicle.model}
+        </h4>
+        <span className="mb-4 inline-block rounded bg-secondary-container px-2 py-0.5 font-label-md text-label-md uppercase text-on-secondary-container">
+          {vehicle.vin}
+        </span>
+
+        <div className="mt-4 space-y-3">
+          <label className="block">
+            <span className="mb-1 block font-label-sm text-label-sm text-secondary">
+              Màu sắc
+            </span>
+            <input
+              className="w-full rounded-lg border border-outline-variant bg-white px-3 py-2 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+              type="text"
+              value={editColor}
+              onChange={(event) => setEditColor(event.target.value)}
+              placeholder="VD: Trắng (White Pearl)"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block font-label-sm text-label-sm text-secondary">
+              Số km đã đi (odometer)
+            </span>
+            <input
+              className="w-full rounded-lg border border-outline-variant bg-white px-3 py-2 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+              type="number"
+              value={editOdometer}
+              onChange={(event) => setEditOdometer(event.target.value)}
+              placeholder="VD: 12000"
+            />
+          </label>
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            disabled={isSavingEdit}
+            className="rounded-lg border border-outline px-4 py-2 font-label-md text-label-md text-on-surface-variant transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Huỷ
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              onSaveEdit({
+                color: editColor,
+                odometer: editOdometer ? Number(editOdometer) : undefined,
+              })
+            }
+            disabled={isSavingEdit}
+            className="rounded-lg bg-primary px-4 py-2 font-label-md text-label-md text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSavingEdit ? "Đang lưu..." : "Lưu"}
+          </button>
+        </div>
+      </article>
+    );
+  }
+
   return (
-    <article className="group cursor-pointer rounded-xl border border-outline-variant p-4 transition-all hover:border-primary hover:bg-surface-container-low">
-      <div className="mb-4 aspect-video overflow-hidden rounded-lg bg-surface-variant">
-        <img
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          src={image}
-          alt={name}
-        />
+    <article className="group rounded-xl border border-outline-variant p-4 transition-all hover:border-primary hover:bg-surface-container-low">
+      <div className="mb-4 flex aspect-video items-center justify-center overflow-hidden rounded-lg bg-surface-variant">
+        <span className="material-symbols-outlined text-5xl text-primary opacity-40">
+          electric_car
+        </span>
       </div>
       <div className="flex items-start justify-between">
         <div>
           <h4 className="font-headline-md text-headline-md text-on-surface">
-            {name}
+            {vehicle.model}
           </h4>
           <span className="rounded bg-secondary-container px-2 py-0.5 font-label-md text-label-md uppercase text-on-secondary-container">
-            {plate}
+            {vehicle.vin}
           </span>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface transition-colors hover:bg-primary hover:text-white">
-          <span className="material-symbols-outlined text-[20px]">
-            chevron_right
-          </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Sửa xe"
+            onClick={onStartEdit}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-on-surface-variant transition-colors hover:bg-primary hover:text-white"
+          >
+            <span className="material-symbols-outlined text-[20px]">edit</span>
+          </button>
+          <button
+            type="button"
+            aria-label="Xoá xe"
+            disabled={isDeleting}
+            onClick={onDelete}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-on-surface-variant transition-colors hover:bg-error hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              {isDeleting ? "hourglass_empty" : "delete"}
+            </span>
+          </button>
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-4 font-label-sm text-label-sm text-secondary">
         <span className="flex items-center gap-1">
-          <span className="material-symbols-outlined text-sm">{batteryIcon}</span>
-          {battery}
+          <span className="material-symbols-outlined text-sm">palette</span>
+          {vehicle.color || "--"}
         </span>
         <span className="flex items-center gap-1">
           <span className="material-symbols-outlined text-sm">distance</span>
-          {distance}
+          {vehicle.odometer != null ? `${vehicle.odometer.toLocaleString("vi-VN")} km` : "--"}
         </span>
       </div>
     </article>
