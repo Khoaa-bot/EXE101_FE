@@ -1,5 +1,12 @@
-import { useState } from "react";
-import AppSidebar, { type AppSection } from "../components/AppSidebar";
+import { useEffect, useState } from "react";
+import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import {
+  getMyNotifications,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+  type AppNotification,
+  type NotificationType,
+} from "../../services/api";
 
 type NotificationsPageProps = {
   onHomeClick: () => void;
@@ -8,84 +15,72 @@ type NotificationsPageProps = {
   onTrackingClick: () => void;
 };
 
-type NotificationItem = {
-  id: number;
-  title: string;
-  body: string;
-  time: string;
-  icon: string;
-  iconClassName: string;
-  category: "Đơn hàng" | "Khuyến mãi" | "Hệ thống";
-  unread: boolean;
-  actions?: Array<{
-    label: string;
-    variant: "primary" | "secondary";
-  }>;
-  badge?: string;
-};
+type UiCategory = "Xe & Hồ sơ" | "Đơn hàng" | "Khuyến mãi" | "Hệ thống";
 
-const filters = ["Tất cả", "Đơn hàng", "Khuyến mãi", "Hệ thống"];
+const filters: Array<"Tất cả" | UiCategory> = [
+  "Tất cả",
+  "Xe & Hồ sơ",
+  "Đơn hàng",
+  "Khuyến mãi",
+  "Hệ thống",
+];
+
+// Ánh xạ loại thông báo từ backend (NotificationType) sang danh mục / icon
+// hiển thị ở FE. VEHICLE và PROFILE dùng ngay cho tính năng hiện tại;
+// APPOINTMENT/PROMOTION/SYSTEM để dành khi backend phát sinh thêm loại thông báo.
+const typeMeta: Record<
+  NotificationType,
+  { category: UiCategory; icon: string; iconClassName: string }
+> = {
+  VEHICLE: {
+    category: "Xe & Hồ sơ",
+    icon: "directions_car",
+    iconClassName: "bg-secondary-container text-on-secondary-container",
+  },
+  PROFILE: {
+    category: "Xe & Hồ sơ",
+    icon: "person",
+    iconClassName: "bg-secondary-container text-on-secondary-container",
+  },
+  APPOINTMENT: {
+    category: "Đơn hàng",
+    icon: "build",
+    iconClassName: "bg-surface-container text-outline",
+  },
+  PROMOTION: {
+    category: "Khuyến mãi",
+    icon: "sell",
+    iconClassName: "bg-tertiary-container text-on-tertiary-container",
+  },
+  SYSTEM: {
+    category: "Hệ thống",
+    icon: "warning",
+    iconClassName: "bg-error-container text-on-error-container",
+  },
+};
 
 const avatarImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuBGC_VlrThqEyJOL5jVI5f2HalXhDNv-TIxbEuYeWGHxbvXL2V_wOUNYznNaMqlLfe_yOBCXTCDUmUQQ2RsHfvsnTqiR55kChebPEIJPGJthRtnqSb6IaScTYySzbI6MpwjN4rzUnf4ZlAcgsrbRN6xxTiQoWwfyqzlsx1-WCiJ3NB5pHQDUU4FwWq0kaLkh6NVlnCemAwgrQwnlUp5UFapaX4_GQyFHlc6DVP_bZfFpbH9JWsyxa4C9lnCZ9u-IvqoEz_CMphV7IjU";
 
-const initialNotifications: NotificationItem[] = [
-  {
-    id: 1,
-    title: "Tiến độ bảo dưỡng: Đang thực hiện",
-    body: "Xe VinFast VF8 (Biển số: 30H-123.45) đang được kỹ thuật viên kiểm tra hệ thống treo và thay dầu định kỳ.",
-    time: "10:45 AM",
-    icon: "build",
-    iconClassName: "bg-secondary-container text-on-secondary-container",
-    category: "Đơn hàng",
-    unread: true,
-    actions: [
-      { label: "Theo dõi trực tiếp", variant: "primary" },
-      { label: "Chi tiết", variant: "secondary" },
-    ],
-  },
-  {
-    id: 2,
-    title: "Xác nhận đặt lịch thành công",
-    body: "Yêu cầu bảo dưỡng của bạn vào lúc 09:00 ngày 25/10 tại Servio CN Quận 1 đã được tiếp nhận.",
-    time: "Hôm qua, 15:30",
-    icon: "calendar_month",
-    iconClassName: "bg-surface-container text-outline",
-    category: "Đơn hàng",
-    unread: false,
-  },
-  {
-    id: 3,
-    title: "Ưu đãi độc quyền: Giảm 20% thay lốp",
-    body: "Chào mừng tháng 10, Servio tặng bạn mã giảm giá SERVIO20 áp dụng cho dịch vụ thay lốp Michelin. Hạn đến 31/10.",
-    time: "2 ngày trước",
-    icon: "sell",
-    iconClassName: "bg-tertiary-container text-on-tertiary-container",
-    category: "Khuyến mãi",
-    unread: true,
-    badge: "Mã: SERVIO20",
-  },
-  {
-    id: 4,
-    title: "Thanh toán hoàn tất",
-    body: "Giao dịch #SV10293 trị giá 2.500.000đ đã được xử lý thành công qua thẻ tín dụng.",
-    time: "3 ngày trước",
-    icon: "check_circle",
-    iconClassName: "bg-tertiary-fixed-dim/20 text-tertiary",
-    category: "Đơn hàng",
-    unread: false,
-  },
-  {
-    id: 5,
-    title: "Cảnh báo: Bảo mật tài khoản",
-    body: "Có một lượt đăng nhập mới vào tài khoản của bạn từ trình duyệt Chrome trên thiết bị Windows tại Hà Nội.",
-    time: "1 tuần trước",
-    icon: "warning",
-    iconClassName: "bg-error-container text-on-error-container",
-    category: "Hệ thống",
-    unread: true,
-  },
-];
+function formatRelativeTime(isoDate: string): string {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMinutes < 1) return "Vừa xong";
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffDays === 1) {
+    return `Hôm qua, ${date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}`;
+  }
+  if (diffDays < 7) return `${diffDays} ngày trước`;
+
+  return date.toLocaleDateString("vi-VN");
+}
 
 export default function NotificationsPage({
   onHomeClick,
@@ -94,17 +89,53 @@ export default function NotificationsPage({
   onTrackingClick,
 }: NotificationsPageProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState(filters[0]);
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [activeFilter, setActiveFilter] = useState<"Tất cả" | UiCategory>(filters[0]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadNotifications = () => {
+    setIsLoading(true);
+    setLoadError(null);
+    getMyNotifications()
+      .then((data) => setNotifications(data))
+      .catch((error) => {
+        setLoadError(
+          error instanceof Error ? error.message : "Không thể tải thông báo.",
+        );
+      })
+      .finally(() => setIsLoading(false));
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
 
   const markOneAsRead = (id: number) => {
+    const target = notifications.find((item) => item.id === id);
+    if (!target || target.isRead) return;
+
     setNotifications((items) =>
-      items.map((item) => (item.id === id ? { ...item, unread: false } : item)),
+      items.map((item) => (item.id === id ? { ...item, isRead: true } : item)),
     );
+
+    markNotificationAsRead(id).catch(() => {
+      // Rollback nếu gọi API thất bại.
+      setNotifications((items) =>
+        items.map((item) => (item.id === id ? { ...item, isRead: false } : item)),
+      );
+    });
   };
 
   const markAllAsRead = () => {
-    setNotifications((items) => items.map((item) => ({ ...item, unread: false })));
+    const hadUnread = notifications.some((item) => !item.isRead);
+    if (!hadUnread) return;
+
+    setNotifications((items) => items.map((item) => ({ ...item, isRead: true })));
+
+    markAllNotificationsAsRead().catch(() => {
+      loadNotifications();
+    });
   };
 
   const handleNavigate = (section: AppSection) => {
@@ -117,7 +148,7 @@ export default function NotificationsPage({
   const visibleNotifications =
     activeFilter === "Tất cả"
       ? notifications
-      : notifications.filter((notification) => notification.category === activeFilter);
+      : notifications.filter((item) => typeMeta[item.type]?.category === activeFilter);
 
   return (
     <div className="min-h-dvh bg-background font-sans text-on-surface">
@@ -248,13 +279,14 @@ export default function NotificationsPage({
                   Thông báo
                 </h2>
                 <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
-                  Cập nhật những hoạt động mới nhất về xe và dịch vụ của bạn.
+                  Cập nhật những hoạt động mới nhất về xe, hồ sơ và dịch vụ của bạn.
                 </p>
               </div>
               <button
-                className="flex items-center gap-1 rounded-lg px-3 py-2 font-label-md text-label-md text-primary transition-colors hover:bg-primary-fixed-dim/20"
+                className="flex items-center gap-1 rounded-lg px-3 py-2 font-label-md text-label-md text-primary transition-colors hover:bg-primary-fixed-dim/20 disabled:opacity-50"
                 type="button"
                 onClick={markAllAsRead}
+                disabled={isLoading || notifications.every((item) => item.isRead)}
               >
                 <span className="material-symbols-outlined text-[18px]">done_all</span>
                 Đánh dấu đã đọc tất cả
@@ -278,21 +310,42 @@ export default function NotificationsPage({
               ))}
             </section>
 
-            <section className="space-y-sm">
-              {visibleNotifications.map((notification) => (
-                <NotificationCard
-                  key={notification.id}
-                  item={notification}
-                  onRead={() => markOneAsRead(notification.id)}
-                />
-              ))}
-            </section>
+            {isLoading && (
+              <p className="py-xl text-center font-body-md text-body-md text-on-surface-variant">
+                Đang tải thông báo...
+              </p>
+            )}
 
-            <div className="mt-xl text-center">
-              <button className="rounded-xl border border-outline-variant px-xl py-lg font-label-md text-label-md text-on-surface-variant transition-colors hover:bg-surface-container">
-                Xem các thông báo cũ hơn
-              </button>
-            </div>
+            {!isLoading && loadError && (
+              <div className="rounded-xl border border-error/30 bg-error-container/40 p-lg text-center">
+                <p className="font-body-md text-body-md text-on-error-container">{loadError}</p>
+                <button
+                  className="mt-md rounded-lg border border-outline-variant px-lg py-2 font-label-md text-label-md text-on-surface-variant transition-colors hover:bg-surface-container"
+                  type="button"
+                  onClick={loadNotifications}
+                >
+                  Thử lại
+                </button>
+              </div>
+            )}
+
+            {!isLoading && !loadError && visibleNotifications.length === 0 && (
+              <p className="py-xl text-center font-body-md text-body-md text-on-surface-variant">
+                Không có thông báo nào.
+              </p>
+            )}
+
+            {!isLoading && !loadError && visibleNotifications.length > 0 && (
+              <section className="space-y-sm">
+                {visibleNotifications.map((notification) => (
+                  <NotificationCard
+                    key={notification.id}
+                    item={notification}
+                    onRead={() => markOneAsRead(notification.id)}
+                  />
+                ))}
+              </section>
+            )}
           </div>
         </main>
       </div>
@@ -343,28 +396,30 @@ function NotificationCard({
   item,
   onRead,
 }: {
-  item: NotificationItem;
+  item: AppNotification;
   onRead: () => void;
 }) {
+  const meta = typeMeta[item.type] ?? typeMeta.SYSTEM;
+
   return (
     <article
       className={`group relative flex cursor-pointer gap-lg rounded-xl border border-outline-variant bg-surface-container-lowest p-lg transition-all hover:bg-surface-container ${
-        item.unread ? "" : "opacity-80"
+        item.isRead ? "opacity-80" : ""
       }`}
       onClick={onRead}
     >
-      {item.unread && (
+      {!item.isRead && (
         <div className="absolute right-4 top-4 h-2 w-2 rounded-full bg-primary transition-transform group-hover:scale-110" />
       )}
 
       <div
-        className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${item.iconClassName}`}
+        className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${meta.iconClassName}`}
       >
         <span
           className="material-symbols-outlined"
-          style={{ fontVariationSettings: item.unread ? "'FILL' 1" : "'FILL' 0" }}
+          style={{ fontVariationSettings: !item.isRead ? "'FILL' 1" : "'FILL' 0" }}
         >
-          {item.icon}
+          {meta.icon}
         </span>
       </div>
 
@@ -374,39 +429,12 @@ function NotificationCard({
             {item.title}
           </h3>
           <span className="shrink-0 font-label-sm text-label-sm text-outline">
-            {item.time}
+            {formatRelativeTime(item.createdAt)}
           </span>
         </div>
         <p className="mt-1 font-body-md text-body-md leading-relaxed text-on-surface-variant">
-          {item.body}
+          {item.message}
         </p>
-
-        {item.actions && (
-          <div className="mt-md flex flex-wrap items-center gap-md">
-            {item.actions.map((action) => (
-              <button
-                key={action.label}
-                className={`rounded-lg px-lg py-1.5 font-label-md text-label-md ${
-                  action.variant === "primary"
-                    ? "bg-primary text-on-primary hover:opacity-90"
-                    : "border border-outline-variant hover:bg-surface-container"
-                }`}
-                type="button"
-                onClick={(event) => event.stopPropagation()}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {item.badge && (
-          <div className="mt-md">
-            <div className="inline-flex items-center gap-2 rounded-full bg-tertiary/10 px-3 py-1 font-label-sm text-label-sm font-bold uppercase tracking-wide text-tertiary">
-              {item.badge}
-            </div>
-          </div>
-        )}
       </div>
     </article>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import AppSidebar, { type AppSection } from "../components/AppSidebar";
+import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import {
   createAppointment,
   getAllServices,
@@ -10,7 +10,7 @@ import {
   type MaintenanceService,
   type Schedule,
   type Vehicle,
-} from "../services/api";
+} from "../../services/api";
 
 type BookingPageProps = {
   onHomeClick: () => void;

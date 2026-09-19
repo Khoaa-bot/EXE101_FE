@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import AppSidebar, { type AppSection } from "../components/AppSidebar";
-import { getAppointmentHistory, type AppointmentDto } from "../services/api";
+import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import { getAppointmentHistory, type AppointmentDto } from "../../services/api";
 
 type HistoryPageProps = {
   onHomeClick: () => void;

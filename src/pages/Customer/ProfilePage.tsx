@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
-import AppSidebar, { type AppSection } from "../components/AppSidebar";
-import { deleteVehicle, getMyFleet, updateVehicle, type Vehicle } from "../services/api";
+import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import {
+  deleteVehicle,
+  getMyFleet,
+  getMyProfile,
+  updateMyProfile,
+  updateVehicle,
+  uploadMyAvatar,
+  uploadVehicleImage,
+  type UserProfile,
+  type Vehicle,
+} from "../../services/api";
 
 type ProfilePageProps = {
   onAddVehicleClick: () => void;
@@ -29,6 +39,15 @@ export default function ProfilePage({
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [uploadingImageId, setUploadingImageId] = useState<number | null>(null);
+
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [profileError, setProfileError] = useState("");
+  const [fullNameInput, setFullNameInput] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const handleNavigate = (section: AppSection) => {
     if (section === "home") onHomeClick();
@@ -52,10 +71,74 @@ export default function ProfilePage({
       .finally(() => setIsLoadingVehicles(false));
   };
 
+  const loadProfile = () => {
+    setIsLoadingProfile(true);
+    setProfileError("");
+    getMyProfile()
+      .then((loadedProfile) => {
+        setProfile(loadedProfile);
+        setFullNameInput(loadedProfile.fullName || loadedProfile.username);
+      })
+      .catch((requestError) => {
+        setProfileError(
+          requestError instanceof Error
+            ? requestError.message
+            : "Không tải được thông tin cá nhân.",
+        );
+      })
+      .finally(() => setIsLoadingProfile(false));
+  };
+
   useEffect(() => {
     loadVehicles();
+    loadProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleSaveProfile = async () => {
+    if (!fullNameInput.trim()) {
+      setProfileError("Vui lòng nhập tên người dùng.");
+      return;
+    }
+    setIsSavingProfile(true);
+    setProfileError("");
+    setProfileSaved(false);
+    try {
+      const updated = await updateMyProfile({ fullName: fullNameInput.trim() });
+      setProfile(updated);
+      setFullNameInput(updated.fullName || updated.username);
+      setProfileSaved(true);
+    } catch (requestError) {
+      setProfileError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Cập nhật thông tin không thành công.",
+      );
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    setProfileError("");
+    try {
+      const updated = await uploadMyAvatar(file);
+      setProfile(updated);
+    } catch (requestError) {
+      setProfileError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Tải ảnh đại diện không thành công.",
+      );
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const handleDeleteVehicle = async (vehicleId: number) => {
     if (!window.confirm("Xoá phương tiện này khỏi hồ sơ của bạn?")) return;
@@ -77,7 +160,12 @@ export default function ProfilePage({
 
   const handleSaveEdit = async (
     vehicleId: number,
-    payload: { color: string; odometer: number | undefined },
+    payload: {
+      year: number | undefined;
+      licensePlate: string;
+      color: string;
+      odometer: number | undefined;
+    },
   ) => {
     setIsSavingEdit(true);
     setVehiclesError("");
@@ -95,6 +183,25 @@ export default function ProfilePage({
       );
     } finally {
       setIsSavingEdit(false);
+    }
+  };
+
+  const handleUploadImage = async (vehicleId: number, file: File) => {
+    setUploadingImageId(vehicleId);
+    setVehiclesError("");
+    try {
+      const updated = await uploadVehicleImage(vehicleId, file);
+      setVehicles((current) =>
+        current.map((vehicle) => (vehicle.id === vehicleId ? updated : vehicle)),
+      );
+    } catch (requestError) {
+      setVehiclesError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Tải ảnh xe không thành công.",
+      );
+    } finally {
+      setUploadingImageId(null);
     }
   };
 
@@ -213,7 +320,7 @@ export default function ProfilePage({
           >
             <img
               className="h-full w-full object-cover"
-              src={topAvatarImage}
+              src={profile?.avatarUrl || topAvatarImage}
               alt="Ảnh đại diện"
             />
           </button>
@@ -239,22 +346,37 @@ export default function ProfilePage({
                     <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-surface-container-high shadow-lg">
                       <img
                         className="h-full w-full object-cover"
-                        src={avatarImage}
+                        src={profile?.avatarUrl || avatarImage}
                         alt="Ảnh đại diện người dùng"
                       />
                     </div>
-                    <button
-                      className="absolute bottom-1 right-1 rounded-full bg-primary p-2 text-white shadow-md transition-transform hover:scale-110 active:scale-90"
-                      type="button"
+                    <label
+                      className={`absolute bottom-1 right-1 flex cursor-pointer items-center justify-center rounded-full bg-primary p-2 text-white shadow-md transition-transform hover:scale-110 active:scale-90 ${
+                        isUploadingAvatar ? "pointer-events-none opacity-60" : ""
+                      }`}
                     >
                       <span className="material-symbols-outlined text-[20px]">
-                        photo_camera
+                        {isUploadingAvatar ? "hourglass_empty" : "photo_camera"}
                       </span>
-                    </button>
+                      <input
+                        className="sr-only"
+                        type="file"
+                        accept="image/*"
+                        disabled={isUploadingAvatar}
+                        onChange={handleAvatarChange}
+                      />
+                    </label>
                   </div>
-                  <button className="mt-4 font-label-md text-label-md text-primary hover:underline">
-                    Thay đổi ảnh đại diện
-                  </button>
+                  <label className="mt-4 cursor-pointer font-label-md text-label-md text-primary hover:underline">
+                    {isUploadingAvatar ? "Đang tải ảnh lên..." : "Thay đổi ảnh đại diện"}
+                    <input
+                      className="sr-only"
+                      type="file"
+                      accept="image/*"
+                      disabled={isUploadingAvatar}
+                      onChange={handleAvatarChange}
+                    />
+                  </label>
                 </div>
 
                 <div className="space-y-6">
@@ -266,7 +388,12 @@ export default function ProfilePage({
                       <input
                         className="w-full rounded-lg border border-outline-variant px-4 py-3 font-body-lg text-body-lg transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                         type="text"
-                        defaultValue="Nguyễn Minh Đức"
+                        value={fullNameInput}
+                        disabled={isLoadingProfile}
+                        onChange={(event) => {
+                          setFullNameInput(event.target.value);
+                          setProfileSaved(false);
+                        }}
                       />
                       <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline">
                         edit
@@ -282,13 +409,29 @@ export default function ProfilePage({
                       className="w-full cursor-not-allowed rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 font-body-md text-body-md text-on-surface-variant"
                       readOnly
                       type="email"
-                      value="duc.nguyen@servio.vn"
+                      value={profile?.email || ""}
                     />
                   </label>
 
+                  {profileError && (
+                    <p className="rounded-lg bg-error-container px-4 py-3 text-sm text-on-error-container" role="alert">
+                      {profileError}
+                    </p>
+                  )}
+                  {profileSaved && !profileError && (
+                    <p className="rounded-lg bg-tertiary-fixed px-4 py-3 text-sm text-on-tertiary-fixed-variant">
+                      Đã lưu thay đổi.
+                    </p>
+                  )}
+
                   <div className="pt-4">
-                    <button className="w-full rounded-lg bg-primary py-3 font-headline-md text-headline-md text-white transition-all hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98]">
-                      Lưu thay đổi
+                    <button
+                      type="button"
+                      onClick={handleSaveProfile}
+                      disabled={isSavingProfile || isLoadingProfile}
+                      className="w-full rounded-lg bg-primary py-3 font-headline-md text-headline-md text-white transition-all hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {isSavingProfile ? "Đang lưu..." : "Lưu thay đổi"}
                     </button>
                   </div>
                 </div>
@@ -342,6 +485,8 @@ export default function ProfilePage({
                       onStartEdit={() => setEditingId(vehicle.id)}
                       onCancelEdit={() => setEditingId(null)}
                       onSaveEdit={(payload) => handleSaveEdit(vehicle.id, payload)}
+                      isUploadingImage={uploadingImageId === vehicle.id}
+                      onUploadImage={(file) => handleUploadImage(vehicle.id, file)}
                     />
                   ))}
                 </div>
@@ -453,6 +598,8 @@ function VehicleCard({
   onStartEdit,
   onCancelEdit,
   onSaveEdit,
+  isUploadingImage,
+  onUploadImage,
 }: {
   vehicle: Vehicle;
   isDeleting: boolean;
@@ -461,12 +608,33 @@ function VehicleCard({
   isSavingEdit: boolean;
   onStartEdit: () => void;
   onCancelEdit: () => void;
-  onSaveEdit: (payload: { color: string; odometer: number | undefined }) => void;
+  onSaveEdit: (payload: {
+    year: number | undefined;
+    licensePlate: string;
+    color: string;
+    odometer: number | undefined;
+  }) => void;
+  isUploadingImage: boolean;
+  onUploadImage: (file: File) => void;
 }) {
+  const MIN_VEHICLE_YEAR = 2010;
+  const currentYear = new Date().getFullYear();
+  const LICENSE_PLATE_PATTERN = /^\d{2}[A-Z]{1,2}-\d{3}\.?\d{2}$/;
+  const [editYear, setEditYear] = useState(
+    vehicle.year != null ? String(vehicle.year) : "",
+  );
+  const [editLicensePlate, setEditLicensePlate] = useState(vehicle.licensePlate ?? "");
+  const [plateError, setPlateError] = useState("");
   const [editColor, setEditColor] = useState(vehicle.color ?? "");
   const [editOdometer, setEditOdometer] = useState(
     vehicle.odometer != null ? String(vehicle.odometer) : "",
   );
+
+  const handleImageInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) onUploadImage(file);
+    event.target.value = "";
+  };
 
   if (isEditing) {
     return (
@@ -474,11 +642,48 @@ function VehicleCard({
         <h4 className="mb-1 font-headline-md text-headline-md text-on-surface">
           {vehicle.model}
         </h4>
-        <span className="mb-4 inline-block rounded bg-secondary-container px-2 py-0.5 font-label-md text-label-md uppercase text-on-secondary-container">
-          {vehicle.vin}
+        <span className="mb-1 inline-block rounded bg-secondary-container px-2 py-0.5 font-label-md text-label-md uppercase text-on-secondary-container">
+          {vehicle.licensePlate || "Chưa có biển số"}
+        </span>
+        <span className="mb-4 block font-label-sm text-label-sm text-secondary">
+          VIN: {vehicle.vin}
         </span>
 
         <div className="mt-4 space-y-3">
+          <label className="block">
+            <span className="mb-1 block font-label-sm text-label-sm text-secondary">
+              Biển số xe
+            </span>
+            <input
+              className="w-full rounded-lg border border-outline-variant bg-white px-3 py-2 font-body-md text-body-md uppercase outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+              type="text"
+              value={editLicensePlate}
+              onChange={(event) => {
+                setEditLicensePlate(event.target.value.toUpperCase());
+                setPlateError("");
+              }}
+              placeholder="VD: 30A-123.45"
+            />
+            {plateError && (
+              <span className="mt-1 block font-label-sm text-label-sm text-error">
+                {plateError}
+              </span>
+            )}
+          </label>
+          <label className="block">
+            <span className="mb-1 block font-label-sm text-label-sm text-secondary">
+              Năm sản xuất
+            </span>
+            <input
+              className="w-full rounded-lg border border-outline-variant bg-white px-3 py-2 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+              type="number"
+              min={MIN_VEHICLE_YEAR}
+              max={currentYear}
+              value={editYear}
+              onChange={(event) => setEditYear(event.target.value)}
+              placeholder={`VD: ${currentYear}`}
+            />
+          </label>
           <label className="block">
             <span className="mb-1 block font-label-sm text-label-sm text-secondary">
               Màu sắc
@@ -516,12 +721,19 @@ function VehicleCard({
           </button>
           <button
             type="button"
-            onClick={() =>
+            onClick={() => {
+              const normalizedPlate = editLicensePlate.trim().toUpperCase();
+              if (!LICENSE_PLATE_PATTERN.test(normalizedPlate)) {
+                setPlateError("Biển số xe không đúng định dạng (VD: 30A-123.45).");
+                return;
+              }
               onSaveEdit({
+                year: editYear ? Number(editYear) : undefined,
+                licensePlate: normalizedPlate,
                 color: editColor,
                 odometer: editOdometer ? Number(editOdometer) : undefined,
-              })
-            }
+              });
+            }}
             disabled={isSavingEdit}
             className="rounded-lg bg-primary px-4 py-2 font-label-md text-label-md text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -534,10 +746,35 @@ function VehicleCard({
 
   return (
     <article className="group rounded-xl border border-outline-variant p-4 transition-all hover:border-primary hover:bg-surface-container-low">
-      <div className="mb-4 flex aspect-video items-center justify-center overflow-hidden rounded-lg bg-surface-variant">
-        <span className="material-symbols-outlined text-5xl text-primary opacity-40">
-          electric_car
-        </span>
+      <div className="relative mb-4 flex aspect-video items-center justify-center overflow-hidden rounded-lg bg-surface-variant">
+        {vehicle.imageUrl ? (
+          <img
+            src={vehicle.imageUrl}
+            alt={vehicle.model}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span className="material-symbols-outlined text-5xl text-primary opacity-40">
+            electric_car
+          </span>
+        )}
+        <label
+          className={`absolute bottom-2 right-2 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white text-on-surface-variant shadow-md transition-colors hover:bg-primary hover:text-white ${
+            isUploadingImage ? "pointer-events-none opacity-60" : ""
+          }`}
+          aria-label="Tải ảnh xe"
+        >
+          <span className="material-symbols-outlined text-[18px]">
+            {isUploadingImage ? "hourglass_empty" : "photo_camera"}
+          </span>
+          <input
+            className="sr-only"
+            type="file"
+            accept="image/*"
+            disabled={isUploadingImage}
+            onChange={handleImageInputChange}
+          />
+        </label>
       </div>
       <div className="flex items-start justify-between">
         <div>
@@ -545,7 +782,7 @@ function VehicleCard({
             {vehicle.model}
           </h4>
           <span className="rounded bg-secondary-container px-2 py-0.5 font-label-md text-label-md uppercase text-on-secondary-container">
-            {vehicle.vin}
+            {vehicle.licensePlate || "Chưa có biển số"}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -572,12 +809,20 @@ function VehicleCard({
       </div>
       <div className="mt-4 flex flex-wrap gap-4 font-label-sm text-label-sm text-secondary">
         <span className="flex items-center gap-1">
+          <span className="material-symbols-outlined text-sm">event</span>
+          {vehicle.year ?? "--"}
+        </span>
+        <span className="flex items-center gap-1">
           <span className="material-symbols-outlined text-sm">palette</span>
           {vehicle.color || "--"}
         </span>
         <span className="flex items-center gap-1">
           <span className="material-symbols-outlined text-sm">distance</span>
           {vehicle.odometer != null ? `${vehicle.odometer.toLocaleString("vi-VN")} km` : "--"}
+        </span>
+        <span className="flex w-full items-center gap-1 text-outline">
+          <span className="material-symbols-outlined text-sm">pin</span>
+          VIN: {vehicle.vin}
         </span>
       </div>
     </article>

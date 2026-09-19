@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getGarages, type Garage } from "../services/api";
+import { getGarages, type Garage } from "../../services/api";
 
 type FindGaragePageProps = {
   onBookingClick: (garageId: string) => void;
