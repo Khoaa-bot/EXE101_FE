@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getAdminParts, createAdminPart, type AdminPart } from "../../services/api";
 
 export type InventoryPart = {
   id: string;
@@ -11,58 +12,18 @@ export type InventoryPart = {
   price: string;
 };
 
-const INVENTORY_SEED: InventoryPart[] = [
-  {
-    id: "PART-101",
-    sku: "PIN-48V-01",
-    name: "Cell Pin Lithium-ion 48V",
-    category: "Linh kiện điện",
-    location: "Kệ A1-R4",
-    stock: 8,
-    capacity: 30,
-    price: "8.500.000đ",
-  },
-  {
-    id: "PART-102",
-    sku: "BRK-EV-02",
-    name: "Bộ má phanh đĩa cao cấp EV",
-    category: "Phụ tùng",
-    location: "Kệ B2-R1",
-    stock: 45,
-    capacity: 50,
-    price: "1.200.000đ",
-  },
-  {
-    id: "PART-103",
-    sku: "CHG-7KW-03",
-    name: "Bộ sạc Onboard AC-DC 7kW",
-    category: "Linh kiện điện",
-    location: "Kệ A2-R3",
-    stock: 4,
-    capacity: 15,
-    price: "5.800.000đ",
-  },
-  {
-    id: "PART-104",
-    sku: "OIL-EV-04",
-    name: "Dầu làm mát dung dịch Pin EV",
-    category: "Vật tư tiêu hao",
-    location: "Kệ C1-R2",
-    stock: 22,
-    capacity: 40,
-    price: "450.000đ",
-  },
-  {
-    id: "PART-105",
-    sku: "SEN-TMP-05",
-    name: "Cảm biến nhiệt độ động cơ điện",
-    category: "Linh kiện điện",
-    location: "Kệ B1-R5",
-    stock: 18,
-    capacity: 25,
-    price: "750.000đ",
-  },
-];
+function mapApiPart(p: AdminPart): InventoryPart {
+  return {
+    id: String(p.id),
+    sku: p.sku,
+    name: p.partName,
+    category: p.category,
+    location: p.location,
+    stock: p.quantity,
+    capacity: p.maxQuantity,
+    price: p.price.toLocaleString("vi-VN") + "đ",
+  };
+}
 
 const navItems = [
   ["dashboard", "Dashboard"],
@@ -78,6 +39,7 @@ type AdminInventoryPageProps = {
   onCustomersClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
+  onLogout?: () => void;
 };
 
 export default function AdminInventoryPage({
@@ -86,13 +48,31 @@ export default function AdminInventoryPage({
   onCustomersClick,
   onInventoryClick,
   onPricingClick,
+  onLogout,
 }: AdminInventoryPageProps) {
-  const [list, setList] = useState<InventoryPart[]>(INVENTORY_SEED);
+  const [list, setList] = useState<InventoryPart[]>([]);
   const [query, setQuery] = useState("");
   const [restockPart, setRestockPart] = useState<InventoryPart | null>(null);
   const [restockAmount, setRestockAmount] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    getAdminParts()
+      .then((data) => {
+        const arr: AdminPart[] = Array.isArray(data)
+          ? data
+          : (Object.values(data) as AdminPart[]);
+        setList(arr.map(mapApiPart));
+        setLoading(false);
+      })
+      .catch((err) => {
+        setNotice(err instanceof Error ? err.message : "Không thể tải danh sách linh kiện");
+        setLoading(false);
+      });
+  }, []);
 
   const emptyPart = {
     name: "",
@@ -152,7 +132,7 @@ export default function AdminInventoryPage({
     setRestockAmount("");
   };
 
-  const confirmAddPart = () => {
+  const confirmAddPart = async () => {
     if (
       !newPart.name.trim() ||
       !newPart.location.trim() ||
@@ -170,24 +150,39 @@ export default function AdminInventoryPage({
       return;
     }
 
-    const id = `PART-${100 + list.length + 1}`;
-    const sku = `SKU-${Math.floor(1000 + Math.random() * 9000)}`;
+    const priceStr = newPart.price.replace(/[^\d]/g, "");
+    const price = Number(priceStr);
+    if (isNaN(price) || price < 0) {
+      showNotice("Đơn giá không hợp lệ!");
+      return;
+    }
 
-    const newItem: InventoryPart = {
-      id,
-      sku,
-      name: newPart.name.trim(),
-      category: newPart.category,
-      location: newPart.location.trim(),
-      stock,
-      capacity,
-      price: newPart.price.includes("đ") ? newPart.price : `${newPart.price}đ`,
-    };
+    try {
+      setSubmitting(true);
+      const session = JSON.parse(localStorage.getItem("auth_session") || "{}");
+      const garageId = session.id ?? 0;
 
-    setList((prev) => [newItem, ...prev]);
-    showNotice(`Đã thêm linh kiện mới: ${newItem.name}`);
-    setNewPart(emptyPart);
-    setAddOpen(false);
+      const created = await createAdminPart({
+        partName: newPart.name.trim(),
+        category: newPart.category,
+        sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
+        location: newPart.location.trim(),
+        quantity: stock,
+        maxQuantity: capacity,
+        price,
+        garageId,
+      });
+
+      const newItem: InventoryPart = mapApiPart(created);
+      setList((prev) => [newItem, ...prev]);
+      showNotice(`Đã thêm linh kiện mới: ${newItem.name}`);
+      setNewPart(emptyPart);
+      setAddOpen(false);
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : "Không thể thêm linh kiện");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -233,12 +228,16 @@ export default function AdminInventoryPage({
             );
           })}
         </nav>
-        <button
-          className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-low"
-          type="button"
-        >
-          <span className="material-symbols-outlined">settings</span>Cài đặt
-        </button>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
+            type="button"
+          >
+            <span className="material-symbols-outlined">logout</span>
+            Đăng xuất
+          </button>
+        )}
       </aside>
 
       {/* Main Content Area */}
@@ -476,7 +475,21 @@ export default function AdminInventoryPage({
                     );
                   })}
 
-                  {visibleList.length === 0 && (
+                  {loading && (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="px-5 py-8 text-center text-on-surface-variant"
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="material-symbols-outlined animate-spin text-primary">sync</span>
+                          <span>Đang tải danh mục linh kiện...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+
+                  {!loading && visibleList.length === 0 && (
                     <tr>
                       <td
                         colSpan={8}
@@ -541,7 +554,7 @@ export default function AdminInventoryPage({
       {/* Add New Part Modal */}
       {addOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
+          <div className="w-full max-w-xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
             <h3 className="font-headline-md text-lg font-bold">
               Thêm linh kiện mới
             </h3>
@@ -661,9 +674,10 @@ export default function AdminInventoryPage({
               <button
                 type="button"
                 onClick={confirmAddPart}
-                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90"
+                disabled={submitting}
+                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90 disabled:opacity-50"
               >
-                Thêm vào kho
+                {submitting ? "Đang thêm..." : "Thêm vào kho"}
               </button>
             </div>
           </div>

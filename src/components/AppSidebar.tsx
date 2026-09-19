@@ -14,6 +14,7 @@ type AppSidebarProps = {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (section: AppSection) => void;
+  onLogout?: () => void;
 };
 
 const navItems: Array<{
@@ -39,6 +40,7 @@ export default function AppSidebar({
   isOpen,
   onClose,
   onNavigate,
+  onLogout,
 }: AppSidebarProps) {
   const username = getStoredAuthSession()?.username || "Tài khoản";
   const avatarInitial = username.charAt(0).toUpperCase();
@@ -147,6 +149,10 @@ export default function AppSidebar({
           </div>
           <button
             type="button"
+            onClick={() => {
+              onClose();
+              onLogout?.();
+            }}
             className="flex w-full items-center gap-4 rounded-xl p-md text-error transition-colors hover:bg-error-container/10"
           >
             <span className="material-symbols-outlined">logout</span>

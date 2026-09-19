@@ -44,3 +44,5 @@ coverage/
 # AI agents
 .agents/
 .claude/
+.opencode/
+.opencode.json

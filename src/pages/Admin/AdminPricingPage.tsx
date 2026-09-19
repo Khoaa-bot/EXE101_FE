@@ -78,6 +78,7 @@ type AdminPricingPageProps = {
   onCustomersClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
+  onLogout?: () => void;
 };
 
 export default function AdminPricingPage({
@@ -86,6 +87,7 @@ export default function AdminPricingPage({
   onCustomersClick,
   onInventoryClick,
   onPricingClick,
+  onLogout,
 }: AdminPricingPageProps) {
   const [list, setList] = useState<PriceItem[]>(INITIAL_PRICING);
   const [query, setQuery] = useState("");
@@ -210,12 +212,16 @@ export default function AdminPricingPage({
             );
           })}
         </nav>
-        <button
-          className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-low"
-          type="button"
-        >
-          <span className="material-symbols-outlined">settings</span>Cài đặt
-        </button>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
+            type="button"
+          >
+            <span className="material-symbols-outlined">logout</span>
+            Đăng xuất
+          </button>
+        )}
       </aside>
 
       {/* Main Content Area */}

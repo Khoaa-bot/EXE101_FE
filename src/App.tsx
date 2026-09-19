@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getStoredAuthSession } from "./services/api";
 import AppShell from "./components/AppShell";
 import AddVehiclePage from "./pages/Customer/AddVehiclePage";
@@ -7,6 +7,9 @@ import AdminCustomersPage from "./pages/Admin/AdminCustomersPage";
 import AdminEngineersPage from "./pages/Admin/AdminEngineersPage";
 import AdminInventoryPage from "./pages/Admin/AdminInventoryPage";
 import AdminPricingPage from "./pages/Admin/AdminPricingPage";
+import AdminCustomerDetailPage, {
+  type Customer,
+} from "./pages/Admin/AdminCustomerDetailPage";
 import BookingPage from "./pages/Customer/BookingPage";
 import HistoryPage from "./pages/Customer/HistoryPage";
 import Home from "./pages/Customer/HomePage";
@@ -125,12 +128,15 @@ const getRoutePath = (isAuthenticated: boolean, pathname: string, role: string) 
     return defaultHome[role] || "/home";
   }
 
-  if (!appRoutes.has(pathname)) {
+  const isDetailRoute =
+    pathname.startsWith("/admin/customers/") ||
+    pathname.startsWith("/admin/employees/");
+  if (!appRoutes.has(pathname) && !isDetailRoute) {
     return defaultHome[role] || "/home";
   }
 
   const allowed = roleRoutes[role];
-  if (allowed && !allowed.has(pathname)) {
+  if (allowed && !allowed.has(pathname) && !isDetailRoute) {
     return defaultHome[role] || "/home";
   }
 
@@ -141,15 +147,15 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => Boolean(localStorage.getItem("auth_session")),
   );
+  const [role, setRole] = useState<string>(
+    () => getStoredAuthSession()?.role?.toUpperCase() || "CUSTOMER",
+  );
   const [pathname, setPathname] = useState(() =>
     normalizePath(window.location.pathname),
   );
   const [selectedGarageId, setSelectedGarageId] = useState<string | null>(null);
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
-  const role = useMemo(
-    () => (getStoredAuthSession()?.role || "").toUpperCase(),
-    [isAuthenticated],
-  );
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const routePath = getRoutePath(isAuthenticated, pathname, role);
 
   useEffect(() => {
@@ -189,6 +195,7 @@ function App() {
     onEngineersClick: () => navigate("/preview/admin/engineers"),
     onInventoryClick: () => navigate("/preview/admin/inventory"),
     onPricingClick: () => navigate("/preview/admin/pricing"),
+    onLogout: () => navigate("/login"),
   };
 
   const previewEngineerProps = {
@@ -199,6 +206,7 @@ function App() {
     onCustomersClick: () => navigate("/preview/engineer/customers"),
     onSettingsClick: () => navigate("/preview/engineer/settings"),
     onJobDetailClick: () => navigate("/preview/engineer/job-detail"),
+    onLogout: () => navigate("/login"),
   };
 
   const previewReceptionProps = {
@@ -211,6 +219,7 @@ function App() {
       setAppointmentId(id);
       navigate("/preview/reception/appointments/detail");
     },
+    onLogout: () => navigate("/login"),
   };
 
   if (routePath === "/preview/admin") {
@@ -311,9 +320,10 @@ function App() {
       <LoginPage
         onLogin={(session) => {
           setIsAuthenticated(true);
-          const role = session.role.toUpperCase();
+          const r = session.role.toUpperCase();
+          setRole(r);
           navigate(
-            role === "ADMIN" ? "/admin" : role === "ENGINEER" ? "/engineer" : role === "RECEPTION" ? "/reception" : "/home",
+            r === "ADMIN" ? "/admin" : r === "ENGINEER" ? "/engineer" : r === "RECEPTION" ? "/reception" : "/home",
           );
         }}
         onRegisterClick={() => navigate("/register")}
@@ -331,6 +341,7 @@ function App() {
     onLogout: () => {
       localStorage.removeItem("auth_session");
       setIsAuthenticated(false);
+      setRole("CUSTOMER");
       navigate("/login", true);
     },
   };
@@ -341,6 +352,14 @@ function App() {
     onEngineersClick: () => navigate("/admin/engineers"),
     onInventoryClick: () => navigate("/admin/inventory"),
     onPricingClick: () => navigate("/admin/pricing"),
+    onCustomerDetailClick: (customer: Customer) => {
+      setSelectedCustomer(customer);
+      navigate(`/admin/customers/${customer.id}`);
+    },
+    onEmployeeDetailClick: (id: string) => {
+      navigate(`/admin/employees/${id}`);
+    },
+    onLogout: shellProps.onLogout,
   };
 
   const engineerProps = {
@@ -358,8 +377,28 @@ function App() {
     return <AdminDashboardPage {...adminProps} />;
   }
 
+  if (routePath.startsWith("/admin/customers/")) {
+    if (selectedCustomer) {
+      return (
+        <AdminCustomerDetailPage
+          customer={selectedCustomer}
+          onBack={() => {
+            setSelectedCustomer(null);
+            navigate("/admin/customers");
+          }}
+          {...adminProps}
+        />
+      );
+    }
+    return <AdminCustomersPage {...adminProps} />;
+  }
+
   if (routePath === "/admin/customers") {
     return <AdminCustomersPage {...adminProps} />;
+  }
+
+  if (routePath.startsWith("/admin/employees/")) {
+    return <AdminEngineersPage {...adminProps} />;
   }
 
   if (routePath === "/admin/engineers") {

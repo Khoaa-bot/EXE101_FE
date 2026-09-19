@@ -73,6 +73,7 @@ type AdminDashboardPageProps = {
   onEngineersClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
+  onLogout?: () => void;
 };
 
 export default function AdminDashboardPage({
@@ -80,6 +81,7 @@ export default function AdminDashboardPage({
   onEngineersClick,
   onInventoryClick,
   onPricingClick,
+  onLogout,
 }: AdminDashboardPageProps) {
   const [notice, setNotice] = useState("");
   const showNotice = (message: string) => {
@@ -120,12 +122,16 @@ export default function AdminDashboardPage({
             </button>
           ))}
         </nav>
-        <button
-          className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-low"
-          type="button"
-        >
-          <span className="material-symbols-outlined">settings</span>Cài đặt
-        </button>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
+            type="button"
+          >
+            <span className="material-symbols-outlined">logout</span>
+            Đăng xuất
+          </button>
+        )}
       </aside>
       <main className="min-h-[100dvh] md:ml-60">
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-outline-variant bg-surface/95 px-margin-mobile backdrop-blur md:px-margin-desktop">

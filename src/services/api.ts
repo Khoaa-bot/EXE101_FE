@@ -483,6 +483,100 @@ export function getTimeFrames(garageId?: number | string) {
   return apiRequest<TimeFrame[]>("/schedules/time-frames", { query: { garageId } });
 }
 
+// GET /api/admin/parts — danh sách linh kiện (admin only).
+export type AdminPart = {
+  id: number;
+  partName: string;
+  category: string;
+  sku: string;
+  location: string;
+  quantity: number;
+  maxQuantity: number;
+  price: number;
+  status: string;
+  garageId: number;
+  garageName: string;
+  createdAt: string;
+};
+
+export type CreatePartPayload = {
+  partName: string;
+  category: string;
+  sku: string;
+  location: string;
+  quantity: number;
+  maxQuantity: number;
+  price: number;
+  garageId: number;
+};
+
+export function getAdminParts() {
+  return apiRequest<AdminPart[]>("/admin/parts");
+}
+
+export function createAdminPart(payload: CreatePartPayload) {
+  return apiRequest<AdminPart>("/admin/parts", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+// GET /api/admin/customers — danh sách khách hàng (admin only).
+export type AdminCustomer = {
+  id: number;
+  username: string;
+  email: string;
+  phone: string;
+  dob: string;
+  noShow: number;
+  status: string;
+  isBanned: boolean;
+  vehicleCount: number;
+  appointmentCount: number;
+  createdAt: string;
+};
+
+export function getAdminCustomers() {
+  return apiRequest<AdminCustomer[]>("/admin/customers");
+}
+
+// GET & POST /api/admin/employees — quản lý nhân viên (admin only).
+export type AdminEmployee = {
+  id: number;
+  username: string;
+  fullName?: string;
+  avatarUrl?: string;
+  phone: string;
+  email: string;
+  dob?: string;
+  role: string;
+  noShow?: number;
+  createdAt: string;
+  garageName?: string;
+  garageId: number;
+};
+
+export type CreateEmployeePayload = {
+  username: string;
+  password: string;
+  phone: string;
+  email: string;
+  dob: string;
+  role: string;
+  garageId: number;
+};
+
+export function getAdminEmployees() {
+  return apiRequest<AdminEmployee[]>("/admin/employees");
+}
+
+export function createAdminEmployee(payload: CreateEmployeePayload) {
+  return apiRequest<AdminEmployee>("/admin/employees", {
+    method: "POST",
+    body: payload,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Users / hồ sơ cá nhân — UserController (@RequestMapping("/api/users")) bên
 // backend. Áp dụng cho người dùng đang đăng nhập, không phân biệt role.
