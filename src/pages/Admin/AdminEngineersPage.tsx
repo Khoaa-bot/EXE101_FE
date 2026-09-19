@@ -1,11 +1,22 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  getAdminEmployees,
+  createAdminEmployee,
+  getGarages,
+  type AdminEmployee,
+  type Garage,
+} from "../../services/api";
 
 export type EngineerRole =
+  | "ENGINEER"
+  | "RECEPTIONIST"
+  | "ADMIN"
   | "lead"
   | "battery"
   | "mechanical"
   | "software"
-  | "reception";
+  | "reception"
+  | string;
 
 export type EngineerStatus = "active" | "locked";
 
@@ -16,6 +27,7 @@ export type Engineer = {
   phone: string;
   role: EngineerRole;
   roleTitle: string;
+  garageName?: string;
   status: EngineerStatus;
   joined: string;
   proficiency: number;
@@ -23,60 +35,24 @@ export type Engineer = {
   vehiclesWorked: number;
 };
 
-const INITIAL_ENGINEERS: Engineer[] = [
-  {
-    id: "EMP-1029",
-    name: "Trần Quốc Toản",
-    email: "toan.tran@servio.vn",
-    phone: "090 123 4567",
-    role: "lead",
-    roleTitle: "Kỹ thuật viên trưởng",
+function mapApiEmployee(e: AdminEmployee): Engineer {
+  return {
+    id: String(e.id),
+    name: e.fullName || e.username,
+    email: e.email,
+    phone: e.phone,
+    role: e.role,
+    roleTitle: e.role,
+    garageName: e.garageName,
     status: "active",
-    joined: "10/01/2024",
-    proficiency: 95,
-    rating: 4.9,
-    vehiclesWorked: 142,
-  },
-  {
-    id: "EMP-1030",
-    name: "Nguyễn Mỹ Linh",
-    email: "linh.nguyen@servio.vn",
-    phone: "091 888 9999",
-    role: "battery",
-    roleTitle: "Chuyên viên Pin EV",
-    status: "active",
-    joined: "15/03/2024",
-    proficiency: 90,
-    rating: 4.8,
-    vehiclesWorked: 98,
-  },
-  {
-    id: "EMP-1031",
-    name: "Đặng Hữu Tài",
-    email: "tai.dang@servio.vn",
-    phone: "093 555 7777",
-    role: "mechanical",
-    roleTitle: "Thợ máy gầm",
-    status: "active",
-    joined: "01/05/2024",
+    joined: e.createdAt
+      ? new Date(e.createdAt).toLocaleDateString("vi-VN")
+      : new Date().toLocaleDateString("vi-VN"),
     proficiency: 85,
-    rating: 4.7,
-    vehiclesWorked: 76,
-  },
-  {
-    id: "EMP-1032",
-    name: "Phạm Văn Hùng",
-    email: "hung.pham@servio.vn",
-    phone: "097 222 3333",
-    role: "software",
-    roleTitle: "Kỹ thuật viên Phần mềm",
-    status: "locked",
-    joined: "20/06/2024",
-    proficiency: 80,
-    rating: 4.5,
-    vehiclesWorked: 45,
-  },
-];
+    rating: 5.0,
+    vehiclesWorked: 0,
+  };
+}
 
 const navItems = [
   ["dashboard", "Dashboard"],
@@ -86,12 +62,14 @@ const navItems = [
   ["payments", "Bảng giá"],
 ];
 
-const ROLE_OPTIONS: { value: EngineerRole; label: string }[] = [
+const ROLE_OPTIONS: { value: string; label: string }[] = [
+  { value: "ENGINEER", label: "Kỹ thuật viên (ENGINEER)" },
+  { value: "RECEPTIONIST", label: "Tiếp tân (RECEPTIONIST)" },
+  { value: "ADMIN", label: "Quản trị viên (ADMIN)" },
   { value: "lead", label: "Kỹ thuật viên trưởng" },
   { value: "battery", label: "Chuyên viên Pin EV" },
   { value: "mechanical", label: "Thợ máy gầm" },
   { value: "software", label: "Kỹ thuật viên Phần mềm" },
-  { value: "reception", label: "Tiếp tân dịch vụ" },
 ];
 
 type AdminEngineersPageProps = {
@@ -100,6 +78,8 @@ type AdminEngineersPageProps = {
   onEngineersClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
+  onEmployeeDetailClick?: (id: string) => void;
+  onLogout?: () => void;
 };
 
 export default function AdminEngineersPage({
@@ -108,22 +88,54 @@ export default function AdminEngineersPage({
   onEngineersClick,
   onInventoryClick,
   onPricingClick,
+  onEmployeeDetailClick,
+  onLogout,
 }: AdminEngineersPageProps) {
-  const [list, setList] = useState<Engineer[]>(INITIAL_ENGINEERS);
+  const [list, setList] = useState<Engineer[]>([]);
+  const [garages, setGarages] = useState<Garage[]>([]);
   const [query, setQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "locked">(
     "all",
   );
-  const [selectedEngineer, setSelectedEngineer] = useState<Engineer | null>(
-    null,
-  );
   const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      getAdminEmployees()
+        .then((data) => {
+          const arr: AdminEmployee[] = Array.isArray(data)
+            ? data
+            : (Object.values(data) as AdminEmployee[]);
+          setList(arr.map(mapApiEmployee));
+        })
+        .catch((err) => {
+          setNotice(err instanceof Error ? err.message : "Không thể tải danh sách nhân viên");
+        }),
+      getGarages()
+        .then((data) => {
+          const arr: Garage[] = Array.isArray(data)
+            ? data
+            : (Object.values(data) as Garage[]);
+          setGarages(arr);
+          if (arr.length > 0) {
+            setForm((prev) => ({ ...prev, garageId: arr[0].id }));
+          }
+        })
+        .catch(() => {
+          // ignore optional garage error
+        }),
+    ]).finally(() => setLoading(false));
+  }, []);
 
   const [form, setForm] = useState({
-    name: "",
+    username: "",
     email: "",
     phone: "",
-    role: "battery" as EngineerRole,
+    dob: "2000-01-01",
+    role: "ENGINEER",
+    garageId: 1,
     password: "",
   });
   const [showPw, setShowPw] = useState(false);
@@ -154,37 +166,49 @@ export default function AdminEngineersPage({
     });
   }, [list, filterStatus, query]);
 
-  const submitNewEngineer = (e: React.FormEvent) => {
+  const submitNewEngineer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
-      showNotice("Vui lòng nhập đầy đủ họ tên, email và mật khẩu tạm thời!");
+    if (
+      !form.username.trim() ||
+      !form.email.trim() ||
+      !form.password.trim() ||
+      !form.phone.trim()
+    ) {
+      showNotice("Vui lòng nhập đầy đủ tên tài khoản, email, số điện thoại và mật khẩu!");
       return;
     }
 
-    const selectedRoleObj = ROLE_OPTIONS.find((r) => r.value === form.role);
-    const newEmp: Engineer = {
-      id: `EMP-${1030 + list.length}`,
-      name: form.name.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim() || "090 000 0000",
-      role: form.role,
-      roleTitle: selectedRoleObj ? selectedRoleObj.label : "Kỹ thuật viên",
-      status: "active",
-      joined: new Date().toLocaleDateString("vi-VN"),
-      proficiency: 85,
-      rating: 5.0,
-      vehiclesWorked: 0,
-    };
+    try {
+      setSubmitting(true);
+      const created = await createAdminEmployee({
+        username: form.username.trim(),
+        password: form.password,
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        dob: form.dob || "2000-01-01",
+        role: form.role,
+        garageId: Number(form.garageId) || (garages[0]?.id ?? 1),
+      });
 
-    setList((prev) => [newEmp, ...prev]);
-    setForm({
-      name: "",
-      email: "",
-      phone: "",
-      role: "battery",
-      password: "",
-    });
-    showNotice(`Đã tạo thành công tài khoản kỹ thuật viên: ${newEmp.name}`);
+      const newEmp = mapApiEmployee(created);
+      setList((prev) => [newEmp, ...prev]);
+      setForm({
+        username: "",
+        email: "",
+        phone: "",
+        dob: "2000-01-01",
+        role: "ENGINEER",
+        garageId: garages[0]?.id ?? 1,
+        password: "",
+      });
+      showNotice(`Đã tạo thành công tài khoản nhân viên: ${created.username}`);
+    } catch (err) {
+      showNotice(
+        err instanceof Error ? err.message : "Không thể tạo tài khoản nhân viên. Vui lòng thử lại.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const toggleStatus = (id: string) => {
@@ -246,12 +270,16 @@ export default function AdminEngineersPage({
             );
           })}
         </nav>
-        <button
-          className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-low"
-          type="button"
-        >
-          <span className="material-symbols-outlined">settings</span>Cài đặt
-        </button>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
+            type="button"
+          >
+            <span className="material-symbols-outlined">logout</span>
+            Đăng xuất
+          </button>
+        )}
       </aside>
 
       {/* Main Content Area */}
@@ -383,16 +411,16 @@ export default function AdminEngineersPage({
               <form onSubmit={submitNewEngineer} className="space-y-4">
                 <div>
                   <label className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
-                    Họ và tên *
+                    Tên tài khoản / Họ tên *
                   </label>
                   <input
                     type="text"
                     required
-                    value={form.name}
+                    value={form.username}
                     onChange={(e) =>
-                      setForm({ ...form, name: e.target.value })
+                      setForm({ ...form, username: e.target.value })
                     }
-                    placeholder="Nguyễn Văn A"
+                    placeholder="VD: nguyenvana hoặc Nguyễn Văn A"
                     className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                 </div>
@@ -415,10 +443,11 @@ export default function AdminEngineersPage({
 
                 <div>
                   <label className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
-                    Số điện thoại
+                    Số điện thoại *
                   </label>
                   <input
-                    type="text"
+                    type="tel"
+                    required
                     value={form.phone}
                     onChange={(e) =>
                       setForm({ ...form, phone: e.target.value })
@@ -430,12 +459,50 @@ export default function AdminEngineersPage({
 
                 <div>
                   <label className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
-                    Chuyên môn / Vai trò
+                    Ngày sinh (DOB) *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={form.dob}
+                    onChange={(e) =>
+                      setForm({ ...form, dob: e.target.value })
+                    }
+                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
+                    Garage trực thuộc *
+                  </label>
+                  <select
+                    value={form.garageId}
+                    onChange={(e) =>
+                      setForm({ ...form, garageId: Number(e.target.value) })
+                    }
+                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  >
+                    {garages.length > 0 ? (
+                      garages.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.name}
+                        </option>
+                      ))
+                    ) : (
+                      <option value={1}>Garage Mặc định (ID: 1)</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
+                    Vai trò / Chức vụ *
                   </label>
                   <select
                     value={form.role}
                     onChange={(e) =>
-                      setForm({ ...form, role: e.target.value as EngineerRole })
+                      setForm({ ...form, role: e.target.value })
                     }
                     className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   >
@@ -449,7 +516,7 @@ export default function AdminEngineersPage({
 
                 <div>
                   <label className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
-                    Mật khẩu tạm thời *
+                    Mật khẩu *
                   </label>
                   <div className="relative">
                     <input
@@ -477,12 +544,13 @@ export default function AdminEngineersPage({
 
                 <button
                   type="submit"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98]"
+                  disabled={submitting}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined text-lg">
-                    person_add
+                    {submitting ? "sync" : "person_add"}
                   </span>
-                  Xác nhận tạo tài khoản
+                  {submitting ? "Đang tạo tài khoản..." : "Xác nhận tạo tài khoản"}
                 </button>
               </form>
             </article>
@@ -491,7 +559,7 @@ export default function AdminEngineersPage({
             <article className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest lg:col-span-2">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant p-lg">
                 <h2 className="font-headline-md text-headline-md">
-                  Danh sách kỹ thuật viên
+                  Danh sách nhân viên ({list.length})
                 </h2>
                 <div className="flex rounded-lg border border-outline-variant bg-surface-container-low p-1">
                   {(
@@ -593,7 +661,7 @@ export default function AdminEngineersPage({
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 type="button"
-                                onClick={() => setSelectedEngineer(emp)}
+                                onClick={() => onEmployeeDetailClick?.(emp.id)}
                                 className="rounded-lg border border-outline-variant px-3 py-1 text-xs font-medium text-on-surface-variant hover:border-primary hover:text-primary"
                               >
                                 Chi tiết
@@ -615,7 +683,21 @@ export default function AdminEngineersPage({
                       );
                     })}
 
-                    {visibleEngineers.length === 0 && (
+                    {loading && (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-5 py-8 text-center text-on-surface-variant"
+                        >
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="material-symbols-outlined animate-spin text-primary">sync</span>
+                            <span>Đang tải danh sách nhân viên...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {!loading && visibleEngineers.length === 0 && (
                       <tr>
                         <td
                           colSpan={5}
@@ -632,74 +714,6 @@ export default function AdminEngineersPage({
           </section>
         </div>
       </main>
-
-      {/* Engineer Detail Modal */}
-      {selectedEngineer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
-            <div className="flex items-start justify-between border-b border-outline-variant pb-4">
-              <div>
-                <h3 className="font-headline-md text-lg font-bold">
-                  {selectedEngineer.name}
-                </h3>
-                <p className="text-xs text-outline">{selectedEngineer.id}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedEngineer(null)}
-                className="rounded-full p-1 text-outline hover:bg-surface-container hover:text-on-surface"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3 text-body-sm">
-              <div className="flex justify-between py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant">Chuyên môn:</span>
-                <span className="font-semibold">
-                  {selectedEngineer.roleTitle}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant">Email:</span>
-                <span className="font-semibold">{selectedEngineer.email}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant">Điện thoại:</span>
-                <span className="font-semibold">{selectedEngineer.phone}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant">Ngày gia nhập:</span>
-                <span className="font-semibold font-mono">
-                  {selectedEngineer.joined}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant">Đánh giá trung bình:</span>
-                <span className="font-semibold text-tertiary">
-                  ★ {selectedEngineer.rating} / 5.0
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant">Số xe đã xử lý:</span>
-                <span className="font-semibold">
-                  {selectedEngineer.vehiclesWorked} xe
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6 text-right">
-              <button
-                type="button"
-                onClick={() => setSelectedEngineer(null)}
-                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Floating Notice Toast */}
       {notice && (

@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getAdminCustomers, type AdminCustomer } from "../../services/api";
 
-type Customer = {
+export type Customer = {
   id: string;
   name: string;
   initials: string;
@@ -12,63 +13,26 @@ type Customer = {
   state: "all" | "repair" | "vip";
 };
 
-const customers: Customer[] = [
-  {
-    id: "CUS-92831",
-    name: "Nguyễn Văn Minh",
-    initials: "NM",
-    phone: "091 234 5678",
-    email: "minh.nguyen@email.com",
-    vehicle: "Toyota Vios",
-    plate: "51H-12345",
-    servicedAt: "15/06/2024",
-    state: "repair",
-  },
-  {
-    id: "CUS-88210",
-    name: "Trần Hoàng Nam",
-    initials: "TN",
-    phone: "098 765 4321",
-    email: "nam.tran@email.com",
-    vehicle: "Mazda CX-5",
-    plate: "30E-67890",
-    servicedAt: "03/06/2024",
-    state: "vip",
-  },
-  {
-    id: "CUS-71249",
-    name: "Lê Thanh Tâm",
-    initials: "LT",
-    phone: "090 112 2334",
-    email: "tam.le@email.com",
-    vehicle: "VinFast VF8",
-    plate: "51A-11111",
-    servicedAt: "28/05/2024",
-    state: "all",
-  },
-  {
-    id: "CUS-60552",
-    name: "Phạm Quốc Huy",
-    initials: "PH",
-    phone: "094 556 7788",
-    email: "huy.pham@email.com",
-    vehicle: "Honda CR-V",
-    plate: "60K-23456",
-    servicedAt: "12/05/2024",
-    state: "repair",
-  },
-  {
-    id: "CUS-44219",
-    name: "Hoàng Anh Tuấn",
-    initials: "AT",
-    phone: "093 223 4455",
-    email: "tuan.hoang@email.com",
-    vehicle: "Toyota Corolla Altis",
-    plate: "51F-98765",
-    servicedAt: "10/05/2024",
-    state: "vip",
-  },
-];
+function mapApiCustomer(c: AdminCustomer): Customer {
+  const initials = c.username
+    .split(" ")
+    .map((s) => s[0])
+    .slice(-2)
+    .join("");
+  return {
+    id: String(c.id),
+    name: c.username,
+    initials: initials || c.username.slice(0, 2).toUpperCase(),
+    phone: c.phone,
+    email: c.email,
+    vehicle: `${c.vehicleCount} xe`,
+    plate: "—",
+    servicedAt: c.createdAt
+      ? new Date(c.createdAt).toLocaleDateString("vi-VN")
+      : "—",
+    state: c.isBanned ? "repair" : "all",
+  };
+}
 
 const navItems = [
   ["dashboard", "Dashboard"],
@@ -84,6 +48,8 @@ type AdminCustomersPageProps = {
   onCustomersClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
+  onCustomerDetailClick?: (customer: Customer) => void;
+  onLogout?: () => void;
 };
 
 export default function AdminCustomersPage({
@@ -92,10 +58,30 @@ export default function AdminCustomersPage({
   onCustomersClick,
   onInventoryClick,
   onPricingClick,
+  onCustomerDetailClick,
+  onLogout,
 }: AdminCustomersPageProps) {
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [filter, setFilter] = useState<Customer["state"]>("all");
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getAdminCustomers()
+      .then((data) => {
+        const list: AdminCustomer[] = Array.isArray(data)
+          ? data
+          : (Object.values(data) as AdminCustomer[]);
+        setCustomers(list.map(mapApiCustomer));
+        setLoading(false);
+      })
+      .catch((err) => {
+        setNotice(err instanceof Error ? err.message : "Không thể tải danh sách khách hàng");
+        setLoading(false);
+      });
+  }, []);
+
   const visibleCustomers = useMemo(
     () =>
       customers.filter(
@@ -105,7 +91,7 @@ export default function AdminCustomersPage({
             .toLocaleLowerCase()
             .includes(query.toLocaleLowerCase()),
       ),
-    [filter, query],
+    [filter, query, customers],
   );
   const showNotice = (message: string) => {
     setNotice(message);
@@ -147,12 +133,16 @@ export default function AdminCustomersPage({
             </button>
           ))}
         </nav>
-        <button
-          className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-low"
-          type="button"
-        >
-          <span className="material-symbols-outlined">settings</span>Cài đặt
-        </button>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
+            type="button"
+          >
+            <span className="material-symbols-outlined">logout</span>
+            Đăng xuất
+          </button>
+        )}
       </aside>
       <main className="min-h-[100dvh] md:ml-60">
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-outline-variant bg-surface/95 px-margin-mobile backdrop-blur md:px-margin-desktop">
@@ -287,12 +277,13 @@ export default function AdminCustomersPage({
                 </button>
               </div>
               <p className="text-xs text-outline">
-                Hiển thị {visibleCustomers.length} trên 1,284 khách hàng
+                {loading ? "Đang tải..." : `Hiển thị ${visibleCustomers.length} khách hàng`}
               </p>
             </div>
             <CustomerTable
               customers={visibleCustomers}
               showNotice={showNotice}
+              onCustomerDetailClick={onCustomerDetailClick}
             />
             <Pagination />
           </section>
@@ -347,9 +338,11 @@ function Metric({
 function CustomerTable({
   customers,
   showNotice,
+  onCustomerDetailClick,
 }: {
   customers: Customer[];
   showNotice: (message: string) => void;
+  onCustomerDetailClick?: (customer: Customer) => void;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -430,7 +423,7 @@ function CustomerTable({
                   <button
                     className="rounded-lg border border-outline-variant px-3 py-1.5 font-label-md text-label-md text-on-surface-variant hover:border-primary hover:bg-primary hover:text-on-primary"
                     type="button"
-                    onClick={() => showNotice(`Mở hồ sơ ${customer.name}`)}
+                    onClick={() => onCustomerDetailClick?.(customer)}
                   >
                     Chi tiết
                   </button>

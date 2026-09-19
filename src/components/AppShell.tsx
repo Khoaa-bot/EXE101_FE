@@ -82,6 +82,7 @@ export default function AppShell({
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onNavigate={handleNavigate}
+        onLogout={onLogout}
       />
 
       <aside
