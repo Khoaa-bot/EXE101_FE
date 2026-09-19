@@ -146,7 +146,11 @@ function App() {
   );
   const [selectedGarageId, setSelectedGarageId] = useState<string | null>(null);
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
-  const routePath = getRoutePath(isAuthenticated, pathname);
+  const role = useMemo(
+    () => (getStoredAuthSession()?.role || "").toUpperCase(),
+    [isAuthenticated],
+  );
+  const routePath = getRoutePath(isAuthenticated, pathname, role);
 
   useEffect(() => {
     const handlePopState = () => {
