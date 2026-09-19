@@ -369,7 +369,10 @@ function App() {
     onTechniciansClick: () => navigate("/engineer/technicians"),
     onCustomersClick: () => navigate("/engineer/customers"),
     onSettingsClick: () => navigate("/engineer/settings"),
-    onJobDetailClick: () => navigate("/engineer/job-detail"),
+    onJobDetailClick: (id?: string) => {
+      if (id) setAppointmentId(id);
+      navigate("/engineer/job-detail");
+    },
     onLogout: shellProps.onLogout,
   };
 
@@ -434,7 +437,7 @@ function App() {
   }
 
   if (routePath === "/engineer/job-detail") {
-    return <EngineerJobDetailPage {...engineerProps} />;
+    return <EngineerJobDetailPage appointmentId={appointmentId} {...engineerProps} />;
   }
 
   if (routePath === "/engineer/settings") {

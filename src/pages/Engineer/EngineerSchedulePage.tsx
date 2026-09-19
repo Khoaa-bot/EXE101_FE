@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { INITIAL_JOBS, type JobItem } from "./EngineerDashboardPage";
+import { INITIAL_JOBS, type JobItem } from "./mockJobs";
 
 const navItems = [
   ["dashboard", "Tổng quan"],

@@ -357,6 +357,46 @@ export function getAppointmentHistory() {
   return apiRequest<AppointmentDto[]>("/appointments/history");
 }
 
+// ---------------------------------------------------------------------------
+// Engineer — EngineerController (@RequestMapping("/api/engineer")).
+// ---------------------------------------------------------------------------
+
+export type EngineerDashboard = {
+  engineerId: number;
+  engineerName: string;
+  appointments: AppointmentDto[];
+};
+
+export type EngineerAppointmentUpdatePayload = {
+  status?: string;
+  notes?: string;
+  engineerNotes?: string;
+  partsUsed?: string;
+};
+
+// GET /api/engineer/dashboard — danh sách công việc của kỹ thuật viên đang
+// đăng nhập.
+export function getEngineerDashboard() {
+  return apiRequest<EngineerDashboard>("/engineer/dashboard");
+}
+
+// GET /api/engineer/appointments/{id} — chi tiết một lịch hẹn.
+export function getEngineerAppointmentDetail(appointmentId: number | string) {
+  return apiRequest<AppointmentDto>(`/engineer/appointments/${appointmentId}`);
+}
+
+// PUT /api/engineer/appointments/{id} — cập nhật trạng thái/ghi chú công
+// việc (chỉ kỹ thuật viên được giao mới cập nhật được).
+export function updateEngineerAppointment(
+  appointmentId: number | string,
+  payload: EngineerAppointmentUpdatePayload,
+) {
+  return apiRequest<AppointmentDto>(`/engineer/appointments/${appointmentId}`, {
+    method: "PUT",
+    body: payload,
+  });
+}
+
 // POST /api/reviews — đánh giá một lịch hẹn đã hoàn thành.
 export function createReview(payload: ReviewRequest) {
   return apiRequest<Review>("/reviews", { method: "POST", body: payload });
@@ -402,12 +442,19 @@ export function getGarageById(garageId: number | string) {
 // Services — ServiceController (@RequestMapping("/api/services")).
 // ---------------------------------------------------------------------------
 
+type RawService = {
+  id: number;
+  serviceName: string;
+  price: number;
+  duration?: string;
+};
+
 export type MaintenanceService = {
   id: number;
   name: string;
   price: number;
   description?: string;
-  duration?: number;
+  duration?: string;
 };
 
 export type NewServicePayload = {
@@ -416,14 +463,28 @@ export type NewServicePayload = {
   description?: string;
 };
 
+function mapService(raw: RawService): MaintenanceService {
+  return {
+    id: raw.id,
+    name: raw.serviceName,
+    price: raw.price,
+    duration: raw.duration,
+  };
+}
+
 // POST /api/services — thêm dịch vụ mới.
-export function addService(payload: NewServicePayload) {
-  return apiRequest<MaintenanceService>("/services", { method: "POST", body: payload });
+export async function addService(payload: NewServicePayload) {
+  const raw = await apiRequest<RawService>("/services", {
+    method: "POST",
+    body: { serviceName: payload.name, price: payload.price },
+  });
+  return mapService(raw);
 }
 
 // GET /api/services — danh sách toàn bộ dịch vụ (dùng để chọn khi đặt lịch).
-export function getAllServices() {
-  return apiRequest<MaintenanceService[]>("/services");
+export async function getAllServices() {
+  const raw = await apiRequest<RawService[]>("/services");
+  return raw.map(mapService);
 }
 
 // ---------------------------------------------------------------------------
@@ -444,6 +505,16 @@ export type NewTimeFramePayload = {
   endTime: string;
 };
 
+type RawSchedule = {
+  id: number;
+  timeFrameId: number;
+  timeFrameHour: string;
+  atDate: string;
+  available: boolean;
+  garageId: number;
+  garageName?: string;
+};
+
 export type Schedule = {
   id: number;
   date: string;
@@ -454,13 +525,26 @@ export type Schedule = {
 };
 
 export type NewSchedulePayload = {
-  date: string;
+  atDate: string;
   timeFrameId: number;
+  garageId?: number;
 };
 
+function mapSchedule(raw: RawSchedule): Schedule {
+  return {
+    id: raw.id,
+    date: raw.atDate,
+    timeFrame: raw.timeFrameHour,
+    garageId: raw.garageId,
+    garageName: raw.garageName,
+    available: raw.available,
+  };
+}
+
 // POST /api/schedules — tạo lịch làm việc mới cho garage.
-export function addSchedule(payload: NewSchedulePayload) {
-  return apiRequest<Schedule>("/schedules", { method: "POST", body: payload });
+export async function addSchedule(payload: NewSchedulePayload) {
+  const raw = await apiRequest<RawSchedule>("/schedules", { method: "POST", body: payload });
+  return mapSchedule(raw);
 }
 
 // POST /api/schedules/time-frames — tạo khung giờ mới cho garage.
@@ -469,13 +553,15 @@ export function addTimeFrame(payload: NewTimeFramePayload) {
 }
 
 // GET /api/schedules — danh sách lịch (lọc theo garageId nếu có).
-export function getSchedules(garageId?: number | string) {
-  return apiRequest<Schedule[]>("/schedules", { query: { garageId } });
+export async function getSchedules(garageId?: number | string) {
+  const raw = await apiRequest<RawSchedule[]>("/schedules", { query: { garageId } });
+  return raw.map(mapSchedule);
 }
 
 // GET /api/schedules/available — danh sách lịch còn trống (dùng khi đặt lịch).
-export function getAvailableSchedules(garageId?: number | string) {
-  return apiRequest<Schedule[]>("/schedules/available", { query: { garageId } });
+export async function getAvailableSchedules(garageId?: number | string) {
+  const raw = await apiRequest<RawSchedule[]>("/schedules/available", { query: { garageId } });
+  return raw.map(mapSchedule);
 }
 
 // GET /api/schedules/time-frames — danh sách khung giờ (lọc theo garageId nếu có).
