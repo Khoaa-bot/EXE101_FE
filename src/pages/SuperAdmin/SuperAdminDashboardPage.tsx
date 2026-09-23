@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   changeUserRole,
+  createGarage,
   createGarageOwner,
   getAllUsers,
   getGarages,
@@ -74,6 +75,14 @@ export default function SuperAdminDashboardPage({
     garageId: "",
   });
   const [isCreating, setIsCreating] = useState(false);
+
+  const [garageCreateOpen, setGarageCreateOpen] = useState(false);
+  const [garageForm, setGarageForm] = useState({
+    name: "",
+    address: "",
+    phone: "",
+  });
+  const [isCreatingGarage, setIsCreatingGarage] = useState(false);
 
   const [notice, setNotice] = useState("");
   const showNotice = (msg: string) => {
@@ -171,6 +180,29 @@ export default function SuperAdminDashboardPage({
       .finally(() => setIsCreating(false));
   };
 
+  const submitCreateGarage = () => {
+    if (!garageForm.name.trim() || !garageForm.address.trim()) {
+      showNotice("Vui lòng nhập tên và địa chỉ garage.");
+      return;
+    }
+    setIsCreatingGarage(true);
+    createGarage({
+      name: garageForm.name.trim(),
+      address: garageForm.address.trim(),
+      phone: garageForm.phone.trim() || undefined,
+    })
+      .then((created) => {
+        setGarages((prev) => [...prev, created]);
+        showNotice(`Đã tạo garage: ${created.name}`);
+        setGarageCreateOpen(false);
+        setGarageForm({ name: "", address: "", phone: "" });
+      })
+      .catch((err) => {
+        showNotice(err instanceof Error ? err.message : "Tạo garage không thành công.");
+      })
+      .finally(() => setIsCreatingGarage(false));
+  };
+
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-outline-variant bg-surface-container-lowest p-lg md:flex">
@@ -220,14 +252,26 @@ export default function SuperAdminDashboardPage({
                 Quản lý toàn bộ tài khoản, đổi role, tạo Admin cho garage.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setCreateOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:opacity-90"
-            >
-              <span className="material-symbols-outlined text-base">add</span>
-              Tạo Admin Garage
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setGarageCreateOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2 text-sm font-semibold text-on-surface hover:bg-surface-container-low"
+              >
+                <span className="material-symbols-outlined text-base">
+                  storefront
+                </span>
+                Tạo Garage mới
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:opacity-90"
+              >
+                <span className="material-symbols-outlined text-base">add</span>
+                Tạo Admin Garage
+              </button>
+            </div>
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -393,6 +437,74 @@ export default function SuperAdminDashboardPage({
                 className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90 disabled:opacity-60"
               >
                 {isSavingRole ? "Đang lưu..." : "Lưu"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Garage Modal */}
+      {garageCreateOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
+            <h3 className="font-headline-md text-lg font-bold">
+              Tạo garage mới
+            </h3>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                  Tên garage *
+                </label>
+                <input
+                  value={garageForm.name}
+                  onChange={(e) =>
+                    setGarageForm((f) => ({ ...f, name: e.target.value }))
+                  }
+                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                  Địa chỉ *
+                </label>
+                <input
+                  value={garageForm.address}
+                  onChange={(e) =>
+                    setGarageForm((f) => ({ ...f, address: e.target.value }))
+                  }
+                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                  Số điện thoại
+                </label>
+                <input
+                  value={garageForm.phone}
+                  onChange={(e) =>
+                    setGarageForm((f) => ({ ...f, phone: e.target.value }))
+                  }
+                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setGarageCreateOpen(false)}
+                className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold hover:bg-surface-container-low"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={submitCreateGarage}
+                disabled={isCreatingGarage}
+                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90 disabled:opacity-60"
+              >
+                {isCreatingGarage ? "Đang tạo..." : "Tạo"}
               </button>
             </div>
           </div>
