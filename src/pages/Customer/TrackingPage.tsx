@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
-import { getActiveAppointments, type AppointmentDto } from "../../services/api";
+import {
+  getActiveAppointments,
+  getMyFleet,
+  type AppointmentDto,
+  type Vehicle,
+} from "../../services/api";
 
 type TrackingPageProps = {
   onHomeClick: () => void;
@@ -54,6 +59,7 @@ export default function TrackingPage({
 }: TrackingPageProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
+  const [fleet, setFleet] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,9 +68,12 @@ export default function TrackingPage({
     setIsLoading(true);
     setError(null);
 
-    getActiveAppointments()
-      .then((data) => {
-        if (!cancelled) setAppointments(data);
+    Promise.all([getActiveAppointments(), getMyFleet()])
+      .then(([appointmentData, fleetData]) => {
+        if (!cancelled) {
+          setAppointments(appointmentData);
+          setFleet(fleetData);
+        }
       })
       .catch((err) => {
         if (!cancelled) {
@@ -91,6 +100,9 @@ export default function TrackingPage({
 
   const appointment = appointments[0];
   const steps = appointment ? getSteps(appointment.status) : [];
+  const vehicle = appointment
+    ? fleet.find((v) => v.id === appointment.vehicleId)
+    : undefined;
 
   return (
     <div className="min-h-dvh bg-background font-sans text-on-surface">
@@ -183,7 +195,7 @@ export default function TrackingPage({
                 <div className="relative h-64 md:h-auto md:w-1/2">
                   <img
                     className="h-full w-full object-cover"
-                    src={vehicleImage}
+                    src={vehicle?.imageUrl || vehicleImage}
                     alt={appointment.vehicleModel}
                   />
                   <div className="absolute left-4 top-4 rounded-full bg-primary px-3 py-1 font-label-md text-label-md text-white shadow-lg">
