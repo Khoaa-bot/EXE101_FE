@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAdminCustomers, type AdminCustomer } from "../../services/api";
+import {
+  getAdminCustomers,
+  getMyProfile,
+  type AdminCustomer,
+} from "../../services/api";
 
 export type Customer = {
   id: string;
@@ -69,6 +73,13 @@ export default function AdminCustomersPage({
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
+  const [garageName, setGarageName] = useState("");
+
+  useEffect(() => {
+    getMyProfile()
+      .then((profile) => setGarageName(profile.garageName ?? ""))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     getAdminCustomers()
@@ -180,7 +191,7 @@ export default function AdminCustomersPage({
               <div className="hidden text-right sm:block">
                 <p className="font-label-md text-label-md">Quản trị viên</p>
                 <p className="text-[11px] text-on-surface-variant">
-                  Garage ABC
+                  {garageName}
                 </p>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">

@@ -98,6 +98,7 @@ export default function AdminEngineersPage({
   const [list, setList] = useState<Engineer[]>([]);
   const [garages, setGarages] = useState<Garage[]>([]);
   const [myGarageId, setMyGarageId] = useState<number | null>(null);
+  const [garageName, setGarageName] = useState("");
   const [query, setQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "locked">(
     "all",
@@ -132,6 +133,7 @@ export default function AdminEngineersPage({
             setMyGarageId(defaultGarageId);
             setForm((prev) => ({ ...prev, garageId: defaultGarageId }));
           }
+          setGarageName(profile.garageName ?? "");
         })
         .catch(() => {
           // ignore optional garage error
@@ -327,7 +329,7 @@ export default function AdminEngineersPage({
               <div className="hidden text-right sm:block">
                 <p className="font-label-md text-label-md">Quản trị viên</p>
                 <p className="text-[11px] text-on-surface-variant">
-                  Garage ABC
+                  {garageName}
                 </p>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
