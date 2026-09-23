@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { INITIAL_JOBS, type JobItem } from "./EngineerDashboardPage";
+import { useEffect, useState } from "react";
+import { getEngineerDashboard, type AppointmentDto } from "../../services/api";
+import { statusBadgeClass, statusLabel } from "./engineerStatus";
 
 const navItems = [
   ["dashboard", "Tổng quan"],
@@ -31,16 +32,45 @@ export default function EngineerAppointmentsPage({
   onJobDetailClick,
   onLogout,
 }: EngineerAppointmentsPageProps) {
-  const [jobs] = useState<JobItem[]>(INITIAL_JOBS);
+  const [engineerName, setEngineerName] = useState("");
+  const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filterQuery, setFilterQuery] = useState("");
 
-  const visibleJobs = jobs.filter(
-    (j) =>
-      j.service.toLowerCase().includes(filterQuery.toLowerCase()) ||
-      j.vehicle.model.toLowerCase().includes(filterQuery.toLowerCase()) ||
-      j.vehicle.plate.toLowerCase().includes(filterQuery.toLowerCase()) ||
-      j.customer.name.toLowerCase().includes(filterQuery.toLowerCase()) ||
-      j.id.toLowerCase().includes(filterQuery.toLowerCase()),
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(null);
+
+    getEngineerDashboard()
+      .then((data) => {
+        if (cancelled) return;
+        setEngineerName(data.engineerName);
+        setAppointments(data.appointments);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLoadError(
+          err instanceof Error ? err.message : "Không tải được danh sách lịch hẹn.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const query = filterQuery.toLowerCase();
+  const visibleAppointments = appointments.filter(
+    (a) =>
+      a.serviceName.toLowerCase().includes(query) ||
+      a.vehicleModel.toLowerCase().includes(query) ||
+      a.customerName.toLowerCase().includes(query) ||
+      String(a.id).includes(query),
   );
 
   return (
@@ -116,7 +146,7 @@ export default function EngineerAppointmentsPage({
             </span>
             <input
               className="w-full rounded-full border border-outline-variant bg-surface-container-low px-4 py-2 pl-10 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-              placeholder="Tìm kiếm lịch hẹn, xe, biển số..."
+              placeholder="Tìm kiếm lịch hẹn, xe, khách hàng..."
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
             />
@@ -131,13 +161,12 @@ export default function EngineerAppointmentsPage({
             </button>
             <div className="ml-2 flex items-center gap-2 border-l border-outline-variant pl-3">
               <div className="hidden text-right sm:block">
-                <p className="font-label-md text-label-md">Trần Quốc Toản</p>
-                <p className="text-[11px] text-on-surface-variant">
-                  KTV Trưởng
+                <p className="font-label-md text-label-md">
+                  {engineerName || "Kỹ thuật viên"}
                 </p>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
-                T
+                {(engineerName || "?").charAt(0).toUpperCase()}
               </div>
             </div>
           </div>
@@ -156,61 +185,60 @@ export default function EngineerAppointmentsPage({
             </div>
           </div>
 
+          {isLoading && (
+            <p className="mt-6 text-body-sm text-on-surface-variant">
+              Đang tải danh sách lịch hẹn...
+            </p>
+          )}
+
+          {!isLoading && loadError && (
+            <p className="mt-6 text-body-sm text-error">{loadError}</p>
+          )}
+
           {/* Appointments List */}
-          <section className="mt-6 space-y-3">
-            {visibleJobs.map((j) => (
-              <article
-                key={j.id}
-                onClick={() => onJobDetailClick?.(j.id)}
-                className="group flex cursor-pointer items-center justify-between rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm transition hover:border-primary/50 hover:bg-surface-container-low"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-primary">
-                      #{j.id}
-                    </span>
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        j.status === "in_progress"
-                          ? "bg-primary-container/15 text-primary"
-                          : j.status === "accepted"
-                            ? "bg-tertiary-container/15 text-tertiary"
-                            : "bg-surface-container-high text-on-surface-variant"
-                      }`}
-                    >
-                      {j.status === "in_progress"
-                        ? "Đang thực hiện"
-                        : j.status === "accepted"
-                          ? "Đã tiếp nhận"
-                          : "Chờ xử lý"}
+          {!isLoading && !loadError && (
+            <section className="mt-6 space-y-3">
+              {visibleAppointments.map((a) => (
+                <article
+                  key={a.id}
+                  onClick={() => onJobDetailClick?.(String(a.id))}
+                  className="group flex cursor-pointer items-center justify-between rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm transition hover:border-primary/50 hover:bg-surface-container-low"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-primary">
+                        #{a.id}
+                      </span>
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusBadgeClass(a.status)}`}
+                      >
+                        {statusLabel(a.status)}
+                      </span>
+                    </div>
+                    <h2 className="mt-1 font-semibold text-base truncate">
+                      {a.serviceName}
+                    </h2>
+                    <p className="mt-1 text-xs text-on-surface-variant truncate">
+                      {a.vehicleModel} · {a.scheduleDate} ({a.timeFrame}) ·
+                      Khách: {a.customerName}
+                    </p>
+                  </div>
+
+                  <div className="ml-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant group-hover:bg-primary group-hover:text-on-primary">
+                    <span className="material-symbols-outlined text-lg">
+                      chevron_right
                     </span>
                   </div>
-                  <h2 className="mt-1 font-semibold text-base truncate">
-                    {j.service}
-                  </h2>
-                  <p className="mt-1 text-xs text-on-surface-variant truncate">
-                    {j.vehicle.model} ·{" "}
-                    <span className="font-mono font-bold text-primary">
-                      {j.vehicle.plate}
-                    </span>{" "}
-                    · {j.time} ({j.date}) · Khách: {j.customer.name}
-                  </p>
-                </div>
+                </article>
+              ))}
 
-                <div className="ml-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant group-hover:bg-primary group-hover:text-on-primary">
-                  <span className="material-symbols-outlined text-lg">
-                    chevron_right
-                  </span>
+              {visibleAppointments.length === 0 && (
+                <div className="py-12 text-center text-on-surface-variant">
+                  Không tìm thấy lịch hẹn phù hợp.
                 </div>
-              </article>
-            ))}
-
-            {visibleJobs.length === 0 && (
-              <div className="py-12 text-center text-on-surface-variant">
-                Không tìm thấy lịch hẹn phù hợp.
-              </div>
-            )}
-          </section>
+              )}
+            </section>
+          )}
         </div>
       </main>
     </div>

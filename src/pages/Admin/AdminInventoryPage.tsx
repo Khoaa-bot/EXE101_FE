@@ -170,6 +170,8 @@ export default function AdminInventoryPage({
 
     try {
       setSubmitting(true);
+      const session = JSON.parse(localStorage.getItem("auth_session") || "{}");
+      const garageId = session.id ?? 0;
 
       const created = await createAdminPart({
         partName: newPart.name.trim(),
