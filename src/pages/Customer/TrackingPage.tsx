@@ -425,8 +425,11 @@ function DesktopStep({ step, isLast }: { step: StepData; isLast: boolean }) {
 
   return (
     <div className="relative flex flex-1 flex-col items-center">
+      {isActive && (
+        <span className="absolute top-0 -mt-1 h-12 w-12 animate-ping rounded-full bg-primary/40" />
+      )}
       <div
-        className={`z-10 flex items-center justify-center rounded-full ${
+        className={`z-10 flex items-center justify-center rounded-full transition-all duration-500 ${
           isActive
             ? "h-12 w-12 -mt-1 bg-primary text-white shadow-[0_0_0_8px_rgba(0,89,187,0.12)]"
             : isDone
@@ -435,22 +438,24 @@ function DesktopStep({ step, isLast }: { step: StepData; isLast: boolean }) {
         }`}
       >
         <span
-          className="material-symbols-outlined"
+          className={`material-symbols-outlined transition-transform duration-500 ${isActive ? "animate-pulse" : ""}`}
           style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
         >
           {step.icon}
         </span>
       </div>
       {!isLast && (
-        <div
-          className={`absolute left-1/2 top-5 h-[2px] w-full ${
-            isDone ? "bg-tertiary" : "bg-outline-variant"
-          }`}
-        />
+        <div className="absolute left-1/2 top-5 h-[2px] w-full overflow-hidden bg-outline-variant">
+          <div
+            className={`h-full bg-tertiary transition-transform duration-700 ease-out ${
+              isDone ? "translate-x-0" : "-translate-x-full"
+            }`}
+          />
+        </div>
       )}
       <div className="mt-md text-center">
         <p
-          className={`font-label-md text-label-md ${
+          className={`font-label-md text-label-md transition-colors duration-500 ${
             isActive ? "font-bold text-primary" : isDone ? "text-tertiary" : "text-on-surface-variant"
           }`}
         >
@@ -467,9 +472,12 @@ function MobileStep({ step, isLast }: { step: StepData; isLast: boolean }) {
 
   return (
     <div className="flex gap-lg">
-      <div className="flex flex-col items-center">
+      <div className="relative flex flex-col items-center">
+        {isActive && (
+          <span className="absolute top-0 h-10 w-10 animate-ping rounded-full bg-primary/40" />
+        )}
         <div
-          className={`flex items-center justify-center rounded-full ${
+          className={`z-10 flex items-center justify-center rounded-full transition-all duration-500 ${
             isActive
               ? "h-10 w-10 bg-primary text-white shadow-[0_0_0_8px_rgba(0,89,187,0.12)]"
               : isDone
@@ -477,19 +485,25 @@ function MobileStep({ step, isLast }: { step: StepData; isLast: boolean }) {
                 : "h-8 w-8 border border-outline-variant bg-surface-container text-on-surface-variant"
           }`}
         >
-          <span className="material-symbols-outlined text-[18px]">{step.icon}</span>
+          <span
+            className={`material-symbols-outlined text-[18px] ${isActive ? "animate-pulse" : ""}`}
+          >
+            {step.icon}
+          </span>
         </div>
         {!isLast && (
-          <div
-            className={`my-1 w-[2px] flex-1 ${
-              isDone ? "bg-tertiary" : "bg-outline-variant"
-            }`}
-          />
+          <div className="my-1 w-[2px] flex-1 overflow-hidden bg-outline-variant">
+            <div
+              className={`w-full bg-tertiary transition-transform duration-700 ease-out ${
+                isDone ? "h-full translate-y-0" : "h-full -translate-y-full"
+              }`}
+            />
+          </div>
         )}
       </div>
       <div className="pb-md">
         <h4
-          className={`${
+          className={`transition-colors duration-500 ${
             isActive
               ? "font-headline-md text-[18px] text-primary"
               : isDone
