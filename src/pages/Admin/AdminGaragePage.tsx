@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { getGarages, updateMyGarage, type Garage } from "../../services/api";
+import {
+  getGarages,
+  updateMyGarage,
+  uploadGarageImage,
+  type Garage,
+} from "../../services/api";
 
 const navItems = [
   ["dashboard", "Dashboard"],
@@ -40,6 +45,7 @@ export default function AdminGaragePage({
   const [imageUrl, setImageUrl] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [notice, setNotice] = useState("");
 
   const showNotice = (msg: string) => {
@@ -98,6 +104,24 @@ export default function AdminGaragePage({
         );
       })
       .finally(() => setIsSaving(false));
+  };
+
+  const handleImageFile = (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    setIsUploadingImage(true);
+    uploadGarageImage(file)
+      .then((updated) => {
+        setGarage(updated);
+        setImageUrl(updated.imageUrl ?? "");
+        showNotice("Đã tải ảnh garage lên thành công!");
+      })
+      .catch((err) => {
+        showNotice(
+          err instanceof Error ? err.message : "Tải ảnh lên không thành công.",
+        );
+      })
+      .finally(() => setIsUploadingImage(false));
   };
 
   return (
@@ -224,13 +248,34 @@ export default function AdminGaragePage({
 
               <div>
                 <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                  Đường dẫn ảnh garage (URL)
+                  Ảnh garage
                 </label>
+                <label
+                  className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-outline-variant p-4 text-center cursor-pointer transition hover:border-primary/50 ${
+                    isUploadingImage ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-2xl text-primary">
+                    photo_camera
+                  </span>
+                  <span className="text-xs font-medium">
+                    {isUploadingImage
+                      ? "Đang tải ảnh lên..."
+                      : "Nhấp để chọn ảnh từ máy"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleImageFile(e.target.files)}
+                  />
+                </label>
+
                 <input
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  placeholder="Hoặc dán đường dẫn ảnh (URL)..."
+                  className="mt-2 w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 

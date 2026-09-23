@@ -453,6 +453,37 @@ export function updateMyGarage(payload: GarageUpdatePayload) {
   return apiRequest<Garage>("/garages/me", { method: "PUT", body: payload });
 }
 
+// POST /api/garages/me/image — admin tải ảnh garage lên (multipart/form-data).
+// Backend lưu ảnh trên Cloudinary rồi trả về Garage với imageUrl đã cập nhật.
+export async function uploadGarageImage(file: File): Promise<Garage> {
+  const session = getStoredAuthSession();
+  const headers: Record<string, string> = {};
+  if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/garages/me/image`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+  } catch {
+    throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
+  }
+
+  const data = (await response.json().catch(() => null)) as Garage | ApiErrorBody | null;
+
+  if (!response.ok) {
+    const error = data as ApiErrorBody | null;
+    throw new Error(error?.message || error?.error || "Tải ảnh lên không thành công.");
+  }
+
+  return data as Garage;
+}
+
 // ---------------------------------------------------------------------------
 // Services — ServiceController (@RequestMapping("/api/services")).
 // ---------------------------------------------------------------------------
