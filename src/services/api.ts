@@ -92,8 +92,11 @@ export type Vehicle = {
   customerId: number;
   vin: string;
   model: string;
+  year: number | null;
+  licensePlate: string | null;
   color: string;
   odometer: number;
+  imageUrl: string | null;
   lastCheck: string | null;
   createdAt: string;
 };
@@ -102,11 +105,15 @@ export type NewVehiclePayload = {
   customerId: number;
   vin: string;
   model: string;
+  year?: number;
+  licensePlate: string;
   color: string;
   odometer?: number;
 };
 
 export type UpdateVehiclePayload = {
+  year?: number;
+  licensePlate?: string;
   color?: string;
   odometer?: number;
 };
@@ -192,6 +199,40 @@ export function getCustomerVehicles(customerId: number | string) {
 // của chính mình, reception/admin/engineer -> toàn bộ xe).
 export function getVehicles(customerId?: number | string) {
   return vehicleRequest<Vehicle[]>("", { query: { customerId } });
+}
+
+// POST /api/vehicles/{id}/image — tải lên / thay ảnh xe (multipart/form-data).
+// Backend lưu ảnh trên Cloudinary rồi trả về Vehicle với imageUrl đã cập nhật.
+export async function uploadVehicleImage(
+  vehicleId: number | string,
+  file: File,
+): Promise<Vehicle> {
+  const session = getStoredAuthSession();
+  const headers: Record<string, string> = {};
+  if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/image`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+  } catch {
+    throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
+  }
+
+  const data = (await response.json().catch(() => null)) as Vehicle | ApiErrorBody | null;
+
+  if (!response.ok) {
+    const error = data as ApiErrorBody | null;
+    throw new Error(error?.message || error?.error || "Tải ảnh lên không thành công.");
+  }
+
+  return data as Vehicle;
 }
 
 // ---------------------------------------------------------------------------
@@ -546,6 +587,112 @@ export function deleteAdminEmployee(employeeId: number | string) {
   return apiRequest<string>(`/admin/employees/${employeeId}`, {
     method: "DELETE",
   });
+}
+
+// ---------------------------------------------------------------------------
+// Users / hồ sơ cá nhân — UserController (@RequestMapping("/api/users")) bên
+// backend. Áp dụng cho người dùng đang đăng nhập, không phân biệt role.
+// ---------------------------------------------------------------------------
+
+export type UserProfile = {
+  id: number;
+  username: string;
+  fullName: string | null;
+  email: string;
+  phone: string | null;
+  role: string;
+  avatarUrl: string | null;
+  createdAt: string;
+};
+
+export type UpdateProfilePayload = {
+  fullName: string;
+};
+
+// GET /api/users/me — hồ sơ của người dùng đang đăng nhập.
+export function getMyProfile() {
+  return apiRequest<UserProfile>("/users/me");
+}
+
+// PUT /api/users/me — sửa tên hiển thị.
+export function updateMyProfile(payload: UpdateProfilePayload) {
+  return apiRequest<UserProfile>("/users/me", { method: "PUT", body: payload });
+}
+
+// POST /api/users/me/avatar — tải lên / thay ảnh đại diện (multipart/form-data).
+export async function uploadMyAvatar(file: File): Promise<UserProfile> {
+  const session = getStoredAuthSession();
+  const headers: Record<string, string> = {};
+  if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/users/me/avatar`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+  } catch {
+    throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
+  }
+
+  const data = (await response.json().catch(() => null)) as UserProfile | ApiErrorBody | null;
+
+  if (!response.ok) {
+    const error = data as ApiErrorBody | null;
+    throw new Error(error?.message || error?.error || "Tải ảnh lên không thành công.");
+  }
+
+  return data as UserProfile;
+}
+
+// ---------------------------------------------------------------------------
+// Notifications — NotificationController (@RequestMapping("/api/notifications"))
+// bên backend. Thông báo được backend tự tạo mỗi khi có thay đổi liên quan đến
+// xe (thêm xe / sửa thông tin xe / đổi ảnh xe) hoặc hồ sơ cá nhân (đổi tên /
+// đổi ảnh đại diện) của chính người dùng đang đăng nhập.
+// ---------------------------------------------------------------------------
+
+export type NotificationType =
+  | "VEHICLE"
+  | "PROFILE"
+  | "APPOINTMENT"
+  | "PROMOTION"
+  | "SYSTEM";
+
+export type AppNotification = {
+  id: number;
+  userId: number;
+  title: string;
+  message: string;
+  type: NotificationType;
+  isRead: boolean;
+  createdAt: string;
+};
+
+// GET /api/notifications/me — danh sách thông báo của người dùng đang đăng
+// nhập, mới nhất trước.
+export function getMyNotifications() {
+  return apiRequest<AppNotification[]>("/notifications/me");
+}
+
+// GET /api/notifications/me/unread-count — số thông báo chưa đọc.
+export async function getUnreadNotificationCount() {
+  const result = await apiRequest<{ count: number }>("/notifications/me/unread-count");
+  return result.count;
+}
+
+// PUT /api/notifications/{id}/read — đánh dấu 1 thông báo đã đọc.
+export function markNotificationAsRead(notificationId: number | string) {
+  return apiRequest<AppNotification>(`/notifications/${notificationId}/read`, { method: "PUT" });
+}
+
+// PUT /api/notifications/me/read-all — đánh dấu tất cả thông báo đã đọc.
+export function markAllNotificationsAsRead() {
+  return apiRequest<void>("/notifications/me/read-all", { method: "PUT" });
 }
 
 export default {
