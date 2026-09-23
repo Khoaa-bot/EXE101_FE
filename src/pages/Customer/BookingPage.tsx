@@ -33,6 +33,15 @@ function formatCurrency(value: number | null | undefined) {
   return `${value.toLocaleString("vi-VN")}đ`;
 }
 
+function isTodayOrFuture(dateStr: string) {
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return true;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0, 0);
+  return date >= today;
+}
+
 export default function BookingPage({
   onHomeClick,
   onHistoryClick,
@@ -117,7 +126,7 @@ export default function BookingPage({
 
     getAvailableSchedules(selectedGarageId)
       .then((data) => {
-        if (!cancelled) setSchedules(data);
+        if (!cancelled) setSchedules(data.filter((schedule) => isTodayOrFuture(schedule.date)));
       })
       .catch(() => {
         if (!cancelled) setSchedules([]);
