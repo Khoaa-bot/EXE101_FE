@@ -40,7 +40,7 @@ function inProgressRows(appointments: AppointmentDto[]) {
       return s === "in_progress" || s === "confirmed";
     })
     .map((a) => ({
-      plate: a.vehicleVin,
+      plate: a.vehicleLicensePlate || a.vehicleVin,
       customer: a.customerName,
       service: a.serviceName,
       progress: a.status.toLowerCase() === "in_progress" ? 50 : 20,
@@ -53,7 +53,7 @@ function appointmentRows(appointments: AppointmentDto[]) {
   return appointments.slice(0, 6).map((a) => ({
     time: a.timeFrame.split(" - ")[0] || a.timeFrame,
     name: a.customerName,
-    plate: a.vehicleVin,
+    plate: a.vehicleLicensePlate || a.vehicleVin,
     service: a.serviceName,
     status: (a.status.toLowerCase() === "confirmed" ? "confirmed" : "pending") as "confirmed" | "pending",
     id: a.id,

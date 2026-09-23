@@ -260,9 +260,12 @@ export type AppointmentDto = {
   id: number;
   customerId: number;
   customerName: string;
+  customerPhone: string | null;
+  customerEmail: string | null;
   vehicleId: number;
   vehicleModel: string;
   vehicleVin: string;
+  vehicleLicensePlate: string | null;
   serviceId: number;
   serviceName: string;
   servicePrice: number;

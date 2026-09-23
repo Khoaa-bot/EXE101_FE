@@ -67,12 +67,15 @@ export default function ReceptionNewAppointmentPage({
     setIsLoadingOptions(true);
     setOptionsError(null);
 
-    Promise.all([
-      getReceptionDashboard(),
-      getVehicles(),
-      getAllServices(),
-      getAvailableSchedules(),
-    ])
+    getReceptionDashboard()
+      .then((dashboard) =>
+        Promise.all([
+          dashboard,
+          getVehicles(),
+          getAllServices(),
+          getAvailableSchedules(dashboard.garageId),
+        ]),
+      )
       .then(([dashboard, vehicleData, serviceData, scheduleData]) => {
         if (cancelled) return;
         const map = new Map<number, string>();

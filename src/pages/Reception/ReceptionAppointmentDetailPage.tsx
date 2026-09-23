@@ -265,7 +265,18 @@ export default function ReceptionAppointmentDetailPage({
                     </p>
                     <div className="rounded-xl bg-surface-container p-5 space-y-3">
                       <p className="text-lg font-semibold">{appt.customerName}</p>
-                      <p className="text-sm text-on-surface-variant">ID: {appt.customerId}</p>
+                      {appt.customerPhone && (
+                        <p className="text-sm inline-flex items-center gap-2">
+                          <span className="material-symbols-outlined text-on-surface-variant">phone</span>
+                          {appt.customerPhone}
+                        </p>
+                      )}
+                      {appt.customerEmail && (
+                        <p className="text-sm inline-flex items-center gap-2">
+                          <span className="material-symbols-outlined text-on-surface-variant">mail</span>
+                          {appt.customerEmail}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div>
@@ -275,7 +286,8 @@ export default function ReceptionAppointmentDetailPage({
                     </p>
                     <div className="rounded-xl bg-surface-container p-5 space-y-3 text-sm">
                       <Row label="Xe" value={appt.vehicleModel} />
-                      <Row label="Biển số / VIN" value={<span className="rounded bg-primary-container/10 text-primary px-2 py-0.5 font-semibold">{appt.vehicleVin}</span>} />
+                      <Row label="Biển số" value={<span className="rounded bg-primary-container/10 text-primary px-2 py-0.5 font-semibold">{appt.vehicleLicensePlate || "—"}</span>} />
+                      <Row label="Số khung (VIN)" value={<span className="font-mono text-xs">{appt.vehicleVin}</span>} />
                       <Row label="Dịch vụ" value={`${appt.serviceName} · ${appt.servicePrice.toLocaleString("vi-VN")}đ`} />
                       <Row label="Garage" value={appt.garageName} />
                       <Row label="Kỹ thuật viên" value={appt.engineerName || "Chưa phân công"} />
