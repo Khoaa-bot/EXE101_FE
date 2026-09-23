@@ -3,6 +3,7 @@ import {
   getAdminParts,
   createAdminPart,
   getMyProfile,
+  restockAdminPart,
   type AdminPart,
 } from "../../services/api";
 
@@ -67,6 +68,7 @@ export default function AdminInventoryPage({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [garageName, setGarageName] = useState("");
+  const [restocking, setRestocking] = useState(false);
 
   useEffect(() => {
     getMyProfile()
@@ -128,23 +130,31 @@ export default function AdminInventoryPage({
     setRestockAmount(String(Math.max(part.capacity - part.stock, 10)));
   };
 
-  const confirmRestock = () => {
-    if (!restockPart) return;
+  const confirmRestock = async () => {
+    if (!restockPart || restocking) return;
     const amountNum = Number(restockAmount);
     if (!amountNum || amountNum <= 0) {
       showNotice("Vui lòng nhập số lượng hợp lệ!");
       return;
     }
-    setList((prev) =>
-      prev.map((p) =>
-        p.id === restockPart.id
-          ? { ...p, stock: Math.min(p.stock + amountNum, p.capacity) }
-          : p,
-      ),
-    );
-    showNotice(`Đã nhập thêm ${amountNum} units cho ${restockPart.name}`);
-    setRestockPart(null);
-    setRestockAmount("");
+
+    setRestocking(true);
+    try {
+      const updated = await restockAdminPart(restockPart.id, {
+        quantityToAdd: amountNum,
+        quantity: restockPart.stock + amountNum,
+      });
+      setList((prev) =>
+        prev.map((p) => (p.id === restockPart.id ? mapApiPart(updated) : p)),
+      );
+      showNotice(`Đã nhập thêm ${amountNum} units cho ${restockPart.name}`);
+      setRestockPart(null);
+      setRestockAmount("");
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : "Nhập kho không thành công.");
+    } finally {
+      setRestocking(false);
+    }
   };
 
   const confirmAddPart = async () => {
@@ -551,16 +561,18 @@ export default function AdminInventoryPage({
               <button
                 type="button"
                 onClick={() => setRestockPart(null)}
-                className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold hover:bg-surface-container-low"
+                disabled={restocking}
+                className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold hover:bg-surface-container-low disabled:opacity-50"
               >
                 Hủy
               </button>
               <button
                 type="button"
-                onClick={confirmRestock}
-                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90"
+                onClick={() => void confirmRestock()}
+                disabled={restocking}
+                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90 disabled:opacity-50"
               >
-                Xác nhận nhập kho
+                {restocking ? "Đang nhập..." : "Xác nhận nhập kho"}
               </button>
             </div>
           </div>

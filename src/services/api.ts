@@ -693,7 +693,7 @@ export function getTimeFrames(garageId?: number | string) {
   return apiRequest<TimeFrame[]>("/schedules/time-frames", { query: { garageId } });
 }
 
-// GET /api/garage-owner/parts — danh sách linh kiện của garage đang quản lý.
+// GET /api/garage-owner/parts — danh sách linh kiện (garage_owner only).
 export type AdminPart = {
   id: number;
   partName: string;
@@ -721,6 +721,7 @@ export type CreatePartPayload = {
 
 export function getAdminParts() {
   return apiRequest<AdminPart[]>("/garage-owner/parts");
+  return apiRequest<AdminPart[]>("/garage-owner/parts");
 }
 
 // Backend tự gán garage của admin đang đăng nhập, không cần truyền garageId.
@@ -731,7 +732,20 @@ export function createAdminPart(payload: CreatePartPayload) {
   });
 }
 
-// GET /api/garage-owner/customers — danh sách khách hàng của garage đang quản lý.
+export type RestockPartPayload = {
+  quantityToAdd: number;
+  quantity: number;
+};
+
+// PUT /api/garage-owner/parts/{id} — nhập thêm linh kiện (garage_owner only).
+export function restockAdminPart(partId: number | string, payload: RestockPartPayload) {
+  return apiRequest<AdminPart>(`/garage-owner/parts/${partId}`, {
+    method: "PUT",
+    body: payload,
+  });
+}
+
+// GET /api/garage-owner/customers — danh sách khách hàng (garage_owner only).
 export type AdminCustomer = {
   id: number;
   username: string;
@@ -750,7 +764,14 @@ export function getAdminCustomers() {
   return apiRequest<AdminCustomer[]>("/garage-owner/customers");
 }
 
-// GET & POST /api/garage-owner/employees — quản lý nhân viên của garage đang quản lý.
+// DELETE /api/garage-owner/customers/{id} — xoá khách hàng (garage_owner only).
+export function deleteAdminCustomer(customerId: number | string) {
+  return apiRequest<void>(`/garage-owner/customers/${customerId}`, {
+    method: "DELETE",
+  });
+}
+
+// GET & POST /api/garage-owner/employees — quản lý nhân viên (garage_owner only).
 export type AdminEmployee = {
   id: number;
   username: string;
@@ -784,6 +805,13 @@ export function createAdminEmployee(payload: CreateEmployeePayload) {
   return apiRequest<AdminEmployee>("/garage-owner/employees", {
     method: "POST",
     body: payload,
+  });
+}
+
+// DELETE /api/garage-owner/employees/{id} — xoá nhân viên (garage_owner only).
+export function deleteAdminEmployee(employeeId: number | string) {
+  return apiRequest<void>(`/garage-owner/employees/${employeeId}`, {
+    method: "DELETE",
   });
 }
 
