@@ -4,7 +4,16 @@ import {
   updateEngineerAppointment,
   type AppointmentDto,
 } from "../../services/api";
-import { statusBadgeClass, statusLabel } from "./engineerStatus";
+import { isTerminalStatus, statusBadgeClass, statusLabel } from "./engineerStatus";
+
+function isTodayOrFuture(scheduleDate: string) {
+  const date = new Date(scheduleDate);
+  if (Number.isNaN(date.getTime())) return true;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0, 0);
+  return date >= today;
+}
 
 const navItems = [
   ["dashboard", "Tổng quan"],
@@ -90,6 +99,15 @@ export default function EngineerDashboardPage({
   };
 
   const initial = engineerName ? engineerName.charAt(0).toUpperCase() : "?";
+
+  // Chỉ hiện công việc còn cần xử lý (chưa hoàn thành/hủy) từ hôm nay trở
+  // đi — job cũ/đã xong thuộc về Lịch sử, không nên lẫn vào đây.
+  const visibleAppointments = appointments.filter(
+    (a) => !isTerminalStatus(a.status) && isTodayOrFuture(a.scheduleDate),
+  );
+  const completedCount = appointments.filter(
+    (a) => a.status.toLowerCase() === "completed",
+  ).length;
 
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
@@ -197,7 +215,7 @@ export default function EngineerDashboardPage({
                 Lịch làm việc của bạn
               </h1>
               <p className="mt-1 text-body-sm text-on-surface-variant">
-                Bạn có {appointments.length} công việc được phân công.
+                Bạn có {visibleAppointments.length} công việc cần xử lý từ hôm nay.
               </p>
             </div>
           </div>
@@ -221,7 +239,7 @@ export default function EngineerDashboardPage({
                     ĐƯỢC PHÂN CÔNG
                   </p>
                   <p className="mt-2 font-headline-lg text-3xl font-bold">
-                    {appointments.length} xe
+                    {visibleAppointments.length} xe
                   </p>
                 </article>
                 <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
@@ -230,7 +248,7 @@ export default function EngineerDashboardPage({
                   </p>
                   <p className="mt-2 font-headline-lg text-3xl font-bold text-primary">
                     {
-                      appointments.filter(
+                      visibleAppointments.filter(
                         (a) =>
                           a.status.toLowerCase() === "in_progress" ||
                           a.status.toLowerCase() === "confirmed",
@@ -244,12 +262,7 @@ export default function EngineerDashboardPage({
                     ĐÃ HOÀN TẤT
                   </p>
                   <p className="mt-2 font-headline-lg text-3xl font-bold text-tertiary">
-                    {
-                      appointments.filter(
-                        (a) => a.status.toLowerCase() === "completed",
-                      ).length
-                    }{" "}
-                    xe
+                    {completedCount} xe
                   </p>
                 </article>
               </section>
@@ -260,13 +273,14 @@ export default function EngineerDashboardPage({
                   Danh sách phiếu sửa chữa
                 </h2>
 
-                {appointments.length === 0 && (
+                {visibleAppointments.length === 0 && (
                   <p className="rounded-xl border border-dashed border-outline-variant p-6 text-center text-body-sm text-on-surface-variant">
-                    Bạn chưa được phân công công việc nào.
+                    Không có công việc nào cần xử lý từ hôm nay. Xem lịch sử ở mục
+                    "Lịch hẹn".
                   </p>
                 )}
 
-                {appointments.map((job) => {
+                {visibleAppointments.map((job) => {
                   const status = job.status.toLowerCase();
                   const isPending = status === "pending";
 
