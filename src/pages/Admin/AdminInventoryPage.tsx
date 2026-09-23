@@ -176,9 +176,10 @@ export default function AdminInventoryPage({
 
     try {
       setSubmitting(true);
-      const session = JSON.parse(localStorage.getItem("auth_session") || "{}");
-      const garageId = session.id ?? 0;
-
+      // Backend tự gán garage của admin đang đăng nhập — không truyền
+      // garageId (trước đây gửi nhầm session.id, tức ID người dùng, thay vì
+      // ID garage; giá trị này bị backend bỏ qua nên không gây sai dữ liệu,
+      // nhưng vẫn dọn cho đúng ý nghĩa).
       const created = await createAdminPart({
         partName: newPart.name.trim(),
         category: newPart.category,
@@ -187,7 +188,6 @@ export default function AdminInventoryPage({
         quantity: stock,
         maxQuantity: capacity,
         price,
-        garageId,
       });
 
       const newItem: InventoryPart = mapApiPart(created);

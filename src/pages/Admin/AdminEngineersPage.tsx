@@ -4,6 +4,7 @@ import {
   createAdminEmployee,
   deleteAdminEmployee,
   getGarages,
+  getMyProfile,
   type AdminEmployee,
   type Garage,
 } from "../../services/api";
@@ -97,6 +98,7 @@ export default function AdminEngineersPage({
 }: AdminEngineersPageProps) {
   const [list, setList] = useState<Engineer[]>([]);
   const [garages, setGarages] = useState<Garage[]>([]);
+  const [myGarageId, setMyGarageId] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "locked">(
     "all",
@@ -118,14 +120,19 @@ export default function AdminEngineersPage({
         .catch((err) => {
           setNotice(err instanceof Error ? err.message : "Không thể tải danh sách nhân viên");
         }),
-      getGarages()
-        .then((data) => {
+      Promise.all([getGarages(), getMyProfile()])
+        .then(([data, profile]) => {
           const arr: Garage[] = Array.isArray(data)
             ? data
             : (Object.values(data) as Garage[]);
           setGarages(arr);
-          if (arr.length > 0) {
-            setForm((prev) => ({ ...prev, garageId: arr[0].id }));
+          // Mặc định garage của chính admin đang đăng nhập, không phải
+          // garage đầu tiên trong hệ thống — trước đây tạo nhân viên luôn
+          // gán vào garage #1 dù admin quản lý garage khác.
+          const defaultGarageId = profile.garageId ?? arr[0]?.id;
+          if (defaultGarageId) {
+            setMyGarageId(defaultGarageId);
+            setForm((prev) => ({ ...prev, garageId: defaultGarageId }));
           }
         })
         .catch(() => {
@@ -192,7 +199,7 @@ export default function AdminEngineersPage({
         email: form.email.trim(),
         dob: form.dob || "2000-01-01",
         role: form.role,
-        garageId: Number(form.garageId) || (garages[0]?.id ?? 1),
+        garageId: Number(form.garageId) || myGarageId || (garages[0]?.id ?? 1),
       });
 
       const newEmp = mapApiEmployee(created);
@@ -203,7 +210,7 @@ export default function AdminEngineersPage({
         phone: "",
         dob: "2000-01-01",
         role: "ENGINEER",
-        garageId: garages[0]?.id ?? 1,
+        garageId: myGarageId ?? garages[0]?.id ?? 1,
         password: "",
       });
       showNotice(`Đã tạo thành công tài khoản nhân viên: ${created.username}`);

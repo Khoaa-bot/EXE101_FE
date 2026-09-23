@@ -45,6 +45,23 @@ function formatCurrency(value: number | null | undefined) {
   return `${value.toLocaleString("vi-VN")}đ`;
 }
 
+const ERROR_TRANSLATIONS: Record<string, string> = {
+  "Username already exists": "Tên đăng nhập này đã có người dùng, chọn tên khác nhé.",
+  "Email already exists": "Email này đã được đăng ký rồi.",
+  "Garage not found": "Không tìm thấy garage này.",
+  "Garage ID is required": "Vui lòng chọn garage.",
+  "Username is required": "Vui lòng nhập tên đăng nhập.",
+  "Password is required": "Vui lòng nhập mật khẩu.",
+  "Role is required": "Vui lòng chọn role.",
+  "User not found": "Không tìm thấy người dùng này.",
+};
+
+function translateError(message: string) {
+  return ERROR_TRANSLATIONS[message] ?? message;
+}
+
+type Notice = { type: "success" | "error"; message: string };
+
 type SuperAdminDashboardPageProps = {
   onLogout?: () => void;
 };
@@ -84,10 +101,10 @@ export default function SuperAdminDashboardPage({
   });
   const [isCreatingGarage, setIsCreatingGarage] = useState(false);
 
-  const [notice, setNotice] = useState("");
-  const showNotice = (msg: string) => {
-    setNotice(msg);
-    window.setTimeout(() => setNotice(""), 3000);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const showNotice = (message: string, type: Notice["type"] = "success") => {
+    setNotice({ type, message: type === "error" ? translateError(message) : message });
+    window.setTimeout(() => setNotice(null), 3500);
   };
 
   const loadUsers = () => {
@@ -142,14 +159,14 @@ export default function SuperAdminDashboardPage({
         setEditingUser(null);
       })
       .catch((err) => {
-        showNotice(err instanceof Error ? err.message : "Đổi role không thành công.");
+        showNotice(err instanceof Error ? err.message : "Đổi role không thành công.", "error");
       })
       .finally(() => setIsSavingRole(false));
   };
 
   const submitCreateGarageOwner = () => {
     if (!createForm.username.trim() || !createForm.password.trim() || !createForm.garageId) {
-      showNotice("Vui lòng nhập username, password và chọn garage.");
+      showNotice("Vui lòng nhập username, password và chọn garage.", "error");
       return;
     }
     setIsCreating(true);
@@ -175,14 +192,14 @@ export default function SuperAdminDashboardPage({
         });
       })
       .catch((err) => {
-        showNotice(err instanceof Error ? err.message : "Tạo Admin Garage không thành công.");
+        showNotice(err instanceof Error ? err.message : "Tạo Admin Garage không thành công.", "error");
       })
       .finally(() => setIsCreating(false));
   };
 
   const submitCreateGarage = () => {
     if (!garageForm.name.trim() || !garageForm.address.trim()) {
-      showNotice("Vui lòng nhập tên và địa chỉ garage.");
+      showNotice("Vui lòng nhập tên và địa chỉ garage.", "error");
       return;
     }
     setIsCreatingGarage(true);
@@ -198,7 +215,7 @@ export default function SuperAdminDashboardPage({
         setGarageForm({ name: "", address: "", phone: "" });
       })
       .catch((err) => {
-        showNotice(err instanceof Error ? err.message : "Tạo garage không thành công.");
+        showNotice(err instanceof Error ? err.message : "Tạo garage không thành công.", "error");
       })
       .finally(() => setIsCreatingGarage(false));
   };
@@ -627,10 +644,23 @@ export default function SuperAdminDashboardPage({
 
       {notice && (
         <div
-          className="fixed bottom-5 right-5 z-50 rounded-lg bg-inverse-surface px-4 py-3 text-body-sm text-inverse-on-surface shadow-lg"
+          className="fixed bottom-5 right-5 z-50 flex max-w-[24rem] animate-[toast-in_0.2s_ease-out] items-start gap-3 rounded-xl border bg-surface-container-lowest px-4 py-3 text-body-sm shadow-lg"
+          style={{
+            borderColor:
+              notice.type === "error"
+                ? "var(--color-error)"
+                : "var(--color-tertiary)",
+          }}
           role="status"
         >
-          {notice}
+          <span
+            className={`material-symbols-outlined mt-0.5 text-lg ${
+              notice.type === "error" ? "text-error" : "text-tertiary"
+            }`}
+          >
+            {notice.type === "error" ? "error" : "check_circle"}
+          </span>
+          <p className="text-on-surface">{notice.message}</p>
         </div>
       )}
     </div>

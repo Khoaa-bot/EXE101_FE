@@ -563,6 +563,7 @@ type RawService = {
   serviceName: string;
   price: number;
   duration?: string;
+  description?: string;
 };
 
 export type MaintenanceService = {
@@ -577,6 +578,7 @@ export type NewServicePayload = {
   name: string;
   price: number;
   description?: string;
+  duration?: string;
 };
 
 function mapService(raw: RawService): MaintenanceService {
@@ -585,6 +587,7 @@ function mapService(raw: RawService): MaintenanceService {
     name: raw.serviceName,
     price: raw.price,
     duration: raw.duration,
+    description: raw.description,
   };
 }
 
@@ -592,7 +595,12 @@ function mapService(raw: RawService): MaintenanceService {
 export async function addService(payload: NewServicePayload) {
   const raw = await apiRequest<RawService>("/services", {
     method: "POST",
-    body: { serviceName: payload.name, price: payload.price },
+    body: {
+      serviceName: payload.name,
+      price: payload.price,
+      duration: payload.duration,
+      description: payload.description,
+    },
   });
   return mapService(raw);
 }
@@ -709,14 +717,16 @@ export type CreatePartPayload = {
   quantity: number;
   maxQuantity: number;
   price: number;
-  garageId: number;
 };
 
 export function getAdminParts() {
   return apiRequest<AdminPart[]>("/garage-owner/parts");
+  return apiRequest<AdminPart[]>("/garage-owner/parts");
 }
 
+// Backend tự gán garage của admin đang đăng nhập, không cần truyền garageId.
 export function createAdminPart(payload: CreatePartPayload) {
+  return apiRequest<AdminPart>("/garage-owner/parts", {
   return apiRequest<AdminPart>("/garage-owner/parts", {
     method: "POST",
     body: payload,
@@ -790,9 +800,11 @@ export type CreateEmployeePayload = {
 
 export function getAdminEmployees() {
   return apiRequest<AdminEmployee[]>("/garage-owner/employees");
+  return apiRequest<AdminEmployee[]>("/garage-owner/employees");
 }
 
 export function createAdminEmployee(payload: CreateEmployeePayload) {
+  return apiRequest<AdminEmployee>("/garage-owner/employees", {
   return apiRequest<AdminEmployee>("/garage-owner/employees", {
     method: "POST",
     body: payload,
@@ -888,6 +900,8 @@ export type UserProfile = {
   email: string;
   phone: string | null;
   role: string;
+  garageId: number | null;
+  garageName: string | null;
   avatarUrl: string | null;
   createdAt: string;
 };
