@@ -861,6 +861,8 @@ export type UserProfile = {
   email: string;
   phone: string | null;
   role: string;
+  garageId: number | null;
+  garageName: string | null;
   avatarUrl: string | null;
   createdAt: string;
 };

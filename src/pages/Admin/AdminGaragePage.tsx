@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-  getGarages,
+  getGarageById,
+  getMyProfile,
   updateMyGarage,
   uploadGarageImage,
   type Garage,
@@ -58,19 +59,25 @@ export default function AdminGaragePage({
     setIsLoading(true);
     setLoadError(null);
 
-    // Admin chỉ quản lý 1 garage; lấy garage đầu tiên trả về từ danh sách
-    // công khai để hiển thị form (BE tự xác định đúng garage của admin khi
-    // lưu qua PUT /api/garages/me).
-    getGarages()
-      .then((list) => {
-        if (cancelled) return;
-        const g = list[0] ?? null;
+    // Lấy đúng garage của admin đang đăng nhập (qua garageId trong hồ sơ
+    // của họ) thay vì đoán garage đầu tiên trong hệ thống — trước đây luôn
+    // hiện garage #1 cho mọi admin, kể cả admin được gán garage khác.
+    getMyProfile()
+      .then((profile) => {
+        if (cancelled) return null;
+        if (!profile.garageId) {
+          throw new Error("Tài khoản này chưa được gán garage nào.");
+        }
+        return getGarageById(profile.garageId);
+      })
+      .then((g) => {
+        if (cancelled || !g) return;
         setGarage(g);
-        setName(g?.name ?? "");
-        setAddress(g?.address ?? "");
-        setPhone(g?.phone ?? "");
-        setDescription(g?.description ?? "");
-        setImageUrl(g?.imageUrl ?? "");
+        setName(g.name ?? "");
+        setAddress(g.address ?? "");
+        setPhone(g.phone ?? "");
+        setDescription(g.description ?? "");
+        setImageUrl(g.imageUrl ?? "");
       })
       .catch((err) => {
         if (cancelled) return;
