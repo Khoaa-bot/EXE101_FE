@@ -5,7 +5,8 @@ import {
   type AppointmentDto,
 } from "../../services/api";
 import {
-  ENGINEER_STATUS_OPTIONS,
+  getSelectableStatusOptions,
+  isTerminalStatus,
   statusBadgeClass,
   statusLabel,
 } from "./engineerStatus";
@@ -331,14 +332,20 @@ export default function EngineerJobDetailPage({
                       <select
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
-                        className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                        disabled={isTerminalStatus(appointment.status)}
+                        className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {ENGINEER_STATUS_OPTIONS.map((option) => (
+                        {getSelectableStatusOptions(appointment.status).map((option) => (
                           <option key={option.value} value={option.value}>
                             {option.label}
                           </option>
                         ))}
                       </select>
+                      {isTerminalStatus(appointment.status) && (
+                        <p className="mt-1 text-xs text-on-surface-variant">
+                          Công việc đã ở trạng thái cuối, không thể đổi lại.
+                        </p>
+                      )}
                     </div>
 
                     {/* Notes Textarea */}
@@ -394,9 +401,9 @@ export default function EngineerJobDetailPage({
                       <button
                         type="button"
                         onClick={completeJob}
-                        disabled={isSaving || status === "completed"}
+                        disabled={isSaving || isTerminalStatus(appointment.status)}
                         className={`w-full rounded-lg border py-2.5 font-label-md text-label-md transition ${
-                          status === "completed"
+                          isTerminalStatus(appointment.status)
                             ? "border-outline-variant bg-surface-container-high text-outline cursor-not-allowed"
                             : "border-tertiary bg-tertiary-container/10 text-tertiary hover:bg-tertiary/20 active:scale-[0.98]"
                         }`}
