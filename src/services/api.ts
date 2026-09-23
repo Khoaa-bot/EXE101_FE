@@ -685,7 +685,7 @@ export function getTimeFrames(garageId?: number | string) {
   return apiRequest<TimeFrame[]>("/schedules/time-frames", { query: { garageId } });
 }
 
-// GET /api/admin/parts — danh sách linh kiện (admin only).
+// GET /api/garage-owner/parts — danh sách linh kiện của garage đang quản lý.
 export type AdminPart = {
   id: number;
   partName: string;
@@ -709,21 +709,21 @@ export type CreatePartPayload = {
   quantity: number;
   maxQuantity: number;
   price: number;
-  garageId: number;
 };
 
 export function getAdminParts() {
-  return apiRequest<AdminPart[]>("/admin/parts");
+  return apiRequest<AdminPart[]>("/garage-owner/parts");
 }
 
+// Backend tự gán garage của admin đang đăng nhập, không cần truyền garageId.
 export function createAdminPart(payload: CreatePartPayload) {
-  return apiRequest<AdminPart>("/admin/parts", {
+  return apiRequest<AdminPart>("/garage-owner/parts", {
     method: "POST",
     body: payload,
   });
 }
 
-// GET /api/admin/customers — danh sách khách hàng (admin only).
+// GET /api/garage-owner/customers — danh sách khách hàng của garage đang quản lý.
 export type AdminCustomer = {
   id: number;
   username: string;
@@ -739,10 +739,10 @@ export type AdminCustomer = {
 };
 
 export function getAdminCustomers() {
-  return apiRequest<AdminCustomer[]>("/admin/customers");
+  return apiRequest<AdminCustomer[]>("/garage-owner/customers");
 }
 
-// GET & POST /api/admin/employees — quản lý nhân viên (admin only).
+// GET & POST /api/garage-owner/employees — quản lý nhân viên của garage đang quản lý.
 export type AdminEmployee = {
   id: number;
   username: string;
@@ -769,11 +769,11 @@ export type CreateEmployeePayload = {
 };
 
 export function getAdminEmployees() {
-  return apiRequest<AdminEmployee[]>("/admin/employees");
+  return apiRequest<AdminEmployee[]>("/garage-owner/employees");
 }
 
 export function createAdminEmployee(payload: CreateEmployeePayload) {
-  return apiRequest<AdminEmployee>("/admin/employees", {
+  return apiRequest<AdminEmployee>("/garage-owner/employees", {
     method: "POST",
     body: payload,
   });
