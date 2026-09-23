@@ -1,68 +1,9 @@
-import { useMemo, useState } from "react";
-
-export type PriceItem = {
-  id: string;
-  name: string;
-  category: string;
-  laborPrice: string;
-  partPrice: string;
-  totalPrice: string;
-  duration: string;
-  status: "active" | "hidden";
-};
-
-const INITIAL_PRICING: PriceItem[] = [
-  {
-    id: "PRC-01",
-    name: "Bảo dưỡng định kỳ 10.000 km",
-    category: "Bảo dưỡng",
-    laborPrice: "350.000đ",
-    partPrice: "450.000đ",
-    totalPrice: "800.000đ",
-    duration: "60 phút",
-    status: "active",
-  },
-  {
-    id: "PRC-02",
-    name: "Kiểm tra & cân bằng Cell Pin EV",
-    category: "Hệ thống điện / Pin",
-    laborPrice: "850.000đ",
-    partPrice: "0đ",
-    totalPrice: "850.000đ",
-    duration: "120 phút",
-    status: "active",
-  },
-  {
-    id: "PRC-03",
-    name: "Thay sạc Onboard AC-DC 7kW",
-    category: "Hệ thống điện / Pin",
-    laborPrice: "1.200.000đ",
-    partPrice: "5.800.000đ",
-    totalPrice: "7.000.000đ",
-    duration: "180 phút",
-    status: "active",
-  },
-  {
-    id: "PRC-04",
-    name: "Chẩn đoán phần mềm & Nâng cấp Firmware",
-    category: "Phần mềm & Chẩn đoán",
-    laborPrice: "500.000đ",
-    partPrice: "0đ",
-    totalPrice: "500.000đ",
-    duration: "45 phút",
-    status: "active",
-  },
-  {
-    id: "PRC-05",
-    name: "Bảo dưỡng hệ thống phanh & Thay dầu phanh",
-    category: "Khung gầm & Phanh",
-    laborPrice: "400.000đ",
-    partPrice: "300.000đ",
-    totalPrice: "700.000đ",
-    duration: "60 phút",
-    status: "active",
-  },
-];
+import { useEffect, useMemo, useState } from "react";
+import {
+  addService,
+  getAllServices,
+  type MaintenanceService,
+} from "../../services/api";
 
 const navItems = [
   ["dashboard", "Dashboard"],
@@ -83,6 +24,8 @@ type AdminPricingPageProps = {
   onLogout?: () => void;
 };
 
+const formatPrice = (n: number) => `${n.toLocaleString("vi-VN")}đ`;
+
 export default function AdminPricingPage({
   onDashboardClick,
   onEngineersClick,
@@ -92,84 +35,77 @@ export default function AdminPricingPage({
   onGarageClick,
   onLogout,
 }: AdminPricingPageProps) {
-  const [list, setList] = useState<PriceItem[]>(INITIAL_PRICING);
+  const [list, setList] = useState<MaintenanceService[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
-    category: "Bảo dưỡng",
-    laborPrice: "",
-    partPrice: "",
-    duration: "60 phút",
+    price: "",
+    duration: "",
+    description: "",
   });
 
-  const showNotice = (message: string) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(""), 3000);
+  const showNotice = (message: string, type: "success" | "error" = "success") => {
+    setNotice({ type, message });
+    window.setTimeout(() => setNotice(null), 3000);
   };
 
+  const loadServices = () => {
+    setIsLoading(true);
+    setLoadError(null);
+    getAllServices()
+      .then((data) => setList(data))
+      .catch((err) => {
+        setLoadError(
+          err instanceof Error ? err.message : "Không tải được bảng giá dịch vụ.",
+        );
+      })
+      .finally(() => setIsLoading(false));
+  };
+
+  useEffect(() => {
+    loadServices();
+  }, []);
+
   const visiblePricing = useMemo(() => {
-    return list.filter((item) => {
-      const matchCat =
-        selectedCategory === "all" || item.category === selectedCategory;
-      const matchQuery =
-        item.name.toLowerCase().includes(query.toLowerCase()) ||
-        item.category.toLowerCase().includes(query.toLowerCase()) ||
-        item.id.toLowerCase().includes(query.toLowerCase());
-      return matchCat && matchQuery;
-    });
-  }, [list, selectedCategory, query]);
+    const q = query.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((item) => item.name.toLowerCase().includes(q));
+  }, [list, query]);
 
   const submitNewPricing = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.laborPrice.trim()) {
-      showNotice("Vui lòng điền tên dịch vụ và giá công lặp!");
+    const priceNum = parseInt(form.price.replace(/\D/g, "")) || 0;
+    if (!form.name.trim() || priceNum <= 0) {
+      showNotice("Vui lòng điền tên dịch vụ và giá hợp lệ!", "error");
       return;
     }
 
-    const laborNum = parseInt(form.laborPrice.replace(/\D/g, "")) || 0;
-    const partNum = parseInt(form.partPrice.replace(/\D/g, "")) || 0;
-    const totalNum = laborNum + partNum;
-
-    const newItem: PriceItem = {
-      id: `PRC-${10 + list.length + 1}`,
+    setIsSubmitting(true);
+    addService({
       name: form.name.trim(),
-      category: form.category,
-      laborPrice: `${laborNum.toLocaleString("vi-VN")}đ`,
-      partPrice: `${partNum.toLocaleString("vi-VN")}đ`,
-      totalPrice: `${totalNum.toLocaleString("vi-VN")}đ`,
-      duration: form.duration.trim() || "60 phút",
-      status: "active",
-    };
-
-    setList((prev) => [newItem, ...prev]);
-    showNotice(`Đã thêm dịch vụ vào bảng giá: ${newItem.name}`);
-    setForm({
-      name: "",
-      category: "Bảo dưỡng",
-      laborPrice: "",
-      partPrice: "",
-      duration: "60 phút",
-    });
-    setAddOpen(false);
-  };
-
-  const toggleStatus = (id: string) => {
-    setList((prev) =>
-      prev.map((item) => {
-        if (item.id === id) {
-          const nextStatus = item.status === "active" ? "hidden" : "active";
-          showNotice(
-            `Đã ${nextStatus === "active" ? "hiện" : "ẩn"} dịch vụ: ${item.name}`,
-          );
-          return { ...item, status: nextStatus };
-        }
-        return item;
-      }),
-    );
+      price: priceNum,
+      duration: form.duration.trim() || undefined,
+      description: form.description.trim() || undefined,
+    })
+      .then((created) => {
+        setList((prev) => [created, ...prev]);
+        showNotice(`Đã thêm dịch vụ vào bảng giá: ${created.name}`);
+        setForm({ name: "", price: "", duration: "", description: "" });
+        setAddOpen(false);
+      })
+      .catch((err) => {
+        showNotice(
+          err instanceof Error ? err.message : "Không thể thêm dịch vụ.",
+          "error",
+        );
+      })
+      .finally(() => setIsSubmitting(false));
   };
 
   return (
@@ -245,7 +181,7 @@ export default function AdminPricingPage({
             </span>
             <input
               className="w-full rounded-full border border-outline-variant bg-surface-container-low px-4 py-2 pl-10 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-              placeholder="Tìm kiếm dịch vụ, danh mục bảng giá..."
+              placeholder="Tìm kiếm dịch vụ..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -261,9 +197,6 @@ export default function AdminPricingPage({
             <div className="ml-2 flex items-center gap-2 border-l border-outline-variant pl-3">
               <div className="hidden text-right sm:block">
                 <p className="font-label-md text-label-md">Quản trị viên</p>
-                <p className="text-[11px] text-on-surface-variant">
-                  Garage ABC
-                </p>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
                 A
@@ -278,10 +211,10 @@ export default function AdminPricingPage({
           <section className="mb-xl flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="font-headline-lg text-headline-lg font-bold">
-                Bảng giá dịch vụ & phụ tùng
+                Bảng giá dịch vụ
               </h1>
               <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
-                Quản lý và cập nhật đơn giá dịch vụ bảo dưỡng, sửa chữa định kỳ tại garage.
+                Danh sách dịch vụ bảo dưỡng, sửa chữa và đơn giá niêm yết.
               </p>
             </div>
             <button
@@ -299,52 +232,34 @@ export default function AdminPricingPage({
           {/* Pricing Table Section */}
           <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant p-lg">
-              <div className="flex flex-wrap items-center gap-2">
-                {(
-                  [
-                    ["all", "Tất cả"],
-                    ["Bảo dưỡng", "Bảo dưỡng"],
-                    ["Hệ thống điện / Pin", "Điện & Pin"],
-                    ["Khung gầm & Phanh", "Khung gầm"],
-                    ["Phần mềm & Chẩn đoán", "Phần mềm"],
-                  ] as const
-                ).map(([val, label]) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setSelectedCategory(val)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                      selectedCategory === val
-                        ? "bg-primary text-on-primary"
-                        : "border border-outline-variant bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
               <span className="text-xs text-outline">
                 Hiển thị {visiblePricing.length} dịch vụ
               </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[750px] text-left text-body-sm">
-                <thead className="bg-surface-container-low text-xs text-outline">
-                  <tr>
-                    <th className="px-5 py-3 font-semibold">Tên dịch vụ</th>
-                    <th className="px-5 py-3 font-semibold">Danh mục</th>
-                    <th className="px-5 py-3 font-semibold">Thời gian dự kiến</th>
-                    <th className="px-5 py-3 font-semibold">Tiền công</th>
-                    <th className="px-5 py-3 font-semibold">Vật tư / Phụ tùng</th>
-                    <th className="px-5 py-3 font-semibold">Tổng giá niêm yết</th>
-                    <th className="px-5 py-3 font-semibold text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visiblePricing.map((item) => {
-                    const isActive = item.status === "active";
-                    return (
+            {isLoading && (
+              <p className="p-lg text-body-sm text-on-surface-variant">
+                Đang tải bảng giá...
+              </p>
+            )}
+
+            {!isLoading && loadError && (
+              <p className="p-lg text-body-sm text-error">{loadError}</p>
+            )}
+
+            {!isLoading && !loadError && (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[600px] text-left text-body-sm">
+                  <thead className="bg-surface-container-low text-xs text-outline">
+                    <tr>
+                      <th className="px-5 py-3 font-semibold">Tên dịch vụ</th>
+                      <th className="px-5 py-3 font-semibold">Mô tả</th>
+                      <th className="px-5 py-3 font-semibold">Thời gian dự kiến</th>
+                      <th className="px-5 py-3 font-semibold">Đơn giá</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visiblePricing.map((item) => (
                       <tr
                         key={item.id}
                         className="border-t border-outline-variant transition-colors hover:bg-surface-container-low"
@@ -353,56 +268,42 @@ export default function AdminPricingPage({
                           <p className="font-semibold text-on-surface">
                             {item.name}
                           </p>
-                          <p className="text-xs text-outline">{item.id}</p>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="inline-flex items-center rounded-md bg-surface-container-high px-2.5 py-1 text-xs font-medium text-on-surface-variant">
-                            {item.category}
-                          </span>
                         </td>
                         <td className="px-5 py-4 text-on-surface-variant">
-                          <span className="inline-flex items-center gap-1">
-                            <span className="material-symbols-outlined text-sm text-outline">
-                              schedule
+                          {item.description || "—"}
+                        </td>
+                        <td className="px-5 py-4 text-on-surface-variant">
+                          {item.duration ? (
+                            <span className="inline-flex items-center gap-1">
+                              <span className="material-symbols-outlined text-sm text-outline">
+                                schedule
+                              </span>
+                              {item.duration}
                             </span>
-                            {item.duration}
-                          </span>
+                          ) : (
+                            "—"
+                          )}
                         </td>
-                        <td className="px-5 py-4 font-mono">{item.laborPrice}</td>
-                        <td className="px-5 py-4 font-mono">{item.partPrice}</td>
                         <td className="px-5 py-4 font-bold text-primary font-mono text-base">
-                          {item.totalPrice}
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => toggleStatus(item.id)}
-                            className={`rounded-lg px-3 py-1 text-xs font-semibold ${
-                              isActive
-                                ? "border border-outline-variant text-on-surface-variant hover:border-error hover:text-error"
-                                : "bg-primary-container/15 text-primary hover:bg-primary/20"
-                            }`}
-                          >
-                            {isActive ? "Ẩn dịch vụ" : "Hiện lại"}
-                          </button>
+                          {formatPrice(item.price)}
                         </td>
                       </tr>
-                    );
-                  })}
+                    ))}
 
-                  {visiblePricing.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={7}
-                        className="px-5 py-8 text-center text-on-surface-variant"
-                      >
-                        Không có dịch vụ nào trong danh mục này.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    {visiblePricing.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="px-5 py-8 text-center text-on-surface-variant"
+                        >
+                          Không có dịch vụ nào phù hợp.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         </div>
       </main>
@@ -431,51 +332,16 @@ export default function AdminPricingPage({
 
               <div>
                 <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
-                  Danh mục dịch vụ
+                  Đơn giá (VNĐ) *
                 </label>
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                <input
+                  type="text"
+                  required
+                  value={form.price}
+                  onChange={(e) => setForm({ ...form, price: e.target.value })}
+                  placeholder="800000"
                   className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                >
-                  <option value="Bảo dưỡng">Bảo dưỡng</option>
-                  <option value="Hệ thống điện / Pin">Hệ thống điện / Pin</option>
-                  <option value="Khung gầm & Phanh">Khung gầm & Phanh</option>
-                  <option value="Phần mềm & Chẩn đoán">Phần mềm & Chẩn đoán</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
-                    Tiền công sửa chữa (VNĐ) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.laborPrice}
-                    onChange={(e) =>
-                      setForm({ ...form, laborPrice: e.target.value })
-                    }
-                    placeholder="300000"
-                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
-                    Giá vật tư/phụ tùng (VNĐ)
-                  </label>
-                  <input
-                    type="text"
-                    value={form.partPrice}
-                    onChange={(e) =>
-                      setForm({ ...form, partPrice: e.target.value })
-                    }
-                    placeholder="1500000"
-                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
-                </div>
+                />
               </div>
 
               <div>
@@ -493,6 +359,21 @@ export default function AdminPricingPage({
                 />
               </div>
 
+              <div>
+                <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                  Mô tả dịch vụ
+                </label>
+                <textarea
+                  rows={3}
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                  placeholder="Mô tả ngắn về dịch vụ..."
+                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
               <div className="mt-6 flex justify-end gap-2">
                 <button
                   type="button"
@@ -503,9 +384,10 @@ export default function AdminPricingPage({
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90"
+                  disabled={isSubmitting}
+                  className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90 disabled:opacity-60"
                 >
-                  Xác nhận thêm
+                  {isSubmitting ? "Đang thêm..." : "Xác nhận thêm"}
                 </button>
               </div>
             </form>
@@ -516,10 +398,21 @@ export default function AdminPricingPage({
       {/* Floating Notice Toast */}
       {notice && (
         <div
-          className="fixed bottom-5 right-5 z-50 rounded-lg bg-inverse-surface px-4 py-3 text-body-sm text-inverse-on-surface shadow-lg"
+          className={`fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-lg border px-4 py-3 text-body-sm shadow-lg animate-[toast-in_0.2s_ease-out] ${
+            notice.type === "success"
+              ? "border-tertiary/30 bg-surface-container-lowest text-on-surface"
+              : "border-error/30 bg-surface-container-lowest text-on-surface"
+          }`}
           role="status"
         >
-          {notice}
+          <span
+            className={`material-symbols-outlined text-lg ${
+              notice.type === "success" ? "text-tertiary" : "text-error"
+            }`}
+          >
+            {notice.type === "success" ? "check_circle" : "error"}
+          </span>
+          {notice.message}
         </div>
       )}
     </div>

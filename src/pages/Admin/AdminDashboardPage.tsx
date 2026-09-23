@@ -1,65 +1,12 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  getAdminEmployees,
+  getReceptionDashboard,
+  type AdminEmployee,
+  type AppointmentDto,
+  type ReceptionDashboard,
+} from "../../services/api";
 
-const revenueBars = [40, 55, 45, 60, 50, 70, 62, 78, 68, 85, 76, 96];
-const repairs = [
-  {
-    plate: "51A-123.45",
-    customer: "Nguyễn Văn A",
-    service: "Bảo trì pin định kỳ",
-    progress: 60,
-    eta: "14:30",
-    when: "Hôm nay",
-  },
-  {
-    plate: "30H-888.88",
-    customer: "Trần Thị B",
-    service: "Kiểm tra hệ thống phanh",
-    progress: 85,
-    eta: "12:00",
-    when: "Hôm nay",
-  },
-  {
-    plate: "43B-567.89",
-    customer: "Lê Văn C",
-    service: "Thay sạc Onboard",
-    progress: 30,
-    eta: "10:00",
-    when: "Sáng mai",
-  },
-  {
-    plate: "29A-444.21",
-    customer: "Phạm Minh D",
-    service: "Phần mềm điều khiển",
-    progress: 15,
-    eta: "16:45",
-    when: "Hôm nay",
-  },
-];
-const appointments = [
-  {
-    time: "09:00",
-    name: "Hoàng Nam",
-    service: "Thay thế Cell Pin",
-    status: "confirmed",
-  },
-  {
-    time: "11:30",
-    name: "Minh Tuấn",
-    service: "Kiểm tra động cơ điện",
-    status: "pending",
-  },
-  {
-    time: "14:00",
-    name: "Lan Anh",
-    service: "Bảo dưỡng gầm xe",
-    status: "confirmed",
-  },
-];
-const technicians = [
-  { name: "Trần Quốc Toản", role: "Kỹ thuật viên trưởng", status: "ready" },
-  { name: "Nguyễn Mỹ Linh", role: "Chuyên viên pin", status: "busy" },
-  { name: "Đặng Hữu Tài", role: "Thợ máy", status: "ready" },
-];
 const navItems = [
   ["dashboard", "Dashboard"],
   ["engineering", "Nhân viên"],
@@ -78,6 +25,17 @@ type AdminDashboardPageProps = {
   onLogout?: () => void;
 };
 
+const formatPrice = (n: number) => `${n.toLocaleString("vi-VN")}đ`;
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: "Chờ xác nhận",
+  confirmed: "Đã xác nhận",
+  in_progress: "Đang xử lý",
+  completed: "Hoàn thành",
+  cancelled: "Đã hủy",
+  no_show: "Không đến",
+};
+
 export default function AdminDashboardPage({
   onCustomersClick,
   onEngineersClick,
@@ -87,10 +45,66 @@ export default function AdminDashboardPage({
   onLogout,
 }: AdminDashboardPageProps) {
   const [notice, setNotice] = useState("");
+  const [dashboard, setDashboard] = useState<ReceptionDashboard | null>(null);
+  const [employees, setEmployees] = useState<AdminEmployee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const showNotice = (message: string) => {
     setNotice(message);
     window.setTimeout(() => setNotice(""), 3000);
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(null);
+    Promise.all([getReceptionDashboard(), getAdminEmployees()])
+      .then(([dash, emp]) => {
+        if (cancelled) return;
+        setDashboard(dash);
+        setEmployees(emp);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLoadError(
+          err instanceof Error ? err.message : "Không tải được dữ liệu dashboard.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const appointments = dashboard?.appointments ?? [];
+
+  const totalRevenue = useMemo(
+    () =>
+      appointments
+        .filter((a) => a.status === "completed")
+        .reduce((sum, a) => sum + (a.servicePrice ?? 0), 0),
+    [appointments],
+  );
+
+  const inProgress = useMemo(
+    () => appointments.filter((a) => a.status === "in_progress"),
+    [appointments],
+  );
+
+  const today = new Date().toISOString().slice(0, 10);
+  const todayAppointments = useMemo(
+    () => appointments.filter((a) => a.scheduleDate === today),
+    [appointments, today],
+  );
+
+  const technicians = useMemo(
+    () => employees.filter((e) => e.role?.toLowerCase() === "engineer"),
+    [employees],
+  );
+
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-outline-variant bg-surface-container-lowest p-lg md:flex">
@@ -146,15 +160,6 @@ export default function AdminDashboardPage({
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
-          <label className="relative hidden w-full max-w-[24rem] md:block">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-              search
-            </span>
-            <input
-              className="w-full rounded-full border border-outline-variant bg-surface-container-low px-4 py-2 pl-10 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-              placeholder="Tìm kiếm xe, khách hàng..."
-            />
-          </label>
           <div className="ml-auto flex items-center gap-2">
             <button
               className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container"
@@ -165,9 +170,11 @@ export default function AdminDashboardPage({
             </button>
             <div className="ml-2 flex items-center gap-2 border-l border-outline-variant pl-3">
               <div className="hidden text-right sm:block">
-                <p className="font-label-md text-label-md">Admin</p>
+                <p className="font-label-md text-label-md">
+                  {dashboard?.receptionistName ?? "Admin"}
+                </p>
                 <p className="text-[11px] text-on-surface-variant">
-                  Garage ABC
+                  {dashboard?.garageName ?? ""}
                 </p>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
@@ -183,62 +190,68 @@ export default function AdminDashboardPage({
                 Tổng quan hệ thống
               </h1>
               <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
-                Chào buổi sáng, Admin. Đây là tình hình hoạt động của Servio hôm
-                nay.
+                Tình hình hoạt động của {dashboard?.garageName ?? "garage"} hôm nay.
               </p>
             </div>
-            <button
-              className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2.5 font-label-md text-label-md hover:bg-surface-container-low active:scale-[0.98]"
-              type="button"
-              onClick={() => showNotice("Đang xuất báo cáo...")}
-            >
-              <span className="material-symbols-outlined text-lg">
-                file_download
-              </span>
-              Xuất báo cáo
-            </button>
           </section>
-          <section className="mb-6 grid gap-4 lg:grid-cols-5">
-            <RevenueCard />
-            <StatCard
-              icon="directions_car"
-              label="Tổng số xe"
-              value="25"
-              detail="+12%"
-              tone="primary"
-            />
-            <StatCard
-              icon="build"
-              label="Đang sửa chữa"
-              value="15"
-              detail="đang xử lý"
-              tone="warning"
-            />
-            <StatCard
-              icon="check_circle"
-              label="Hoàn thành"
-              value="08"
-              detail="hôm nay"
-              tone="success"
-            />
-            <StatCard
-              icon="event_available"
-              label="Lịch hẹn"
-              value="12"
-              detail="đã xác nhận"
-              tone="accent"
-            />
-          </section>
-          <section className="grid gap-6 xl:grid-cols-3">
-            <div className="min-w-0 space-y-6 xl:col-span-2">
-              <RepairsTable showNotice={showNotice} />
-              <GoalCard showNotice={showNotice} />
-            </div>
-            <div className="min-w-0 space-y-6">
-              <AppointmentCard />
-              <TechnicianCard showNotice={showNotice} />
-            </div>
-          </section>
+
+          {isLoading && (
+            <p className="text-body-sm text-on-surface-variant">
+              Đang tải dữ liệu dashboard...
+            </p>
+          )}
+
+          {!isLoading && loadError && (
+            <p className="text-body-sm text-error">{loadError}</p>
+          )}
+
+          {!isLoading && !loadError && dashboard && (
+            <>
+              <section className="mb-6 grid gap-4 lg:grid-cols-5">
+                <RevenueCard total={totalRevenue} />
+                <StatCard
+                  icon="event_available"
+                  label="Tổng lịch hẹn"
+                  value={String(dashboard.totalAppointments)}
+                  detail="tất cả"
+                  tone="primary"
+                />
+                <StatCard
+                  icon="build"
+                  label="Đang xử lý"
+                  value={String(dashboard.inProgressCount)}
+                  detail="đang sửa chữa"
+                  tone="warning"
+                />
+                <StatCard
+                  icon="check_circle"
+                  label="Hoàn thành"
+                  value={String(dashboard.completedCount)}
+                  detail="tổng cộng"
+                  tone="success"
+                />
+                <StatCard
+                  icon="hourglass_empty"
+                  label="Chờ xác nhận"
+                  value={String(dashboard.pendingCount)}
+                  detail="cần xử lý"
+                  tone="accent"
+                />
+              </section>
+              <section className="grid gap-6 xl:grid-cols-3">
+                <div className="min-w-0 space-y-6 xl:col-span-2">
+                  <RepairsTable repairs={inProgress} showNotice={showNotice} />
+                </div>
+                <div className="min-w-0 space-y-6">
+                  <AppointmentCard appointments={todayAppointments} />
+                  <TechnicianCard
+                    technicians={technicians}
+                    onAddClick={() => onEngineersClick?.()}
+                  />
+                </div>
+              </section>
+            </>
+          )}
         </div>
       </main>
       {notice && (
@@ -253,39 +266,19 @@ export default function AdminDashboardPage({
   );
 }
 
-function RevenueCard() {
+function RevenueCard({ total }: { total: number }) {
   return (
     <article className="rounded-xl border border-outline-variant bg-surface-container-lowest lg:col-span-2">
       <div className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="font-label-md text-label-md text-on-surface-variant">
-              DOANH THU THÁNG NÀY
-            </p>
-            <p className="mt-2 font-display-lg text-display-lg">12.450.000đ</p>
-            <p className="mt-1 text-xs text-on-surface-variant">
-              So với tháng trước (10.550.000đ)
-            </p>
-          </div>
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-tertiary-container/10 px-2 py-1 text-xs font-semibold text-tertiary">
-            <span className="material-symbols-outlined text-sm">
-              trending_up
-            </span>
-            +18%
-          </span>
-        </div>
-        <div
-          className="mt-5 flex h-20 items-end gap-1.5"
-          aria-label="Biểu đồ doanh thu tháng"
-        >
-          {revenueBars.map((height, index) => (
-            <span
-              key={height}
-              className={`flex-1 rounded-t-sm ${index === revenueBars.length - 1 ? "bg-primary" : "bg-primary/25"}`}
-              style={{ height: `${height}%` }}
-            />
-          ))}
-        </div>
+        <p className="font-label-md text-label-md text-on-surface-variant">
+          DOANH THU (DỊCH VỤ ĐÃ HOÀN THÀNH)
+        </p>
+        <p className="mt-2 font-display-lg text-display-lg">
+          {formatPrice(total)}
+        </p>
+        <p className="mt-1 text-xs text-on-surface-variant">
+          Tổng đơn giá dịch vụ của các lịch hẹn đã hoàn thành
+        </p>
       </div>
     </article>
   );
@@ -325,20 +318,22 @@ function StatCard({
   );
 }
 function RepairsTable({
+  repairs,
   showNotice,
 }: {
+  repairs: AppointmentDto[];
   showNotice: (message: string) => void;
 }) {
   return (
     <article className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
       <div className="flex items-center justify-between border-b border-outline-variant px-5 py-4">
         <h2 className="font-headline-md text-headline-md">
-          Tiến độ sửa chữa hiện tại
+          Đang xử lý ({repairs.length})
         </h2>
         <button
           className="font-label-md text-label-md text-primary hover:underline"
           type="button"
-          onClick={() => showNotice("Đang mở danh sách tiến độ sửa chữa")}
+          onClick={() => showNotice("Xem chi tiết ở trang Lịch hẹn/Kỹ thuật viên")}
         >
           Xem tất cả
         </button>
@@ -351,8 +346,8 @@ function RepairsTable({
                 "Biển số",
                 "Khách hàng",
                 "Loại dịch vụ",
-                "Tiến độ",
-                "Dự kiến xong",
+                "Kỹ thuật viên",
+                "Lịch hẹn",
               ].map((label) => (
                 <th key={label} className="px-5 py-3 font-semibold">
                   {label}
@@ -363,69 +358,44 @@ function RepairsTable({
           <tbody>
             {repairs.map((repair) => (
               <tr
-                key={repair.plate}
+                key={repair.id}
                 className="border-t border-outline-variant transition-colors hover:bg-surface-container-low"
               >
                 <td className="px-5 py-4 font-semibold text-primary">
-                  {repair.plate}
+                  {repair.vehicleLicensePlate ?? "—"}
                 </td>
-                <td className="px-5 py-4">{repair.customer}</td>
+                <td className="px-5 py-4">{repair.customerName}</td>
                 <td className="px-5 py-4 text-on-surface-variant">
-                  {repair.service}
+                  {repair.serviceName}
                 </td>
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="h-1.5 min-w-20 flex-1 overflow-hidden rounded-full bg-surface-container">
-                      <span
-                        className="block h-full rounded-full bg-primary"
-                        style={{ width: `${repair.progress}%` }}
-                      />
-                    </span>
-                    <span className="w-9 text-right text-xs font-medium">
-                      {repair.progress}%
-                    </span>
-                  </div>
+                <td className="px-5 py-4 text-on-surface-variant">
+                  {repair.engineerName ?? "Chưa gán"}
                 </td>
                 <td className="px-5 py-4 text-right">
-                  <p className="font-semibold">{repair.eta}</p>
+                  <p className="font-semibold">{repair.timeFrame}</p>
                   <p className="text-xs text-on-surface-variant">
-                    {repair.when}
+                    {repair.scheduleDate}
                   </p>
                 </td>
               </tr>
             ))}
+            {repairs.length === 0 && (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="px-5 py-8 text-center text-on-surface-variant"
+                >
+                  Hiện không có lịch hẹn nào đang xử lý.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
     </article>
   );
 }
-function GoalCard({ showNotice }: { showNotice: (message: string) => void }) {
-  return (
-    <article className="flex flex-wrap items-center justify-between gap-5 overflow-hidden rounded-2xl bg-blue-600 p-6 text-white shadow-lg">
-      <div className="flex-1 min-w-200 max-w-[36rem]">
-        <span className="inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white">
-          Mục tiêu garage
-        </span>
-        <h2 className="mt-3 text-xl md:text-2xl font-bold leading-tight">
-          Đạt 100 dịch vụ hoàn thành trong tháng 10
-        </h2>
-        <p className="mt-2 text-sm md:text-base text-blue-100">
-          Chúng ta hiện đã đạt 78%. Hãy duy trì chất lượng và tiến độ phục vụ
-          khách hàng tuyệt vời!
-        </p>
-      </div>
-      <button
-        className="shrink-0 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-blue-600 shadow-sm transition hover:bg-blue-50 active:scale-[0.98]"
-        type="button"
-        onClick={() => showNotice("Đã cập nhật tiến độ mục tiêu")}
-      >
-        Cập nhật tiến độ
-      </button>
-    </article>
-  );
-}
-function AppointmentCard() {
+function AppointmentCard({ appointments }: { appointments: AppointmentDto[] }) {
   return (
     <article className="rounded-xl border border-outline-variant bg-surface-container-lowest">
       <div className="flex items-center gap-2 border-b border-outline-variant px-5 py-4">
@@ -437,64 +407,68 @@ function AppointmentCard() {
       <div className="space-y-3 p-5">
         {appointments.map((appointment) => (
           <div
-            key={appointment.time}
+            key={appointment.id}
             className="rounded-xl border border-outline-variant p-3 transition-colors hover:border-primary/50"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-label-md text-label-md">
-                  {appointment.time} - {appointment.name}
+                  {appointment.timeFrame} - {appointment.customerName}
                 </p>
                 <p className="mt-1 truncate text-xs text-on-surface-variant">
-                  {appointment.service}
+                  {appointment.serviceName}
                 </p>
               </div>
               <StatusBadge status={appointment.status} />
             </div>
           </div>
         ))}
+        {appointments.length === 0 && (
+          <p className="text-body-sm text-on-surface-variant">
+            Không có lịch hẹn nào hôm nay.
+          </p>
+        )}
       </div>
     </article>
   );
 }
 function TechnicianCard({
-  showNotice,
+  technicians,
+  onAddClick,
 }: {
-  showNotice: (message: string) => void;
+  technicians: AdminEmployee[];
+  onAddClick: () => void;
 }) {
   return (
     <article className="rounded-xl border border-outline-variant bg-surface-container-lowest">
       <div className="flex items-center justify-between border-b border-outline-variant px-5 py-4">
-        <h2 className="font-headline-md text-base">Trạng thái kỹ thuật viên</h2>
-        <button
-          className="text-outline hover:text-on-surface"
-          type="button"
-          aria-label="Tùy chọn"
-        >
-          <span className="material-symbols-outlined">more_vert</span>
-        </button>
+        <h2 className="font-headline-md text-base">Kỹ thuật viên</h2>
       </div>
       <div className="space-y-4 p-5">
         {technicians.map((technician) => (
-          <div key={technician.name} className="flex items-center gap-3">
+          <div key={technician.id} className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-container font-semibold text-on-secondary-container">
-              {technician.name[0]}
+              {(technician.fullName ?? technician.username)[0]}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate font-label-md text-label-md">
-                {technician.name}
+                {technician.fullName ?? technician.username}
               </p>
               <p className="truncate text-xs text-on-surface-variant">
-                {technician.role}
+                {technician.email}
               </p>
             </div>
-            <StatusBadge status={technician.status} />
           </div>
         ))}
+        {technicians.length === 0 && (
+          <p className="text-body-sm text-on-surface-variant">
+            Chưa có kỹ thuật viên nào.
+          </p>
+        )}
         <button
           className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-outline-variant py-2.5 font-label-md text-label-md hover:bg-surface-container-low"
           type="button"
-          onClick={() => showNotice("Mở biểu mẫu thêm kỹ thuật viên")}
+          onClick={onAddClick}
         >
           <span className="material-symbols-outlined text-lg">person_add</span>
           Thêm kỹ thuật viên
@@ -504,15 +478,8 @@ function TechnicianCard({
   );
 }
 function StatusBadge({ status }: { status: string }) {
-  const ready = status === "confirmed" || status === "ready";
-  const text =
-    status === "confirmed"
-      ? "Đã xác nhận"
-      : status === "pending"
-        ? "Chờ xác nhận"
-        : status === "ready"
-          ? "Sẵn sàng"
-          : "Đang bận";
+  const ready = status === "confirmed" || status === "completed";
+  const text = STATUS_LABEL[status] ?? status;
   return (
     <span
       className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${ready ? "bg-tertiary-container/10 text-tertiary" : "bg-error-container text-on-error-container"}`}

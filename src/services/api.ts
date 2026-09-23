@@ -563,6 +563,7 @@ type RawService = {
   serviceName: string;
   price: number;
   duration?: string;
+  description?: string;
 };
 
 export type MaintenanceService = {
@@ -577,6 +578,7 @@ export type NewServicePayload = {
   name: string;
   price: number;
   description?: string;
+  duration?: string;
 };
 
 function mapService(raw: RawService): MaintenanceService {
@@ -585,6 +587,7 @@ function mapService(raw: RawService): MaintenanceService {
     name: raw.serviceName,
     price: raw.price,
     duration: raw.duration,
+    description: raw.description,
   };
 }
 
@@ -592,7 +595,12 @@ function mapService(raw: RawService): MaintenanceService {
 export async function addService(payload: NewServicePayload) {
   const raw = await apiRequest<RawService>("/services", {
     method: "POST",
-    body: { serviceName: payload.name, price: payload.price },
+    body: {
+      serviceName: payload.name,
+      price: payload.price,
+      duration: payload.duration,
+      description: payload.description,
+    },
   });
   return mapService(raw);
 }
