@@ -1,6 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
-import { getStoredAuthSession } from "../../services/api";
+import {
+  getActiveAppointments,
+  getMyFleet,
+  getMyNotifications,
+  getStoredAuthSession,
+  getWalletBalance,
+  type AppNotification,
+  type AppointmentDto,
+  type Vehicle,
+} from "../../services/api";
 
 type QuickAction = {
   label: string;
@@ -8,40 +17,52 @@ type QuickAction = {
   onClick?: () => void;
 };
 
-type Activity = {
-  title: string;
-  subtitle: string;
-  time: string;
-  icon: string;
-  tone: string;
-};
-
 const carImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCXT-EcsMzdfkWSSGRpWcyki5d3M7wpEASIP51A4WtZRLiE8J7zxrt3ZnVk0P1ssoZAlw2Bw3lJ25_cN3dIlR2IYzxGVdsEuD0jSldo-A_7tYPHx_-5oryhGAmyDBMKO9oyBvXhM1UOs8Cbt_gfapUbSgRti030ygiu_arYPiSLvG--7I64YJuxjF2wRtTThk0RNjRJ15i2fiJ9EtS_b_2ze-RzbvRCd6l_hRTI86rK9CO2wtmDwsx9UaCLfqUJ8xkj9_AlQ-7BkQtG";
 
-const activities: Activity[] = [
-  {
-    title: "Thanh toán thành công",
-    subtitle: "Dịch vụ thay dầu - 450.000đ",
-    time: "Hôm qua",
-    icon: "check_circle",
-    tone: "bg-tertiary-container/20 text-tertiary",
-  },
-  {
-    title: "Lịch hẹn được xác nhận",
-    subtitle: "Bảo dưỡng 20.000km - Trung tâm Cầu Giấy",
-    time: "2 ngày trước",
-    icon: "event",
-    tone: "bg-primary-container/20 text-primary",
-  },
-  {
-    title: "Cảnh báo lốp",
-    subtitle: "Áp suất lốp trước trái thấp",
-    time: "3 ngày trước",
-    icon: "warning",
-    tone: "bg-error-container/20 text-error",
-  },
-];
+function formatCurrency(value: number | null | undefined) {
+  if (value === null || value === undefined) return "0đ";
+  return `${value.toLocaleString("vi-VN")}đ`;
+}
+
+function statusLabel(status: string) {
+  switch (status.toLowerCase()) {
+    case "pending":
+      return "Chờ xác nhận";
+    case "confirmed":
+      return "Đã xác nhận";
+    case "in_progress":
+      return "Đang sửa chữa";
+    case "completed":
+      return "Hoàn thành";
+    default:
+      return status;
+  }
+}
+
+function notificationIcon(type: string) {
+  switch (type) {
+    case "VEHICLE":
+      return { icon: "directions_car", tone: "bg-primary-container/20 text-primary" };
+    case "APPOINTMENT":
+      return { icon: "event", tone: "bg-primary-container/20 text-primary" };
+    case "PROMOTION":
+      return { icon: "redeem", tone: "bg-tertiary-container/20 text-tertiary" };
+    default:
+      return { icon: "notifications", tone: "bg-surface-variant text-on-surface-variant" };
+  }
+}
+
+function timeAgo(isoDate: string) {
+  const diffMs = Date.now() - new Date(isoDate).getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "Vừa xong";
+  if (minutes < 60) return `${minutes} phút trước`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  const days = Math.floor(hours / 24);
+  return `${days} ngày trước`;
+}
 
 type HomeProps = {
   onBookingClick: () => void;
@@ -61,6 +82,39 @@ export default function Home({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const username = getStoredAuthSession()?.username || "bạn";
   const avatarInitial = username.charAt(0).toUpperCase();
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeAppointment, setActiveAppointment] = useState<AppointmentDto | null>(null);
+  const [activeVehicle, setActiveVehicle] = useState<Vehicle | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all([getActiveAppointments(), getMyFleet(), getWalletBalance(), getMyNotifications()])
+      .then(([appointments, fleet, balance, myNotifications]) => {
+        if (cancelled) return;
+        const appointment = appointments[0] ?? null;
+        setActiveAppointment(appointment);
+        setActiveVehicle(
+          appointment ? fleet.find((v) => v.id === appointment.vehicleId) ?? null : null,
+        );
+        setWalletBalance(balance);
+        setNotifications(myNotifications.slice(0, 3));
+      })
+      .catch(() => {
+        // Trang chủ không chặn hiển thị khi 1 phần dữ liệu lỗi — các mục
+        // liên quan sẽ tự hiện trạng thái rỗng.
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleClickFeedback = () => {
     if (window.navigator.vibrate) {
@@ -237,50 +291,79 @@ export default function Home({
                   <span className="font-headline-md text-headline-md text-on-surface">
                     Xe của bạn
                   </span>
-                  <span className="flex items-center gap-xs rounded-lg bg-tertiary-container/10 px-sm py-xs font-label-md text-label-md text-tertiary">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-tertiary" />
-                    Đang sửa chữa
-                  </span>
+                  {activeAppointment && (
+                    <span className="flex items-center gap-xs rounded-lg bg-tertiary-container/10 px-sm py-xs font-label-md text-label-md text-tertiary">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-tertiary" />
+                      {statusLabel(activeAppointment.status)}
+                    </span>
+                  )}
                 </div>
 
-                <div className="space-y-md">
-                  <div>
-                    <h3 className="font-headline-lg text-headline-lg text-primary">
-                      Toyota Vios 2023
-                    </h3>
+                {isLoading && (
+                  <p className="font-body-md text-body-md text-on-surface-variant">
+                    Đang tải...
+                  </p>
+                )}
+
+                {!isLoading && !activeAppointment && (
+                  <div className="space-y-md">
                     <p className="font-body-md text-body-md text-on-surface-variant">
-                      Biển số: 30A-123.45
+                      Bạn chưa có lịch hẹn nào đang diễn ra.
                     </p>
+                    <button
+                      type="button"
+                      onClick={onBookingClick}
+                      className="rounded-lg bg-primary px-lg py-sm font-label-md text-label-md text-on-primary transition-all hover:shadow-lg active:scale-95"
+                    >
+                      Đặt lịch ngay
+                    </button>
                   </div>
+                )}
 
-                  <div className="space-y-sm rounded-lg bg-surface-container-low p-md">
-                    <div className="flex justify-between gap-md text-body-md">
-                      <span className="text-outline">Dịch vụ:</span>
-                      <span className="text-right font-semibold text-on-surface">
-                        Bảo dưỡng định kỳ 20.000km
-                      </span>
+                {!isLoading && activeAppointment && (
+                  <div className="space-y-md">
+                    <div>
+                      <h3 className="font-headline-lg text-headline-lg text-primary">
+                        {activeAppointment.vehicleModel}
+                      </h3>
+                      {activeVehicle?.licensePlate && (
+                        <p className="font-body-md text-body-md text-on-surface-variant">
+                          Biển số: {activeVehicle.licensePlate}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex justify-between gap-md text-body-md">
-                      <span className="text-outline">Dự kiến xong:</span>
-                      <span className="text-right font-semibold text-on-surface">
-                        16:30, Hôm nay
-                      </span>
+
+                    <div className="space-y-sm rounded-lg bg-surface-container-low p-md">
+                      <div className="flex justify-between gap-md text-body-md">
+                        <span className="text-outline">Dịch vụ:</span>
+                        <span className="text-right font-semibold text-on-surface">
+                          {activeAppointment.serviceName}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-md text-body-md">
+                        <span className="text-outline">Lịch hẹn:</span>
+                        <span className="text-right font-semibold text-on-surface">
+                          {activeAppointment.scheduleDate} · {activeAppointment.timeFrame}
+                        </span>
+                      </div>
+                      {activeAppointment.garageName && (
+                        <div className="flex justify-between gap-md text-body-md">
+                          <span className="text-outline">Garage:</span>
+                          <span className="text-right font-semibold text-on-surface">
+                            {activeAppointment.garageName}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <div className="mt-md h-2 w-full overflow-hidden rounded-full bg-surface-variant">
-                      <div className="h-full w-2/3 rounded-full bg-primary" />
-                    </div>
-                    <p className="text-right text-[11px] font-medium text-primary">
-                      Tiến độ: 65%
-                    </p>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="relative h-48 overflow-hidden rounded-xl border border-outline-variant md:h-auto md:w-1/2">
                 <img
                   className="h-full w-full object-cover"
-                  src={carImage}
-                  alt="Toyota Vios trong trung tâm dịch vụ"
+                  src={activeVehicle?.imageUrl || carImage}
+                  alt={activeAppointment?.vehicleModel || "Xe của bạn"}
                 />
               </div>
             </section>
@@ -316,10 +399,7 @@ export default function Home({
                 </div>
                 <div>
                   <p className="font-display-lg text-display-lg text-on-surface">
-                    1.250.000đ
-                  </p>
-                  <p className="mt-xs font-label-md text-label-md text-tertiary">
-                    +50k điểm tích lũy
+                    {walletBalance === null ? "..." : formatCurrency(walletBalance)}
                   </p>
                 </div>
               </div>
@@ -363,29 +443,37 @@ export default function Home({
                 </button>
               </div>
               <div className="divide-y divide-outline-variant">
-                {activities.map((activity) => (
-                  <div
-                    key={activity.title}
-                    className="flex items-center gap-md p-lg transition-colors hover:bg-surface-container-low"
-                  >
+                {notifications.length === 0 && (
+                  <p className="p-lg font-body-md text-body-md text-on-surface-variant">
+                    Chưa có hoạt động nào gần đây.
+                  </p>
+                )}
+                {notifications.map((notification) => {
+                  const { icon, tone } = notificationIcon(notification.type);
+                  return (
                     <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg ${activity.tone}`}
+                      key={notification.id}
+                      className="flex items-center gap-md p-lg transition-colors hover:bg-surface-container-low"
                     >
-                      <span className="material-symbols-outlined">{activity.icon}</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-body-md text-body-md font-semibold">
-                        {activity.title}
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg ${tone}`}
+                      >
+                        <span className="material-symbols-outlined">{icon}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-body-md text-body-md font-semibold">
+                          {notification.title}
+                        </p>
+                        <p className="truncate font-label-sm text-label-sm text-outline">
+                          {notification.message}
+                        </p>
+                      </div>
+                      <p className="whitespace-nowrap font-label-sm text-label-sm text-outline">
+                        {timeAgo(notification.createdAt)}
                       </p>
-                      <p className="truncate font-label-sm text-label-sm text-outline">
-                        {activity.subtitle}
-                      </p>
                     </div>
-                    <p className="whitespace-nowrap font-label-sm text-label-sm text-outline">
-                      {activity.time}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
 
@@ -394,49 +482,35 @@ export default function Home({
                 <h3 className="mb-lg font-headline-md text-headline-md">
                   Tiến độ dịch vụ
                 </h3>
-                <div className="relative space-y-xl pl-8 before:absolute before:bottom-2 before:left-[11px] before:top-2 before:w-[2px] before:bg-outline-variant before:content-['']">
-                  {[
-                    ["done", "Tiếp nhận xe", "08:30 - Kỹ thuật viên: Hoàng Nam", "done"],
-                    ["done", "Kiểm tra tổng quát", "09:15 - Hoàn tất báo giá", "done"],
-                    ["sync", "Đang bảo dưỡng", "10:45 - Thay thế phụ tùng định kỳ", "active"],
-                    ["hourglass_empty", "Rửa xe & Vệ sinh", "Dự kiến 15:30", "pending"],
-                  ].map(([icon, title, description, status]) => (
-                    <div
-                      key={title}
-                      className={`relative ${status === "pending" ? "opacity-40" : ""}`}
-                    >
-                      <span
-                        className={`absolute -left-[30px] top-0 flex h-6 w-6 items-center justify-center rounded-full ${
-                          status === "active"
-                            ? "bg-primary text-white ring-4 ring-primary-fixed-dim"
-                            : status === "done"
-                              ? "bg-tertiary text-on-tertiary"
-                              : "bg-surface-variant"
-                        }`}
-                      >
-                        <span
-                          className={`material-symbols-outlined text-[14px] ${
-                            status === "active" ? "animate-spin" : ""
-                          }`}
-                        >
-                          {icon}
-                        </span>
+                {!activeAppointment && (
+                  <p className="font-body-md text-body-md text-on-surface-variant">
+                    Bạn chưa có lịch hẹn nào đang diễn ra.
+                  </p>
+                )}
+                {activeAppointment && (
+                  <div className="space-y-sm">
+                    <div className="flex justify-between gap-md text-body-md">
+                      <span className="text-outline">Trạng thái:</span>
+                      <span className="text-right font-semibold text-primary">
+                        {statusLabel(activeAppointment.status)}
                       </span>
-                      <p
-                        className={`font-label-md text-label-md ${
-                          status === "active"
-                            ? "font-bold text-primary"
-                            : "text-on-surface"
-                        }`}
-                      >
-                        {title}
-                      </p>
-                      <p className="font-label-sm text-label-sm text-outline">
-                        {description}
-                      </p>
                     </div>
-                  ))}
-                </div>
+                    <div className="flex justify-between gap-md text-body-md">
+                      <span className="text-outline">Kỹ thuật viên:</span>
+                      <span className="text-right font-semibold text-on-surface">
+                        {activeAppointment.engineerName || "Chưa phân công"}
+                      </span>
+                    </div>
+                    {activeAppointment.notes && (
+                      <div className="flex justify-between gap-md text-body-md">
+                        <span className="text-outline">Ghi chú:</span>
+                        <span className="text-right font-semibold text-on-surface">
+                          {activeAppointment.notes}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </section>
           </div>

@@ -793,6 +793,15 @@ export type AppNotification = {
   createdAt: string;
 };
 
+// GET /api/payment/wallet-balance — số dư ví Servio Pay của người dùng đang
+// đăng nhập.
+export async function getWalletBalance() {
+  const result = await apiRequest<{ userId: number; balance: number }>(
+    "/payment/wallet-balance",
+  );
+  return result.balance;
+}
+
 // GET /api/notifications/me — danh sách thông báo của người dùng đang đăng
 // nhập, mới nhất trước.
 export function getMyNotifications() {
