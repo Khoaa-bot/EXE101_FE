@@ -17,13 +17,13 @@ type TrackingPageProps = {
 const vehicleImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuC4k_UBSnuCnHjpDC6k50szf5Z3Oo4yKM2t9kU0_R1EYLEmXpR0OSok5ddQjJKptTrZiaGqjLiqjmrK821UZXKaZU4DAlIFMyHtJNs5xifBwtqU8U8jFBH4JPInp-jTyem1LZ8dPLVQepnt_2x7W53JBaxfQTFx-eVXGWMHwTO3wz9Y1Nl6yI5T51yPVUirOsHzPJG680yTqdfQti0ppIrzpB_7xB-5dt6zBRSRQuha_nUdcNZn84d8nHFNkYWPlwQmzJ108PAm1mVj";
 
-const STEP_ORDER = ["PENDING", "CONFIRMED", "IN_PROGRESS", "COMPLETED"];
+const STEP_ORDER = ["pending", "confirmed", "in_progress", "completed"];
 
 const STEP_META: Record<string, { title: string; icon: string }> = {
-  PENDING: { title: "Chờ xác nhận", icon: "hourglass_empty" },
-  CONFIRMED: { title: "Đã xác nhận", icon: "check" },
-  IN_PROGRESS: { title: "Đang sửa chữa", icon: "build" },
-  COMPLETED: { title: "Hoàn thành", icon: "flag" },
+  pending: { title: "Chờ xác nhận", icon: "hourglass_empty" },
+  confirmed: { title: "Đã xác nhận", icon: "check" },
+  in_progress: { title: "Đang sửa chữa", icon: "build" },
+  completed: { title: "Hoàn thành", icon: "flag" },
 };
 
 function formatCurrency(value: number | null | undefined) {
@@ -31,9 +31,25 @@ function formatCurrency(value: number | null | undefined) {
   return `${value.toLocaleString("vi-VN")}đ`;
 }
 
-function getSteps(currentStatus: string) {
-  if (currentStatus === "CANCELLED") {
-    return [{ key: "CANCELLED", title: "Đã huỷ lịch hẹn", icon: "cancel", status: "active" as const }];
+function statusTitle(rawStatus: string) {
+  const status = rawStatus.toLowerCase();
+  if (status === "cancelled") return "Đã huỷ lịch hẹn";
+  if (status === "no_show") return "Khách không đến";
+  return STEP_META[status]?.title ?? rawStatus;
+}
+
+function getSteps(rawStatus: string) {
+  const currentStatus = rawStatus.toLowerCase();
+
+  if (currentStatus === "cancelled" || currentStatus === "no_show") {
+    return [
+      {
+        key: currentStatus,
+        title: currentStatus === "no_show" ? "Khách không đến" : "Đã huỷ lịch hẹn",
+        icon: "cancel",
+        status: "active" as const,
+      },
+    ];
   }
 
   const currentIndex = STEP_ORDER.indexOf(currentStatus);
@@ -199,7 +215,7 @@ export default function TrackingPage({
                     alt={appointment.vehicleModel}
                   />
                   <div className="absolute left-4 top-4 rounded-full bg-primary px-3 py-1 font-label-md text-label-md text-white shadow-lg">
-                    {STEP_META[appointment.status]?.title ?? appointment.status}
+                    {statusTitle(appointment.status)}
                   </div>
                 </div>
 
