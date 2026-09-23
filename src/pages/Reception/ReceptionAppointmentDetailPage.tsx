@@ -1,5 +1,10 @@
-import { useState } from "react";
-import { APPOINTMENTS_DATA, type Appt } from "./ReceptionAppointmentsPage";
+import { useEffect, useState } from "react";
+import {
+  getReceptionAppointment,
+  updateReceptionAppointmentStatus,
+  type AppointmentDto,
+} from "../../services/api";
+import type { Appt } from "./ReceptionAppointmentsPage";
 
 const navItems = [
   ["dashboard", "Dashboard"],
@@ -14,6 +19,14 @@ const statusMap: Record<Appt["status"], { label: string; cls: string }> = {
   done: { label: "Hoàn thành", cls: "bg-surface-container text-on-surface-variant" },
   canceled: { label: "Đã hủy", cls: "bg-error-container/10 text-on-error-container" },
 };
+
+function mapStatus(status: string): Appt["status"] {
+  const s = status.toLowerCase();
+  if (s === "completed") return "done";
+  if (s === "cancelled" || s === "canceled") return "canceled";
+  if (s === "pending") return "pending";
+  return "confirmed";
+}
 
 type ReceptionAppointmentDetailPageProps = {
   appointmentId: string;
@@ -41,27 +54,81 @@ export default function ReceptionAppointmentDetailPage({
   onCustomersClick,
   onLogout,
 }: ReceptionAppointmentDetailPageProps) {
-  const appt = APPOINTMENTS_DATA.find((a) => a.id === appointmentId);
-  const [status, setStatus] = useState<Appt["status"]>(appt?.status ?? "pending");
+  const [appt, setAppt] = useState<AppointmentDto | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [status, setStatus] = useState<Appt["status"]>("pending");
   const [notice, setNotice] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(null);
+
+    getReceptionAppointment(appointmentId)
+      .then((data) => {
+        if (cancelled) return;
+        setAppt(data);
+        setStatus(mapStatus(data.status));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLoadError(
+          err instanceof Error ? err.message : "Không tải được lịch hẹn.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [appointmentId]);
 
   const showNotice = (msg: string) => {
     setNotice(msg);
     window.setTimeout(() => setNotice(""), 3000);
   };
 
+  const updateStatus = async (
+    next: "confirmed" | "cancelled",
+    successMsg: string,
+  ) => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      const updated = await updateReceptionAppointmentStatus(appointmentId, {
+        status: next,
+      });
+      setAppt(updated);
+      setStatus(mapStatus(updated.status));
+      showNotice(successMsg);
+      if (next === "cancelled") {
+        window.setTimeout(() => onAppointmentsClick?.(), 800);
+      }
+    } catch (err) {
+      showNotice(
+        err instanceof Error ? err.message : "Cập nhật trạng thái không thành công.",
+      );
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const onConfirm = () => {
-    setStatus("confirmed");
-    showNotice(`Đã xác nhận lịch ${appt?.bookingId}`);
+    void updateStatus("confirmed", `Đã xác nhận lịch #${appointmentId}`);
   };
 
   const onCancel = () => {
-    setStatus("canceled");
-    showNotice(`Đã hủy lịch ${appt?.bookingId} giúp khách`);
-    window.setTimeout(() => onAppointmentsClick?.(), 800);
+    void updateStatus("cancelled", `Đã hủy lịch #${appointmentId} giúp khách`);
   };
 
   const { label: statusLabel, cls: statusCls } = statusMap[status];
+  const scheduleDate = appt
+    ? new Date(appt.scheduleDate).toLocaleDateString("vi-VN")
+    : "";
 
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
@@ -144,7 +211,25 @@ export default function ReceptionAppointmentDetailPage({
             Quay lại Lịch hẹn
           </button>
 
-          {!appt ? (
+          {isLoading && (
+            <p className="text-sm text-on-surface-variant">Đang tải lịch hẹn...</p>
+          )}
+
+          {loadError && !isLoading && (
+            <article className="rounded-xl border border-outline-variant bg-surface-container-lowest">
+              <div className="p-8">
+                <p className="text-error">{loadError}</p>
+                <button
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors"
+                  onClick={onAppointmentsClick}
+                >
+                  Quay lại
+                </button>
+              </div>
+            </article>
+          )}
+
+          {!isLoading && !loadError && !appt ? (
             <article className="rounded-xl border border-outline-variant bg-surface-container-lowest">
               <div className="p-8">
                 <p className="text-on-surface-variant">Không tìm thấy lịch hẹn.</p>
@@ -157,13 +242,14 @@ export default function ReceptionAppointmentDetailPage({
               </div>
             </article>
           ) : (
+            !isLoading && !loadError && appt && (
             <article className="rounded-xl border border-outline-variant bg-surface-container-lowest">
               <div className="p-6 md:p-8">
                 <div className="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant pb-6">
                   <div>
                     <h1 className="text-2xl md:text-3xl font-bold">Chi tiết Lịch hẹn</h1>
                     <p className="text-sm text-on-surface-variant mt-1">
-                      Booking ID: <span className="font-semibold text-on-surface">#{appt.bookingId}</span>
+                      Booking ID: <span className="font-semibold text-on-surface">#{appt.id}</span>
                     </p>
                   </div>
                   <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${statusCls}`}>
@@ -178,13 +264,8 @@ export default function ReceptionAppointmentDetailPage({
                       Thông tin khách hàng
                     </p>
                     <div className="rounded-xl bg-surface-container p-5 space-y-3">
-                      <p className="text-lg font-semibold">{appt.name}</p>
-                      <p className="text-sm inline-flex items-center gap-2">
-                        <span className="material-symbols-outlined text-on-surface-variant">phone</span> {appt.phone}
-                      </p>
-                      <p className="text-sm inline-flex items-center gap-2">
-                        <span className="material-symbols-outlined text-on-surface-variant">mail</span> {appt.email}
-                      </p>
+                      <p className="text-lg font-semibold">{appt.customerName}</p>
+                      <p className="text-sm text-on-surface-variant">ID: {appt.customerId}</p>
                     </div>
                   </div>
                   <div>
@@ -193,10 +274,12 @@ export default function ReceptionAppointmentDetailPage({
                       Chi tiết đặt lịch
                     </p>
                     <div className="rounded-xl bg-surface-container p-5 space-y-3 text-sm">
-                      <Row label="Xe" value={appt.vehicle} />
-                      <Row label="Biển số" value={<span className="rounded bg-primary-container/10 text-primary px-2 py-0.5 font-semibold">{appt.plate}</span>} />
-                      <Row label="Dịch vụ" value={appt.service} />
-                      <Row label="Lịch hẹn" value={<div className="text-right"><div>{appt.date}</div><div className="text-primary font-medium">{appt.slot}</div></div>} />
+                      <Row label="Xe" value={appt.vehicleModel} />
+                      <Row label="Biển số / VIN" value={<span className="rounded bg-primary-container/10 text-primary px-2 py-0.5 font-semibold">{appt.vehicleVin}</span>} />
+                      <Row label="Dịch vụ" value={`${appt.serviceName} · ${appt.servicePrice.toLocaleString("vi-VN")}đ`} />
+                      <Row label="Garage" value={appt.garageName} />
+                      <Row label="Kỹ thuật viên" value={appt.engineerName || "Chưa phân công"} />
+                      <Row label="Lịch hẹn" value={<div className="text-right"><div>{scheduleDate}</div><div className="text-primary font-medium">{appt.timeFrame}</div></div>} />
                     </div>
                   </div>
                 </div>
@@ -204,9 +287,19 @@ export default function ReceptionAppointmentDetailPage({
                 <div className="mt-6">
                   <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-3">Ghi chú của khách hàng</p>
                   <div className="rounded-xl bg-surface-container p-5 text-sm italic text-on-surface-variant">
-                    {appt.note ? `"${appt.note}"` : "Không có ghi chú."}
+                    {appt.notes ? `"${appt.notes}"` : "Không có ghi chú."}
                   </div>
                 </div>
+
+                {(appt.engineerNotes || appt.partsUsed) && (
+                  <div className="mt-6">
+                    <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-3">Ghi chú kỹ thuật viên</p>
+                    <div className="rounded-xl bg-surface-container p-5 text-sm text-on-surface-variant space-y-2">
+                      {appt.engineerNotes && <p>{appt.engineerNotes}</p>}
+                      {appt.partsUsed && <p>Linh kiện: {appt.partsUsed}</p>}
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-6 rounded-xl bg-surface-container p-4 flex flex-col md:flex-row md:items-center gap-4">
                   <div className="flex items-start gap-3 flex-1">
@@ -219,15 +312,15 @@ export default function ReceptionAppointmentDetailPage({
                     <button
                       className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={onConfirm}
-                      disabled={status !== "pending"}
+                      disabled={isUpdating || status !== "pending"}
                     >
                       <span className="material-symbols-outlined text-lg">check_circle</span>
-                      Xác nhận lịch hẹn
+                      {isUpdating ? "Đang cập nhật..." : "Xác nhận lịch hẹn"}
                     </button>
                     <button
                       className="inline-flex items-center gap-2 rounded-lg bg-error px-4 py-2.5 text-sm font-medium text-on-error hover:bg-error/90 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={onCancel}
-                      disabled={status === "done" || status === "canceled"}
+                      disabled={isUpdating || status === "done" || status === "canceled"}
                     >
                       <span className="material-symbols-outlined text-lg">cancel</span>
                       Hủy lịch giúp khách
@@ -236,6 +329,7 @@ export default function ReceptionAppointmentDetailPage({
                 </div>
               </div>
             </article>
+            )
           )}
         </div>
       </main>

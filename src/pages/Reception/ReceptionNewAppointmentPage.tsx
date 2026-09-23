@@ -1,4 +1,14 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  createReceptionAppointment,
+  getAllServices,
+  getAvailableSchedules,
+  getReceptionDashboard,
+  getVehicles,
+  type MaintenanceService,
+  type Schedule,
+  type Vehicle,
+} from "../../services/api";
 
 const navItems = [
   ["dashboard", "Dashboard"],
@@ -6,31 +16,6 @@ const navItems = [
   ["event_note", "Appointments"],
   ["person", "Customers"],
 ];
-
-type ServiceId = "level1" | "level2" | "level3";
-type GarageId = "q1" | "q2" | "q3";
-
-const SERVICE_TYPES: { id: ServiceId; label: string }[] = [
-  { id: "level1", label: "Kiểm tra tổng quát" },
-  { id: "level2", label: "Bảo dưỡng định kỳ" },
-  { id: "level3", label: "Sửa chữa chuyên sâu" },
-];
-
-const GARAGES: { id: GarageId; name: string }[] = [
-  { id: "q1", name: "Garage Quận 1" },
-  { id: "q2", name: "Garage Quận 2" },
-  { id: "q3", name: "Garage Quận 3" },
-];
-
-const PRICING: Record<GarageId, Record<ServiceId, number>> = {
-  q1: { level1: 500000, level2: 1200000, level3: 2500000 },
-  q2: { level1: 450000, level2: 1100000, level3: 2300000 },
-  q3: { level1: 480000, level2: 1150000, level3: 2400000 },
-};
-
-function formatVND(amount: number) {
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
-}
 
 type ReceptionNewAppointmentPageProps = {
   onDashboardClick?: () => void;
@@ -49,6 +34,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function formatVND(amount: number) {
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
+}
+
 export default function ReceptionNewAppointmentPage({
   onDashboardClick,
   onScheduleClick,
@@ -56,26 +45,120 @@ export default function ReceptionNewAppointmentPage({
   onCustomersClick,
   onLogout,
 }: ReceptionNewAppointmentPageProps) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [plate, setPlate] = useState("");
-  const [vehicle, setVehicle] = useState("VinFast VF8");
-  const [garage, setGarage] = useState<GarageId>("q1");
-  const [service, setService] = useState<ServiceId>("level1");
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [services, setServices] = useState<MaintenanceService[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [dashboardCustomers, setDashboardCustomers] = useState<{ id: number; name: string }[]>([]);
+  const [isLoadingOptions, setIsLoadingOptions] = useState(true);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
+
+  const [customerId, setCustomerId] = useState("");
+  const [vehicleId, setVehicleId] = useState("");
+  const [serviceId, setServiceId] = useState("");
+  const [scheduleId, setScheduleId] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [notice, setNotice] = useState("");
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const price = PRICING[garage][service];
-  const selectedService = useMemo(() => SERVICE_TYPES.find((s) => s.id === service)!, [service]);
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoadingOptions(true);
+    setOptionsError(null);
 
-  const onSubmit = (e: React.FormEvent) => {
+    Promise.all([
+      getReceptionDashboard(),
+      getVehicles(),
+      getAllServices(),
+      getAvailableSchedules(),
+    ])
+      .then(([dashboard, vehicleData, serviceData, scheduleData]) => {
+        if (cancelled) return;
+        const map = new Map<number, string>();
+        dashboard.appointments.forEach((a) => {
+          if (!map.has(a.customerId)) map.set(a.customerId, a.customerName);
+        });
+        setDashboardCustomers([...map.entries()].map(([id, name]) => ({ id, name })));
+        setVehicles(vehicleData);
+        setServices(serviceData);
+        setSchedules(scheduleData);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setOptionsError(
+            err instanceof Error ? err.message : "Không tải được dữ liệu đặt lịch.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingOptions(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const customers = useMemo(
+    () => dashboardCustomers.filter((c) => vehicles.some((v) => v.customerId === c.id)),
+    [dashboardCustomers, vehicles],
+  );
+
+  const customerVehicles = useMemo(
+    () => vehicles.filter((v) => String(v.customerId) === customerId),
+    [vehicles, customerId],
+  );
+
+  const selectedService = useMemo(
+    () => services.find((s) => String(s.id) === serviceId),
+    [services, serviceId],
+  );
+
+  const selectedSchedule = useMemo(
+    () => schedules.find((s) => String(s.id) === scheduleId),
+    [schedules, scheduleId],
+  );
+
+  const canSubmit =
+    Boolean(customerId) &&
+    Boolean(vehicleId) &&
+    Boolean(serviceId) &&
+    Boolean(scheduleId) &&
+    !isSubmitting;
+
+  const showNotice = (msg: string) => {
+    setNotice(msg);
+    window.setTimeout(() => setNotice(""), 3000);
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !phone.trim() || !plate.trim()) {
-      setNotice("Vui lòng nhập tên khách, số điện thoại và biển số xe.");
+    if (!canSubmit) {
+      setSubmitError("Chọn khách, xe, dịch vụ và khung giờ trước khi tạo lịch.");
       return;
     }
-    setNotice(`Đã tạo lịch hẹn cho ${name} (${plate}).`);
-    window.setTimeout(() => onAppointmentsClick?.(), 1000);
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      await createReceptionAppointment({
+        customerId: Number(customerId),
+        vehicleId: Number(vehicleId),
+        serviceId: Number(serviceId),
+        scheduleId: Number(scheduleId),
+        notes: notes.trim() || undefined,
+      });
+      showNotice("Tạo lịch hẹn thành công.");
+      window.setTimeout(() => onAppointmentsClick?.(), 800);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Tạo lịch hẹn không thành công.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -150,6 +233,9 @@ export default function ReceptionNewAppointmentPage({
           {notice && (
             <div className="mb-4 rounded-lg bg-primary-container/10 text-primary px-4 py-3 text-sm font-medium">{notice}</div>
           )}
+          {submitError && (
+            <div className="mb-4 rounded-lg bg-error-container/10 text-error px-4 py-3 text-sm font-medium">{submitError}</div>
+          )}
 
           <button
             onClick={onAppointmentsClick}
@@ -169,121 +255,102 @@ export default function ReceptionNewAppointmentPage({
                   </p>
                 </div>
 
-                <section className="space-y-4">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-on-surface-variant flex items-center gap-2">
-                    <span className="material-symbols-outlined">person</span>
-                    Thông tin khách hàng
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <Field label="Họ và tên">
-                      <input
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="VD: Nguyễn Văn An"
-                        className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary"
-                      />
-                    </Field>
-                    <Field label="Số điện thoại">
-                      <div className="relative">
-                        <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">phone</span>
-                        <input
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="+84 90 123 4567"
-                          className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low pl-9 pr-4 text-sm outline-none focus:border-primary"
-                        />
-                      </div>
-                    </Field>
-                    <Field label="Email">
-                      <div className="relative">
-                        <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">mail</span>
-                        <input
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          type="email"
-                          placeholder="khach@email.com"
-                          className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low pl-9 pr-4 text-sm outline-none focus:border-primary"
-                        />
-                      </div>
-                    </Field>
-                    <Field label="Biển số xe">
-                      <input
-                        value={plate}
-                        onChange={(e) => setPlate(e.target.value)}
-                        placeholder="VD: 30F-123.45"
-                        className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary"
-                      />
-                    </Field>
-                  </div>
-                </section>
+                {isLoadingOptions && (
+                  <p className="text-sm text-on-surface-variant">Đang tải dữ liệu...</p>
+                )}
 
-                <section className="space-y-4">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-on-surface-variant flex items-center gap-2">
-                    <span className="material-symbols-outlined">directions_car</span>
-                    Xe & Dịch vụ
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <Field label="Chọn xe">
-                      <select
-                        value={vehicle}
-                        onChange={(e) => setVehicle(e.target.value)}
-                        className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary"
-                      >
-                        <option>VinFast VF8</option>
-                        <option>VinFast VF e34</option>
-                        <option>Tesla Model Y</option>
-                        <option>Hyundai Kona EV</option>
-                        <option>Toyota Corolla Cross</option>
-                      </select>
-                    </Field>
-                    <Field label="Loại dịch vụ">
-                      <select
-                        value={service}
-                        onChange={(e) => setService(e.target.value as ServiceId)}
-                        className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary"
-                      >
-                        {SERVICE_TYPES.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.label} — {formatVND(PRICING[garage][s.id])}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                    <Field label="Chọn Garage">
-                      <select
-                        value={garage}
-                        onChange={(e) => setGarage(e.target.value as GarageId)}
-                        className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary"
-                      >
-                        {GARAGES.map((g) => (
-                          <option key={g.id} value={g.id}>{g.name}</option>
-                        ))}
-                      </select>
-                    </Field>
-                    <Field label="Ngày hẹn">
-                      <input
-                        type="date"
-                        defaultValue="2026-07-16"
-                        className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary"
-                      />
-                    </Field>
-                    <Field label="Khung giờ">
-                      <select className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary">
-                        <option>08:00 - 09:30 (Slot A)</option>
-                        <option>09:30 - 11:00 (Slot B)</option>
-                        <option>14:00 - 15:30 (Slot C)</option>
-                        <option>15:30 - 17:00 (Slot D)</option>
-                      </select>
-                    </Field>
-                  </div>
-                  <Field label="Ghi chú">
-                    <textarea
-                      rows={4}
-                      placeholder="Ghi chú tình trạng xe, yêu cầu đặc biệt của khách..."
-                      className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 text-sm outline-none focus:border-primary resize-none"
-                    />
-                  </Field>
-                </section>
+                {optionsError && (
+                  <p className="text-sm text-error">{optionsError}</p>
+                )}
+
+                {!isLoadingOptions && !optionsError && (
+                  <>
+                    <section className="space-y-4">
+                      <h2 className="text-sm font-semibold uppercase tracking-wide text-on-surface-variant flex items-center gap-2">
+                        <span className="material-symbols-outlined">person</span>
+                        Khách hàng & Xe
+                      </h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <Field label="Khách hàng">
+                          <select
+                            value={customerId}
+                            onChange={(e) => {
+                              setCustomerId(e.target.value);
+                              setVehicleId("");
+                            }}
+                            className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary"
+                          >
+                            <option value="">Chọn khách hàng</option>
+                            {customers.map((c) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        </Field>
+                        <Field label="Xe">
+                          <select
+                            value={vehicleId}
+                            onChange={(e) => setVehicleId(e.target.value)}
+                            disabled={!customerId}
+                            className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary disabled:opacity-50"
+                          >
+                            <option value="">Chọn xe</option>
+                            {customerVehicles.map((v) => (
+                              <option key={v.id} value={v.id}>
+                                {v.model} — {v.vin}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                      </div>
+                    </section>
+
+                    <section className="space-y-4">
+                      <h2 className="text-sm font-semibold uppercase tracking-wide text-on-surface-variant flex items-center gap-2">
+                        <span className="material-symbols-outlined">directions_car</span>
+                        Dịch vụ & Lịch hẹn
+                      </h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <Field label="Loại dịch vụ">
+                          <select
+                            value={serviceId}
+                            onChange={(e) => setServiceId(e.target.value)}
+                            className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary"
+                          >
+                            <option value="">Chọn dịch vụ</option>
+                            {services.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name} — {formatVND(s.price)}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                        <Field label="Khung giờ">
+                          <select
+                            value={scheduleId}
+                            onChange={(e) => setScheduleId(e.target.value)}
+                            className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary"
+                          >
+                            <option value="">Chọn khung giờ</option>
+                            {schedules.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.date} · {s.timeFrame}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                      </div>
+                      <Field label="Ghi chú">
+                        <textarea
+                          rows={4}
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="Ghi chú tình trạng xe, yêu cầu đặc biệt của khách..."
+                          className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 text-sm outline-none focus:border-primary resize-none"
+                        />
+                      </Field>
+                    </section>
+                  </>
+                )}
 
                 <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t border-outline-variant pt-6">
                   <button
@@ -295,9 +362,10 @@ export default function ReceptionNewAppointmentPage({
                   </button>
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors active:scale-[0.98]"
+                    disabled={!canSubmit}
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Tạo lịch hẹn
+                    {isSubmitting ? "Đang tạo..." : "Tạo lịch hẹn"}
                     <span className="material-symbols-outlined text-lg">arrow_forward</span>
                   </button>
                 </div>
@@ -309,17 +377,24 @@ export default function ReceptionNewAppointmentPage({
                 <p className="text-xs font-bold uppercase tracking-wider text-primary">Tóm tắt dịch vụ</p>
                 <div className="flex justify-between text-sm">
                   <span>Dịch vụ</span>
-                  <span className="font-semibold text-right">{selectedService.label}</span>
+                  <span className="font-semibold text-right">{selectedService?.name || "Chưa chọn"}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Khung giờ</span>
+                  <span className="font-semibold text-right">
+                    {selectedSchedule ? `${selectedSchedule.date} · ${selectedSchedule.timeFrame}` : "Chưa chọn"}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center pt-3 border-t border-primary/20">
                   <span className="text-sm">Phí tạm tính</span>
-                  <span className="text-xl font-bold text-primary">{formatVND(price)}</span>
+                  <span className="text-xl font-bold text-primary">
+                    {selectedService ? formatVND(selectedService.price) : "—"}
+                  </span>
                 </div>
                 <ul className="text-sm text-on-surface-variant space-y-2 list-disc list-inside">
-                  <li>Xác thực số điện thoại khách trước khi tạo lịch.</li>
-                  <li>Kiểm tra biển số trùng với xe đã đăng ký nếu có.</li>
-                  <li>Chọn đúng slot còn trống trong ngày để tránh xung đột.</li>
-                  <li>Lịch mới sẽ ở trạng thái <b>Đang chờ</b> đến khi xác nhận.</li>
+                  <li>Chọn khách hàng rồi xe của khách đó.</li>
+                  <li>Chọn đúng slot còn trống để tránh xung đột.</li>
+                  <li>Lịch mới ở trạng thái <b>Đang chờ</b> đến khi xác nhận.</li>
                 </ul>
               </div>
             </article>

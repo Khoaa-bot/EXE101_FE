@@ -403,6 +403,73 @@ export function createReview(payload: ReviewRequest) {
 }
 
 // ---------------------------------------------------------------------------
+// Reception — ReceptionController (@RequestMapping("/api/reception")).
+// ---------------------------------------------------------------------------
+
+export type ReceptionDashboard = {
+  receptionistId: number;
+  receptionistName: string;
+  garageId: number;
+  garageName: string;
+  totalAppointments: number;
+  pendingCount: number;
+  confirmedCount: number;
+  inProgressCount: number;
+  completedCount: number;
+  cancelledCount: number;
+  noShowCount: number;
+  appointments: AppointmentDto[];
+};
+
+// GET /api/reception/dashboard — thống kê + lịch hẹn của lễ tân đang đăng nhập.
+export function getReceptionDashboard() {
+  return apiRequest<ReceptionDashboard>("/reception/dashboard");
+}
+
+// GET /api/reception/appointments/{id} — chi tiết một lịch hẹn (role reception).
+export function getReceptionAppointment(appointmentId: number | string) {
+  return apiRequest<AppointmentDto>(`/reception/appointments/${appointmentId}`);
+}
+
+export type ReceptionAppointmentRequest = {
+  customerId: number;
+  vehicleId: number;
+  serviceId: number;
+  scheduleId: number;
+  notes?: string;
+};
+
+// POST /api/reception/appointments — tạo lịch hẹn mới (role reception).
+export function createReceptionAppointment(payload: ReceptionAppointmentRequest) {
+  return apiRequest<AppointmentDto>("/reception/appointments", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export type ReceptionAppointmentStatusPayload = {
+  status:
+    | "pending"
+    | "confirmed"
+    | "in_progress"
+    | "completed"
+    | "cancelled"
+    | "no_show";
+  notes?: string;
+};
+
+// PUT /api/reception/appointments/{id}/status — cập nhật trạng thái lịch hẹn.
+export function updateReceptionAppointmentStatus(
+  appointmentId: number | string,
+  payload: ReceptionAppointmentStatusPayload,
+) {
+  return apiRequest<AppointmentDto>(`/reception/appointments/${appointmentId}/status`, {
+    method: "PUT",
+    body: payload,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Garages — GarageController (@RequestMapping("/api/garages")).
 // GET là public, POST cần role admin/reception (backend tự kiểm tra).
 // ---------------------------------------------------------------------------

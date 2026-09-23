@@ -1,4 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  getReceptionDashboard,
+  type AppointmentDto,
+} from "../../services/api";
 
 const navItems = [
   ["dashboard", "Dashboard"],
@@ -23,35 +27,32 @@ export type Appt = {
   status: "pending" | "confirmed" | "done" | "canceled";
 };
 
-export const APPOINTMENTS_DATA: Appt[] = [
-  {
-    id: "1", bookingId: "VD-84729-A", time: "14:00", date: "Oct 24, 2023",
-    slot: "14:00 - 15:30 (Slot B)", name: "Nguyễn Văn An", phone: "+84 90 123 4567",
-    email: "an.nguyen@example.com", plate: "30F-123.45", vehicle: "Tesla Model Y",
-    service: "Kiểm tra pin tổng quát",
-    note: "Khách hàng yêu cầu kiểm tra thêm hệ thống làm mát.",
-    status: "pending",
-  },
-  {
-    id: "2", bookingId: "VD-84730-B", time: "09:00", date: "Oct 25, 2023",
-    slot: "09:00 - 10:30 (Slot A)", name: "Trần Thị Mai", phone: "+84 91 234 5678",
-    email: "mai.tran@example.com", plate: "51B-333.33", vehicle: "VinFast VF8",
-    service: "Thay lốp trước", note: "Xe rung nhẹ khi chạy trên 80km/h.",
-    status: "confirmed",
-  },
-  {
-    id: "3", bookingId: "VD-84731-C", time: "10:30", date: "Oct 25, 2023",
-    slot: "10:30 - 12:00 (Slot B)", name: "Lê Văn Cường", phone: "+84 93 456 7890",
-    email: "cuong.le@example.com", plate: "51C-444.44", vehicle: "Hyundai Kona EV",
-    service: "Sửa điều hòa", note: "Điều hoà không mát.", status: "confirmed",
-  },
-  {
-    id: "4", bookingId: "VD-84732-D", time: "15:00", date: "Oct 25, 2023",
-    slot: "15:00 - 16:30 (Slot C)", name: "Phạm Minh Đức", phone: "+84 94 567 8901",
-    email: "duc.pham@example.com", plate: "51D-555.55", vehicle: "Toyota Corolla Cross",
-    service: "Kiểm tra phanh", note: "", status: "done",
-  },
-];
+function mapStatus(status: string): Appt["status"] {
+  const s = status.toLowerCase();
+  if (s === "completed") return "done";
+  if (s === "cancelled" || s === "canceled") return "canceled";
+  if (s === "pending") return "pending";
+  return "confirmed";
+}
+
+function toAppt(a: AppointmentDto): Appt {
+  const date = new Date(a.scheduleDate);
+  return {
+    id: String(a.id),
+    bookingId: `#${a.id}`,
+    time: a.timeFrame.split(" - ")[0] || a.timeFrame,
+    date: date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    slot: a.timeFrame,
+    name: a.customerName,
+    phone: "",
+    email: "",
+    plate: a.vehicleVin,
+    vehicle: a.vehicleModel,
+    service: a.serviceName,
+    note: a.notes ?? "",
+    status: mapStatus(a.status),
+  };
+}
 
 const STATUS_MAP = {
   pending: { label: "Đang chờ", cls: "bg-tertiary-container/10 text-tertiary" },
@@ -81,8 +82,36 @@ export default function ReceptionAppointmentsPage({
 }: ReceptionAppointmentsPageProps) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | Appt["status"]>("all");
+  const [appointments, setAppointments] = useState<Appt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const filtered = APPOINTMENTS_DATA.filter((a) => {
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(null);
+
+    getReceptionDashboard()
+      .then((data) => {
+        if (!cancelled) setAppointments(data.appointments.map(toAppt));
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setLoadError(
+            err instanceof Error ? err.message : "Không tải được danh sách lịch hẹn.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filtered = appointments.filter((a) => {
     if (filter !== "all" && a.status !== filter) return false;
     const q = query.trim().toLowerCase();
     if (!q) return true;
@@ -214,10 +243,16 @@ export default function ReceptionAppointmentsPage({
 
           <article className="rounded-xl border border-outline-variant bg-surface-container-lowest">
             <div className="divide-y divide-outline-variant">
-              {filtered.length === 0 && (
+              {isLoading && (
+                <p className="p-8 text-center text-sm text-on-surface-variant">Đang tải lịch hẹn...</p>
+              )}
+              {loadError && !isLoading && (
+                <p className="p-8 text-center text-sm text-error">{loadError}</p>
+              )}
+              {!isLoading && !loadError && filtered.length === 0 && (
                 <p className="p-8 text-center text-sm text-on-surface-variant">Không có lịch hẹn phù hợp.</p>
               )}
-              {filtered.map((a) => (
+              {!isLoading && !loadError && filtered.map((a) => (
                 <button
                   key={a.id}
                   onClick={() => onAppointmentDetailClick?.(a.id)}
