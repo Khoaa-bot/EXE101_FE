@@ -10,22 +10,25 @@ type HistoryPageProps = {
 };
 
 const filters = [
-  { value: "ALL", label: "Tất cả" },
-  { value: "COMPLETED", label: "Hoàn thành" },
-  { value: "CANCELLED", label: "Đã huỷ" },
+  { value: "all", label: "Tất cả" },
+  { value: "completed", label: "Hoàn thành" },
+  { value: "cancelled", label: "Đã huỷ" },
+  { value: "no_show", label: "Không đến" },
 ];
 
 function statusLabel(status: string) {
-  switch (status) {
-    case "COMPLETED":
+  switch (status.toLowerCase()) {
+    case "completed":
       return "Hoàn thành";
-    case "CANCELLED":
+    case "cancelled":
       return "Đã huỷ";
-    case "IN_PROGRESS":
+    case "no_show":
+      return "Không đến";
+    case "in_progress":
       return "Đang xử lý";
-    case "CONFIRMED":
+    case "confirmed":
       return "Đã xác nhận";
-    case "PENDING":
+    case "pending":
       return "Chờ xác nhận";
     default:
       return status;
@@ -33,14 +36,16 @@ function statusLabel(status: string) {
 }
 
 function statusTone(status: string) {
-  if (status === "CANCELLED") return "bg-error-container/30 text-on-error-container";
-  if (status === "COMPLETED") return "bg-secondary-container/30 text-on-secondary-container";
+  const s = status.toLowerCase();
+  if (s === "cancelled" || s === "no_show") return "bg-error-container/30 text-on-error-container";
+  if (s === "completed") return "bg-secondary-container/30 text-on-secondary-container";
   return "bg-primary-container/20 text-primary";
 }
 
 function statusIcon(status: string) {
-  if (status === "CANCELLED") return "cancel";
-  if (status === "COMPLETED") return "task_alt";
+  const s = status.toLowerCase();
+  if (s === "cancelled" || s === "no_show") return "cancel";
+  if (s === "completed") return "task_alt";
   return "build";
 }
 
@@ -94,12 +99,12 @@ export default function HistoryPage({
   };
 
   const visibleRecords =
-    activeFilter === "ALL"
+    activeFilter === "all"
       ? appointments
-      : appointments.filter((record) => record.status === activeFilter);
+      : appointments.filter((record) => record.status.toLowerCase() === activeFilter);
 
   const totalCost = appointments
-    .filter((record) => record.status === "COMPLETED")
+    .filter((record) => record.status.toLowerCase() === "completed")
     .reduce((sum, record) => sum + (record.servicePrice || 0), 0);
 
   return (
@@ -225,14 +230,19 @@ export default function HistoryPage({
             <div className="flex items-center justify-between rounded-xl bg-primary-container p-lg text-on-primary-container shadow-lg shadow-primary-container/20">
               <div className="flex flex-col gap-xs">
                 <span className="font-label-sm text-label-sm uppercase tracking-wider opacity-90">
-                  Đang xử lý
+                  Đã huỷ / Không đến
                 </span>
                 <span className="font-headline-md text-headline-md">
-                  {appointments.filter((a) => a.status === "IN_PROGRESS").length} lịch hẹn
+                  {
+                    appointments.filter((a) =>
+                      ["cancelled", "no_show"].includes(a.status.toLowerCase()),
+                    ).length
+                  }{" "}
+                  lịch hẹn
                 </span>
               </div>
               <span className="material-symbols-outlined text-4xl opacity-50">
-                build_circle
+                cancel
               </span>
             </div>
           </section>
