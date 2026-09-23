@@ -70,6 +70,7 @@ const navItems = [
   ["groups", "Khách hàng"],
   ["inventory_2", "Kho linh kiện"],
   ["payments", "Bảng giá"],
+  ["storefront", "Thông tin garage"],
 ];
 
 type AdminPricingPageProps = {
@@ -78,6 +79,7 @@ type AdminPricingPageProps = {
   onCustomersClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
+  onGarageClick?: () => void;
   onLogout?: () => void;
 };
 
@@ -87,6 +89,7 @@ export default function AdminPricingPage({
   onCustomersClick,
   onInventoryClick,
   onPricingClick,
+  onGarageClick,
   onLogout,
 }: AdminPricingPageProps) {
   const [list, setList] = useState<PriceItem[]>(INITIAL_PRICING);
@@ -204,6 +207,7 @@ export default function AdminPricingPage({
                   else if (label === "Khách hàng") onCustomersClick?.();
                   else if (label === "Kho linh kiện") onInventoryClick?.();
                   else if (label === "Bảng giá") onPricingClick?.();
+                  else if (label === "Thông tin garage") onGarageClick?.();
                 }}
               >
                 <span className="material-symbols-outlined">{icon}</span>

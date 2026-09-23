@@ -31,6 +31,7 @@ const navItems = [
   ["groups", "Khách hàng"],
   ["inventory_2", "Kho linh kiện"],
   ["payments", "Bảng giá"],
+  ["storefront", "Thông tin garage"],
 ];
 
 type AdminInventoryPageProps = {
@@ -39,6 +40,7 @@ type AdminInventoryPageProps = {
   onCustomersClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
+  onGarageClick?: () => void;
   onLogout?: () => void;
 };
 
@@ -48,6 +50,7 @@ export default function AdminInventoryPage({
   onCustomersClick,
   onInventoryClick,
   onPricingClick,
+  onGarageClick,
   onLogout,
 }: AdminInventoryPageProps) {
   const [list, setList] = useState<InventoryPart[]>([]);
@@ -220,6 +223,7 @@ export default function AdminInventoryPage({
                   else if (label === "Khách hàng") onCustomersClick?.();
                   else if (label === "Kho linh kiện") onInventoryClick?.();
                   else if (label === "Bảng giá") onPricingClick?.();
+                  else if (label === "Thông tin garage") onGarageClick?.();
                 }}
               >
                 <span className="material-symbols-outlined">{icon}</span>

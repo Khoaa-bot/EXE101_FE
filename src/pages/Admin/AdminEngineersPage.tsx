@@ -60,6 +60,7 @@ const navItems = [
   ["groups", "Khách hàng"],
   ["inventory_2", "Kho linh kiện"],
   ["payments", "Bảng giá"],
+  ["storefront", "Thông tin garage"],
 ];
 
 const ROLE_OPTIONS: { value: string; label: string }[] = [
@@ -78,6 +79,7 @@ type AdminEngineersPageProps = {
   onEngineersClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
+  onGarageClick?: () => void;
   onEmployeeDetailClick?: (id: string) => void;
   onLogout?: () => void;
 };
@@ -88,6 +90,7 @@ export default function AdminEngineersPage({
   onEngineersClick,
   onInventoryClick,
   onPricingClick,
+  onGarageClick,
   onEmployeeDetailClick,
   onLogout,
 }: AdminEngineersPageProps) {
@@ -262,6 +265,7 @@ export default function AdminEngineersPage({
                   else if (label === "Khách hàng") onCustomersClick?.();
                   else if (label === "Kho linh kiện") onInventoryClick?.();
                   else if (label === "Bảng giá") onPricingClick?.();
+                  else if (label === "Thông tin garage") onGarageClick?.();
                 }}
               >
                 <span className="material-symbols-outlined">{icon}</span>

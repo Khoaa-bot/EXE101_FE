@@ -90,7 +90,10 @@ export default function GarageDetailPage({
           {/* Banner */}
           <div className="relative mb-6 h-64 w-full overflow-hidden rounded-2xl bg-black md:h-80 shadow-md">
             <img
-              src="https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&q=80&w=1200"
+              src={
+                garage.imageUrl ||
+                "https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&q=80&w=1200"
+              }
               alt={garage.name}
               className="h-full w-full object-cover opacity-80"
             />

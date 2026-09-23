@@ -66,6 +66,7 @@ const navItems = [
   ["groups", "Khách hàng"],
   ["inventory_2", "Kho linh kiện"],
   ["payments", "Bảng giá"],
+  ["storefront", "Thông tin garage"],
 ];
 
 type AdminDashboardPageProps = {
@@ -73,6 +74,7 @@ type AdminDashboardPageProps = {
   onEngineersClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
+  onGarageClick?: () => void;
   onLogout?: () => void;
 };
 
@@ -81,6 +83,7 @@ export default function AdminDashboardPage({
   onEngineersClick,
   onInventoryClick,
   onPricingClick,
+  onGarageClick,
   onLogout,
 }: AdminDashboardPageProps) {
   const [notice, setNotice] = useState("");
@@ -115,6 +118,7 @@ export default function AdminDashboardPage({
                 else if (label === "Nhân viên") onEngineersClick?.();
                 else if (label === "Kho linh kiện") onInventoryClick?.();
                 else if (label === "Bảng giá") onPricingClick?.();
+                else if (label === "Thông tin garage") onGarageClick?.();
               }}
             >
               <span className="material-symbols-outlined">{icon}</span>

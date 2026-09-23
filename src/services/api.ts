@@ -413,6 +413,7 @@ export type Garage = {
   address: string;
   phone?: string;
   description?: string;
+  imageUrl?: string;
   rating?: number;
 };
 
@@ -421,6 +422,14 @@ export type NewGaragePayload = {
   address: string;
   phone?: string;
   description?: string;
+};
+
+export type GarageUpdatePayload = {
+  name?: string;
+  address?: string;
+  phone?: string;
+  description?: string;
+  imageUrl?: string;
 };
 
 // POST /api/garages — tạo garage mới.
@@ -436,6 +445,12 @@ export function getGarages() {
 // GET /api/garages/{id} — chi tiết một garage.
 export function getGarageById(garageId: number | string) {
   return apiRequest<Garage>(`/garages/${garageId}`);
+}
+
+// PUT /api/garages/me — admin cập nhật thông tin garage của chính mình
+// (tên, địa chỉ, sđt, mô tả, ảnh đại diện).
+export function updateMyGarage(payload: GarageUpdatePayload) {
+  return apiRequest<Garage>("/garages/me", { method: "PUT", body: payload });
 }
 
 // ---------------------------------------------------------------------------

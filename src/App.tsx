@@ -7,6 +7,7 @@ import AdminCustomersPage from "./pages/Admin/AdminCustomersPage";
 import AdminEngineersPage from "./pages/Admin/AdminEngineersPage";
 import AdminInventoryPage from "./pages/Admin/AdminInventoryPage";
 import AdminPricingPage from "./pages/Admin/AdminPricingPage";
+import AdminGaragePage from "./pages/Admin/AdminGaragePage";
 import AdminCustomerDetailPage, {
   type Customer,
 } from "./pages/Admin/AdminCustomerDetailPage";
@@ -54,6 +55,7 @@ const appRoutes = new Set([
   "/admin/engineers",
   "/admin/inventory",
   "/admin/pricing",
+  "/admin/garage",
   "/engineer",
   "/engineer/schedule",
   "/engineer/appointments",
@@ -96,7 +98,7 @@ const publicRoutes = new Set([
 
 const roleRoutes: Record<string, Set<string>> = {
   ADMIN: new Set([
-    "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing",
+    "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing", "/admin/garage",
   ]),
   ENGINEER: new Set([
     "/engineer", "/engineer/schedule", "/engineer/appointments",
@@ -352,6 +354,7 @@ function App() {
     onEngineersClick: () => navigate("/admin/engineers"),
     onInventoryClick: () => navigate("/admin/inventory"),
     onPricingClick: () => navigate("/admin/pricing"),
+    onGarageClick: () => navigate("/admin/garage"),
     onCustomerDetailClick: (customer: Customer) => {
       setSelectedCustomer(customer);
       navigate(`/admin/customers/${customer.id}`);
@@ -414,6 +417,10 @@ function App() {
 
   if (routePath === "/admin/pricing") {
     return <AdminPricingPage {...adminProps} />;
+  }
+
+  if (routePath === "/admin/garage") {
+    return <AdminGaragePage {...adminProps} />;
   }
 
   if (routePath === "/engineer") {
