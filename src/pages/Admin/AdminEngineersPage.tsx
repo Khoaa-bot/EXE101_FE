@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   getAdminEmployees,
   createAdminEmployee,
+  deleteAdminEmployee,
   getGarages,
   type AdminEmployee,
   type Garage,
@@ -10,7 +11,7 @@ import {
 export type EngineerRole =
   | "ENGINEER"
   | "RECEPTIONIST"
-  | "ADMIN"
+  | "GARAGE_OWNER"
   | "lead"
   | "battery"
   | "mechanical"
@@ -66,7 +67,7 @@ const navItems = [
 const ROLE_OPTIONS: { value: string; label: string }[] = [
   { value: "ENGINEER", label: "Kỹ thuật viên (ENGINEER)" },
   { value: "RECEPTIONIST", label: "Tiếp tân (RECEPTIONIST)" },
-  { value: "ADMIN", label: "Quản trị viên (ADMIN)" },
+  { value: "GARAGE_OWNER", label: "Chủ garage (GARAGE_OWNER)" },
   { value: "lead", label: "Kỹ thuật viên trưởng" },
   { value: "battery", label: "Chuyên viên Pin EV" },
   { value: "mechanical", label: "Thợ máy gầm" },
@@ -103,6 +104,7 @@ export default function AdminEngineersPage({
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -228,6 +230,25 @@ export default function AdminEngineersPage({
         return emp;
       }),
     );
+  };
+
+  const removeEmployee = async (emp: Engineer) => {
+    if (deletingId) return;
+    if (!window.confirm(`Xoá nhân viên "${emp.name}"? Hành động không hoàn tác.`)) {
+      return;
+    }
+    setDeletingId(emp.id);
+    try {
+      await deleteAdminEmployee(emp.id);
+      setList((prev) => prev.filter((item) => item.id !== emp.id));
+      showNotice(`Đã xoá nhân viên ${emp.name}`);
+    } catch (err) {
+      showNotice(
+        err instanceof Error ? err.message : "Không thể xoá nhân viên.",
+      );
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -680,6 +701,14 @@ export default function AdminEngineersPage({
                                 }`}
                               >
                                 {isActive ? "Khóa" : "Mở khóa"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void removeEmployee(emp)}
+                                disabled={deletingId === emp.id}
+                                className="rounded-lg bg-error-container px-2.5 py-1 text-xs font-medium text-on-error-container hover:bg-error/20 disabled:opacity-50"
+                              >
+                                {deletingId === emp.id ? "Đang xoá..." : "Xoá"}
                               </button>
                             </div>
                           </td>

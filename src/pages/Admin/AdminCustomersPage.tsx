@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAdminCustomers, type AdminCustomer } from "../../services/api";
+import {
+  getAdminCustomers,
+  deleteAdminCustomer,
+  type AdminCustomer,
+} from "../../services/api";
 
 export type Customer = {
   id: string;
@@ -69,6 +73,7 @@ export default function AdminCustomersPage({
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     getAdminCustomers()
@@ -99,6 +104,23 @@ export default function AdminCustomersPage({
   const showNotice = (message: string) => {
     setNotice(message);
     window.setTimeout(() => setNotice(""), 3000);
+  };
+
+  const removeCustomer = async (customer: Customer) => {
+    if (deletingId) return;
+    if (!window.confirm(`Xoá khách hàng "${customer.name}"? Hành động không hoàn tác.`)) {
+      return;
+    }
+    setDeletingId(customer.id);
+    try {
+      await deleteAdminCustomer(customer.id);
+      setCustomers((prev) => prev.filter((c) => c.id !== customer.id));
+      showNotice(`Đã xoá khách hàng ${customer.name}`);
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : "Không thể xoá khách hàng.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -288,6 +310,8 @@ export default function AdminCustomersPage({
               customers={visibleCustomers}
               showNotice={showNotice}
               onCustomerDetailClick={onCustomerDetailClick}
+              onDelete={removeCustomer}
+              deletingId={deletingId}
             />
             <Pagination />
           </section>
@@ -343,10 +367,14 @@ function CustomerTable({
   customers,
   showNotice,
   onCustomerDetailClick,
+  onDelete,
+  deletingId,
 }: {
   customers: Customer[];
   showNotice: (message: string) => void;
   onCustomerDetailClick?: (customer: Customer) => void;
+  onDelete: (customer: Customer) => void;
+  deletingId: string | null;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -430,6 +458,14 @@ function CustomerTable({
                     onClick={() => onCustomerDetailClick?.(customer)}
                   >
                     Chi tiết
+                  </button>
+                  <button
+                    className="rounded-lg bg-error-container px-3 py-1.5 font-label-md text-label-md text-on-error-container hover:bg-error/20 disabled:opacity-50"
+                    type="button"
+                    disabled={deletingId === customer.id}
+                    onClick={() => onDelete(customer)}
+                  >
+                    {deletingId === customer.id ? "Đang xoá..." : "Xoá"}
                   </button>
                 </div>
               </td>
