@@ -727,7 +727,6 @@ export function getAdminParts() {
 // Backend tự gán garage của admin đang đăng nhập, không cần truyền garageId.
 export function createAdminPart(payload: CreatePartPayload) {
   return apiRequest<AdminPart>("/garage-owner/parts", {
-  return apiRequest<AdminPart>("/garage-owner/parts", {
     method: "POST",
     body: payload,
   });
@@ -800,11 +799,9 @@ export type CreateEmployeePayload = {
 
 export function getAdminEmployees() {
   return apiRequest<AdminEmployee[]>("/garage-owner/employees");
-  return apiRequest<AdminEmployee[]>("/garage-owner/employees");
 }
 
 export function createAdminEmployee(payload: CreateEmployeePayload) {
-  return apiRequest<AdminEmployee>("/garage-owner/employees", {
   return apiRequest<AdminEmployee>("/garage-owner/employees", {
     method: "POST",
     body: payload,
