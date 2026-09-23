@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   getAdminEmployees,
   createAdminEmployee,
+  deleteAdminEmployee,
   getGarages,
   type AdminEmployee,
   type Garage,
@@ -100,6 +101,7 @@ export default function AdminEngineersPage({
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Engineer | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -225,6 +227,21 @@ export default function AdminEngineersPage({
         return emp;
       }),
     );
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      setSubmitting(true);
+      await deleteAdminEmployee(deleteTarget.id);
+      setList((prev) => prev.filter((emp) => emp.id !== deleteTarget.id));
+      showNotice(`Đã xóa nhân viên: ${deleteTarget.name}`);
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : "Không thể xóa nhân viên");
+    } finally {
+      setSubmitting(false);
+      setDeleteTarget(null);
+    }
   };
 
   return (
@@ -677,6 +694,13 @@ export default function AdminEngineersPage({
                               >
                                 {isActive ? "Khóa" : "Mở khóa"}
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteTarget(emp)}
+                                className="rounded-lg px-2.5 py-1 text-xs font-medium bg-error-container text-on-error-container hover:bg-error/20"
+                              >
+                                Xóa
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -714,6 +738,37 @@ export default function AdminEngineersPage({
           </section>
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
+            <h3 className="font-headline-md text-lg font-bold">
+              Xác nhận xóa nhân viên
+            </h3>
+            <p className="mt-2 text-sm text-on-surface-variant">
+              Bạn có chắc muốn xóa <strong>{deleteTarget.name}</strong>? Hành động này không thể hoàn tác.
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold hover:bg-surface-container-low"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={submitting}
+                className="rounded-lg bg-error px-4 py-2 text-xs font-semibold text-on-error hover:opacity-90 disabled:opacity-50"
+              >
+                {submitting ? "Đang xóa..." : "Xóa nhân viên"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Notice Toast */}
       {notice && (

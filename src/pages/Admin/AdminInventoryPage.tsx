@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAdminParts, createAdminPart, type AdminPart } from "../../services/api";
+import { getAdminParts, createAdminPart, getGarages, type AdminPart, type Garage } from "../../services/api";
 
 export type InventoryPart = {
   id: string;
@@ -51,6 +51,7 @@ export default function AdminInventoryPage({
   onLogout,
 }: AdminInventoryPageProps) {
   const [list, setList] = useState<InventoryPart[]>([]);
+  const [garages, setGarages] = useState<Garage[]>([]);
   const [query, setQuery] = useState("");
   const [restockPart, setRestockPart] = useState<InventoryPart | null>(null);
   const [restockAmount, setRestockAmount] = useState("");
@@ -60,18 +61,26 @@ export default function AdminInventoryPage({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    getAdminParts()
-      .then((data) => {
-        const arr: AdminPart[] = Array.isArray(data)
-          ? data
-          : (Object.values(data) as AdminPart[]);
-        setList(arr.map(mapApiPart));
-        setLoading(false);
-      })
-      .catch((err) => {
-        setNotice(err instanceof Error ? err.message : "Không thể tải danh sách linh kiện");
-        setLoading(false);
-      });
+    Promise.all([
+      getAdminParts()
+        .then((data) => {
+          const arr: AdminPart[] = Array.isArray(data)
+            ? data
+            : (Object.values(data) as AdminPart[]);
+          setList(arr.map(mapApiPart));
+        })
+        .catch((err) => {
+          setNotice(err instanceof Error ? err.message : "Không thể tải danh sách linh kiện");
+        }),
+      getGarages()
+        .then((data) => {
+          const arr: Garage[] = Array.isArray(data)
+            ? data
+            : (Object.values(data) as Garage[]);
+          setGarages(arr);
+        })
+        .catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, []);
 
   const emptyPart = {
@@ -82,6 +91,7 @@ export default function AdminInventoryPage({
     capacity: "",
     price: "",
     status: "in-stock",
+    garageId: 0,
   };
   const [newPart, setNewPart] = useState(emptyPart);
 
@@ -138,7 +148,8 @@ export default function AdminInventoryPage({
       !newPart.location.trim() ||
       !newPart.stock ||
       !newPart.capacity ||
-      !newPart.price.trim()
+      !newPart.price.trim() ||
+      !newPart.garageId
     ) {
       showNotice("Vui lòng điền đầy đủ thông tin linh kiện!");
       return;
@@ -159,8 +170,6 @@ export default function AdminInventoryPage({
 
     try {
       setSubmitting(true);
-      const session = JSON.parse(localStorage.getItem("auth_session") || "{}");
-      const garageId = session.id ?? 0;
 
       const created = await createAdminPart({
         partName: newPart.name.trim(),
@@ -170,7 +179,7 @@ export default function AdminInventoryPage({
         quantity: stock,
         maxQuantity: capacity,
         price,
-        garageId,
+        garageId: newPart.garageId,
       });
 
       const newItem: InventoryPart = mapApiPart(created);
@@ -509,7 +518,7 @@ export default function AdminInventoryPage({
       {/* Restock Modal */}
       {restockPart && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
+          <div className="w-full max-w-xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
             <h3 className="font-headline-md text-lg font-bold">
               Nhập thêm linh kiện
             </h3>
@@ -554,7 +563,7 @@ export default function AdminInventoryPage({
       {/* Add New Part Modal */}
       {addOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
+          <div className="w-full max-w-2xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
             <h3 className="font-headline-md text-lg font-bold">
               Thêm linh kiện mới
             </h3>
@@ -576,6 +585,26 @@ export default function AdminInventoryPage({
                   placeholder="Ví dụ: Lọc dầu động cơ"
                   className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
+              </div>
+
+              <div>
+                <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                  Garage *
+                </label>
+                <select
+                  value={newPart.garageId}
+                  onChange={(e) =>
+                    setNewPart({ ...newPart, garageId: Number(e.target.value) })
+                  }
+                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                >
+                  <option value={0}>-- Chọn garage --</option>
+                  {garages.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

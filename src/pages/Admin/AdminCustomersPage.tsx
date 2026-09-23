@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAdminCustomers, type AdminCustomer } from "../../services/api";
+import { getAdminCustomers, deleteAdminCustomer, type AdminCustomer } from "../../services/api";
 
 export type Customer = {
   id: string;
@@ -66,6 +66,8 @@ export default function AdminCustomersPage({
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     getAdminCustomers()
@@ -96,6 +98,21 @@ export default function AdminCustomersPage({
   const showNotice = (message: string) => {
     setNotice(message);
     window.setTimeout(() => setNotice(""), 3000);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      setSubmitting(true);
+      await deleteAdminCustomer(deleteTarget.id);
+      setCustomers((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+      showNotice(`Đã xóa khách hàng: ${deleteTarget.name}`);
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : "Không thể xóa khách hàng");
+    } finally {
+      setSubmitting(false);
+      setDeleteTarget(null);
+    }
   };
 
   return (
@@ -284,6 +301,7 @@ export default function AdminCustomersPage({
               customers={visibleCustomers}
               showNotice={showNotice}
               onCustomerDetailClick={onCustomerDetailClick}
+              onDeleteClick={setDeleteTarget}
             />
             <Pagination />
           </section>
@@ -293,6 +311,38 @@ export default function AdminCustomersPage({
           </section>
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
+            <h3 className="font-headline-md text-lg font-bold">
+              Xác nhận xóa khách hàng
+            </h3>
+            <p className="mt-2 text-sm text-on-surface-variant">
+              Bạn có chắc muốn xóa <strong>{deleteTarget.name}</strong>? Hành động này không thể hoàn tác.
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold hover:bg-surface-container-low"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={submitting}
+                className="rounded-lg bg-error px-4 py-2 text-xs font-semibold text-on-error hover:opacity-90 disabled:opacity-50"
+              >
+                {submitting ? "Đang xóa..." : "Xóa khách hàng"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {notice && (
         <div
           className="fixed bottom-5 right-5 z-50 rounded-lg bg-inverse-surface px-4 py-3 text-body-sm text-inverse-on-surface shadow-lg"
@@ -339,10 +389,12 @@ function CustomerTable({
   customers,
   showNotice,
   onCustomerDetailClick,
+  onDeleteClick,
 }: {
   customers: Customer[];
   showNotice: (message: string) => void;
   onCustomerDetailClick?: (customer: Customer) => void;
+  onDeleteClick?: (customer: Customer) => void;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -426,6 +478,13 @@ function CustomerTable({
                     onClick={() => onCustomerDetailClick?.(customer)}
                   >
                     Chi tiết
+                  </button>
+                  <button
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium bg-error-container text-on-error-container hover:bg-error/20"
+                    type="button"
+                    onClick={() => onDeleteClick?.(customer)}
+                  >
+                    Xóa
                   </button>
                 </div>
               </td>

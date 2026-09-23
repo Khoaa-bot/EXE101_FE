@@ -499,6 +499,12 @@ export function getAdminCustomers() {
   return apiRequest<AdminCustomer[]>("/admin/customers");
 }
 
+export function deleteAdminCustomer(customerId: number | string) {
+  return apiRequest<string>(`/admin/customers/${customerId}`, {
+    method: "DELETE",
+  });
+}
+
 // GET & POST /api/admin/employees — quản lý nhân viên (admin only).
 export type AdminEmployee = {
   id: number;
@@ -533,6 +539,12 @@ export function createAdminEmployee(payload: CreateEmployeePayload) {
   return apiRequest<AdminEmployee>("/admin/employees", {
     method: "POST",
     body: payload,
+  });
+}
+
+export function deleteAdminEmployee(employeeId: number | string) {
+  return apiRequest<string>(`/admin/employees/${employeeId}`, {
+    method: "DELETE",
   });
 }
 
