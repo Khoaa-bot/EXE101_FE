@@ -207,7 +207,7 @@ export default function AdminCustomerDetailPage({
 
       {editOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
+          <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
             <div className="flex items-start justify-between border-b border-outline-variant pb-4">
               <div>
                 <h3 className="font-headline-md text-lg font-bold">Chỉnh sửa hồ sơ</h3>

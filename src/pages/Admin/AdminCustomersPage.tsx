@@ -157,7 +157,7 @@ export default function AdminCustomersPage({
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
-          <label className="relative hidden w-full max-w-md md:block">
+          <label className="relative hidden w-full max-w-[28rem] md:block">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
               search
             </span>
@@ -533,7 +533,7 @@ function Pagination() {
 //       <div className="my-4 flex h-24 w-24 items-center justify-center rounded-full border-4 border-tertiary font-headline-lg text-headline-lg text-tertiary">
 //         99%
 //       </div>
-//       <p className="max-w-xs text-body-sm text-on-surface-variant">
+//       <p className="max-w-[20rem] text-body-sm text-on-surface-variant">
 //         Mọi hệ thống đang hoạt động ổn định. Không có cảnh báo lỗi mới.
 //       </p>
 //       <button

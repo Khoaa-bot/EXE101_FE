@@ -140,7 +140,7 @@ export default function EngineerAppointmentsPage({
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
-          <label className="relative hidden w-full max-w-md md:block">
+          <label className="relative hidden w-full max-w-[28rem] md:block">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
               search
             </span>

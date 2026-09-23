@@ -255,7 +255,7 @@ export default function AdminInventoryPage({
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
-          <label className="relative hidden w-full max-w-md md:block">
+          <label className="relative hidden w-full max-w-[28rem] md:block">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
               search
             </span>
@@ -513,7 +513,7 @@ export default function AdminInventoryPage({
       {/* Restock Modal */}
       {restockPart && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
+          <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
             <h3 className="font-headline-md text-lg font-bold">
               Nhập thêm linh kiện
             </h3>
@@ -558,7 +558,7 @@ export default function AdminInventoryPage({
       {/* Add New Part Modal */}
       {addOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
+          <div className="w-full max-w-[36rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
             <h3 className="font-headline-md text-lg font-bold">
               Thêm linh kiện mới
             </h3>

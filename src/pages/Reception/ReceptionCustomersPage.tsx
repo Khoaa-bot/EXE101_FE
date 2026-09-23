@@ -148,7 +148,7 @@ export default function ReceptionCustomersPage({
           <button className="rounded-full p-2 text-on-surface-variant md:hidden" type="button" aria-label="Mở menu">
             <span className="material-symbols-outlined">menu</span>
           </button>
-          <label className="relative hidden w-full max-w-md md:block">
+          <label className="relative hidden w-full max-w-[28rem] md:block">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
             <input
               className="w-full rounded-full border border-outline-variant bg-surface-container-low px-4 py-2 pl-10 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"

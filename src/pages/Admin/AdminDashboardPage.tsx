@@ -146,7 +146,7 @@ export default function AdminDashboardPage({
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
-          <label className="relative hidden w-full max-w-sm md:block">
+          <label className="relative hidden w-full max-w-[24rem] md:block">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
               search
             </span>
@@ -403,7 +403,7 @@ function RepairsTable({
 function GoalCard({ showNotice }: { showNotice: (message: string) => void }) {
   return (
     <article className="flex flex-wrap items-center justify-between gap-5 overflow-hidden rounded-2xl bg-blue-600 p-6 text-white shadow-lg">
-      <div className="flex-1 min-w-200 max-w-xl">
+      <div className="flex-1 min-w-200 max-w-[36rem]">
         <span className="inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white">
           Mục tiêu garage
         </span>
