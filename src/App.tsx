@@ -8,6 +8,7 @@ import AdminEngineersPage from "./pages/Admin/AdminEngineersPage";
 import AdminInventoryPage from "./pages/Admin/AdminInventoryPage";
 import AdminPricingPage from "./pages/Admin/AdminPricingPage";
 import AdminGaragePage from "./pages/Admin/AdminGaragePage";
+import SuperAdminDashboardPage from "./pages/SuperAdmin/SuperAdminDashboardPage";
 import AdminCustomerDetailPage, {
   type Customer,
 } from "./pages/Admin/AdminCustomerDetailPage";
@@ -56,6 +57,7 @@ const appRoutes = new Set([
   "/admin/inventory",
   "/admin/pricing",
   "/admin/garage",
+  "/super-admin",
   "/engineer",
   "/engineer/schedule",
   "/engineer/appointments",
@@ -97,9 +99,12 @@ const publicRoutes = new Set([
 ]);
 
 const roleRoutes: Record<string, Set<string>> = {
-  ADMIN: new Set([
+  // "garage_owner" = admin của 1 garage (trước đây gọi là "admin" bên
+  // backend, đã đổi tên). "admin" giờ là Super Admin toàn hệ thống.
+  GARAGE_OWNER: new Set([
     "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing", "/admin/garage",
   ]),
+  ADMIN: new Set(["/super-admin"]),
   ENGINEER: new Set([
     "/engineer", "/engineer/schedule", "/engineer/appointments",
     "/engineer/technicians", "/engineer/customers", "/engineer/job-detail", "/engineer/settings",
@@ -115,7 +120,8 @@ const roleRoutes: Record<string, Set<string>> = {
 };
 
 const defaultHome: Record<string, string> = {
-  ADMIN: "/admin",
+  GARAGE_OWNER: "/admin",
+  ADMIN: "/super-admin",
   ENGINEER: "/engineer",
   RECEPTION: "/reception",
   CUSTOMER: "/home",
@@ -325,7 +331,15 @@ function App() {
           const r = session.role.toUpperCase();
           setRole(r);
           navigate(
-            r === "ADMIN" ? "/admin" : r === "ENGINEER" ? "/engineer" : r === "RECEPTION" ? "/reception" : "/home",
+            r === "ADMIN"
+              ? "/super-admin"
+              : r === "GARAGE_OWNER"
+                ? "/admin"
+                : r === "ENGINEER"
+                  ? "/engineer"
+                  : r === "RECEPTION"
+                    ? "/reception"
+                    : "/home",
           );
         }}
         onRegisterClick={() => navigate("/register")}
@@ -421,6 +435,10 @@ function App() {
 
   if (routePath === "/admin/garage") {
     return <AdminGaragePage {...adminProps} />;
+  }
+
+  if (routePath === "/super-admin") {
+    return <SuperAdminDashboardPage onLogout={shellProps.onLogout} />;
   }
 
   if (routePath === "/engineer") {

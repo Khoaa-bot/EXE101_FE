@@ -780,6 +780,76 @@ export function createAdminEmployee(payload: CreateEmployeePayload) {
 }
 
 // ---------------------------------------------------------------------------
+// Super Admin — AdminController (@RequestMapping("/api/admin")), các endpoint
+// chỉ role "admin" (Super Admin toàn hệ thống) mới gọi được. Khác với
+// "garage_owner" (admin của 1 garage) — 2 role này tách biệt hoàn toàn sau
+// khi backend đổi tên "admin" cũ thành "garage_owner".
+// ---------------------------------------------------------------------------
+
+export type SuperAdminUser = {
+  id: number;
+  username: string;
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  dob: string | null;
+  role: string;
+  garageId: number | null;
+  garageName: string | null;
+  balance: number;
+  noShow: number | null;
+  avatarUrl: string | null;
+  createdAt: string;
+};
+
+export type CreateGarageOwnerPayload = {
+  username: string;
+  password: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  garageId: number;
+};
+
+export type ChangeUserRolePayload = {
+  role: "viewer" | "customer" | "garage_owner" | "reception" | "engineer" | "admin";
+  garageId?: number;
+};
+
+// GET /api/admin/users — danh sách toàn bộ user, lọc theo role/garageId.
+export function getAllUsers(filters?: { role?: string; garageId?: number }) {
+  return apiRequest<SuperAdminUser[]>("/admin/users", {
+    query: { role: filters?.role, garageId: filters?.garageId },
+  });
+}
+
+// GET /api/admin/viewers — danh sách viewer.
+export function getAllViewers() {
+  return apiRequest<SuperAdminUser[]>("/admin/viewers");
+}
+
+// GET /api/admin/users/{id} — chi tiết 1 user.
+export function getUserById(userId: number | string) {
+  return apiRequest<SuperAdminUser>(`/admin/users/${userId}`);
+}
+
+// PUT /api/admin/users/{id}/role — đổi role của 1 user.
+export function changeUserRole(userId: number | string, payload: ChangeUserRolePayload) {
+  return apiRequest<SuperAdminUser>(`/admin/users/${userId}/role`, {
+    method: "PUT",
+    body: payload,
+  });
+}
+
+// POST /api/admin/garage-owners — tạo tài khoản admin cho 1 garage.
+export function createGarageOwner(payload: CreateGarageOwnerPayload) {
+  return apiRequest<SuperAdminUser>("/admin/garage-owners", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Users / hồ sơ cá nhân — UserController (@RequestMapping("/api/users")) bên
 // backend. Áp dụng cho người dùng đang đăng nhập, không phân biệt role.
 // ---------------------------------------------------------------------------
