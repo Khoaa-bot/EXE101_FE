@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import {
   deleteVehicle,
+  getAppointmentHistory,
   getMyFleet,
   getMyProfile,
   updateMyProfile,
   updateVehicle,
   uploadMyAvatar,
   uploadVehicleImage,
+  type AppointmentDto,
   type UserProfile,
   type Vehicle,
 } from "../../services/api";
@@ -48,6 +50,7 @@ export default function ProfilePage({
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [recentActivity, setRecentActivity] = useState<AppointmentDto[]>([]);
 
   const handleNavigate = (section: AppSection) => {
     if (section === "home") onHomeClick();
@@ -92,6 +95,12 @@ export default function ProfilePage({
   useEffect(() => {
     loadVehicles();
     loadProfile();
+    getAppointmentHistory()
+      .then((history) => setRecentActivity(history.slice(0, 4)))
+      .catch(() => {
+        // Widget này không quan trọng bằng thông tin hồ sơ/xe — bỏ qua lỗi,
+        // để trống là đủ, không chặn phần còn lại của trang.
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -257,18 +266,6 @@ export default function ProfilePage({
             <span className="font-body-md text-body-md">Cá nhân</span>
           </button>
         </nav>
-
-        <div className="mt-auto rounded-2xl border border-outline-variant bg-surface-container-low p-4">
-          <p className="mb-2 font-label-sm text-label-sm text-on-surface-variant">
-            Battery Status
-          </p>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-outline-variant">
-            <div className="h-full w-[82%] bg-primary" />
-          </div>
-          <p className="mt-2 font-label-sm text-label-sm font-bold text-primary">
-            82% - VF8
-          </p>
-        </div>
       </aside>
 
       <header className="fixed top-0 z-50 flex h-16 items-center justify-between border-b border-outline-variant bg-surface px-margin-mobile md:left-[240px] md:right-0 md:px-xl">
@@ -491,29 +488,6 @@ export default function ProfilePage({
                   ))}
                 </div>
               </div>
-
-              <section className="relative overflow-hidden rounded-xl bg-primary p-lg text-white shadow-lg shadow-primary/20 md:p-8">
-                <div className="relative z-10">
-                  <h3 className="mb-2 font-headline-lg text-headline-lg font-bold">
-                    Hạng thành viên: Gold
-                  </h3>
-                  <p className="mb-6 max-w-[512px] font-body-md text-body-md opacity-90">
-                    Bạn còn 1,200 điểm để lên hạng Platinum. Tận hưởng ưu đãi miễn
-                    phí cứu hộ 24/7 và giảm giá 10% phí bảo dưỡng.
-                  </p>
-                  <button className="rounded-full bg-white px-6 py-2 font-label-md text-label-md text-primary transition-all hover:bg-opacity-90">
-                    Xem đặc quyền
-                  </button>
-                </div>
-                <div className="absolute right-0 top-0 hidden h-full w-1/3 rotate-12 items-center justify-center opacity-20 md:flex">
-                  <span
-                    className="material-symbols-outlined text-[180px]"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    workspace_premium
-                  </span>
-                </div>
-              </section>
             </section>
           </div>
 
@@ -521,23 +495,25 @@ export default function ProfilePage({
             <h3 className="mb-6 font-headline-md text-headline-md text-on-surface">
               Hoạt động gần đây
             </h3>
-            <div className="space-y-4">
-              <ActivityItem
-                icon="build"
-                title="Bảo dưỡng định kỳ - VF8"
-                subtitle="Trạm VinFast Ocean Park - 12/10/2023"
-                value="Hoàn thành"
-                valueClassName="text-tertiary"
-              />
-              <ActivityItem
-                icon="ev_station"
-                title="Sạc pin nhanh (80%)"
-                subtitle="Trạm Times City - 09/10/2023"
-                value="320,000 VND"
-                valueClassName="text-secondary"
-                secondary
-              />
-            </div>
+            {recentActivity.length === 0 ? (
+              <p className="text-sm text-on-surface-variant">
+                Chưa có lịch sử dịch vụ nào.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {recentActivity.map((record, index) => (
+                  <ActivityItem
+                    key={record.id}
+                    icon="build"
+                    title={`${record.serviceName} - ${record.vehicleModel}`}
+                    subtitle={`${record.garageName} - ${record.scheduleDate}`}
+                    value={activityStatusLabel(record.status)}
+                    valueClassName={activityStatusClassName(record.status)}
+                    secondary={index % 2 === 1}
+                  />
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </main>
@@ -566,6 +542,32 @@ export default function ProfilePage({
       </nav>
     </div>
   );
+}
+
+function activityStatusLabel(status: string): string {
+  switch (status.toLowerCase()) {
+    case "completed":
+      return "Hoàn thành";
+    case "cancelled":
+      return "Đã huỷ";
+    case "no_show":
+      return "Không đến";
+    case "in_progress":
+      return "Đang xử lý";
+    case "confirmed":
+      return "Đã xác nhận";
+    case "pending":
+      return "Chờ xác nhận";
+    default:
+      return status;
+  }
+}
+
+function activityStatusClassName(status: string): string {
+  const s = status.toLowerCase();
+  if (s === "completed") return "text-tertiary";
+  if (s === "cancelled" || s === "no_show") return "text-error";
+  return "text-secondary";
 }
 
 function SideNavItem({
