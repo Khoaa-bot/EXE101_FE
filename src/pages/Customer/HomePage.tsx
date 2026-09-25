@@ -6,6 +6,7 @@ import {
   getMyNotifications,
   getStoredAuthSession,
   getWalletBalance,
+  requestWalletTopUp,
   type AppNotification,
   type AppointmentDto,
   type Vehicle,
@@ -88,6 +89,10 @@ export default function Home({
   const [activeVehicle, setActiveVehicle] = useState<Vehicle | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("100000");
+  const [isTopUpSubmitting, setIsTopUpSubmitting] = useState(false);
+  const [topUpError, setTopUpError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,6 +120,26 @@ export default function Home({
       cancelled = true;
     };
   }, []);
+
+  const submitTopUp = () => {
+    const amount = Number(topUpAmount);
+    if (!amount || amount < 10000) {
+      setTopUpError("Số tiền nạp tối thiểu là 10.000đ.");
+      return;
+    }
+    setTopUpError(null);
+    setIsTopUpSubmitting(true);
+    requestWalletTopUp(amount)
+      .then((res) => {
+        window.location.href = res.paymentUrl;
+      })
+      .catch((err) => {
+        setTopUpError(
+          err instanceof Error ? err.message : "Không tạo được link nạp tiền.",
+        );
+        setIsTopUpSubmitting(false);
+      });
+  };
 
   const handleClickFeedback = () => {
     if (window.navigator.vibrate) {
@@ -402,6 +427,14 @@ export default function Home({
                     {walletBalance === null ? "..." : formatCurrency(walletBalance)}
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsTopUpOpen(true)}
+                  className="mt-md inline-flex items-center gap-xs self-start rounded-lg bg-primary px-md py-sm font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[18px]">add</span>
+                  Nạp tiền
+                </button>
               </div>
             </aside>
           </div>
@@ -552,6 +585,70 @@ export default function Home({
       >
         <span className="material-symbols-outlined text-3xl">add</span>
       </button>
+
+      {isTopUpOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-[26rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-lg shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-headline-md text-headline-md">
+                Nạp tiền vào ví Servio Pay
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTopUpOpen(false);
+                  setTopUpError(null);
+                }}
+                className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <p className="mt-1 font-body-sm text-body-sm text-on-surface-variant">
+              Bạn sẽ được chuyển sang cổng thanh toán VNPay để hoàn tất giao dịch.
+            </p>
+
+            <div className="mt-lg space-y-sm">
+              <label className="block font-label-md text-label-md text-on-surface-variant">
+                Số tiền (VNĐ)
+              </label>
+              <input
+                type="number"
+                min={10000}
+                step={10000}
+                value={topUpAmount}
+                onChange={(e) => setTopUpAmount(e.target.value)}
+                className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 font-body-md text-body-md outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+              />
+              <div className="flex flex-wrap gap-2">
+                {[50000, 100000, 200000, 500000].map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    onClick={() => setTopUpAmount(String(amount))}
+                    className="rounded-lg border border-outline-variant px-3 py-1.5 text-xs font-semibold hover:border-primary hover:text-primary"
+                  >
+                    {formatCurrency(amount)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {topUpError && (
+              <p className="mt-3 font-body-sm text-body-sm text-error">{topUpError}</p>
+            )}
+
+            <button
+              type="button"
+              onClick={submitTopUp}
+              disabled={isTopUpSubmitting}
+              className="mt-lg w-full rounded-lg bg-primary py-3 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+            >
+              {isTopUpSubmitting ? "Đang chuyển đến VNPay..." : "Tiếp tục thanh toán"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

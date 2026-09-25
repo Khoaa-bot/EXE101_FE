@@ -29,6 +29,7 @@ import EngineerSettingsPage from "./pages/Engineer/EngineerSettingsPage";
 import TrackingPage from "./pages/Customer/TrackingPage";
 import FindGaragePage from "./pages/Customer/FindGaragePage";
 import GarageDetailPage from "./pages/Customer/GarageDetailPage";
+import PaymentResultPage from "./pages/Customer/PaymentResultPage";
 import ReceptionDashboardPage from "./pages/Reception/ReceptionDashboardPage";
 import ReceptionSchedulePage from "./pages/Reception/ReceptionSchedulePage";
 import ReceptionAppointmentsPage from "./pages/Reception/ReceptionAppointmentsPage";
@@ -51,6 +52,7 @@ const appRoutes = new Set([
   "/booking",
   "/find-garage",
   "/garage-detail",
+  "/payment-result",
   "/admin",
   "/admin/customers",
   "/admin/engineers",
@@ -115,7 +117,7 @@ const roleRoutes: Record<string, Set<string>> = {
   ]),
   CUSTOMER: new Set([
     "/home", "/history", "/notifications", "/tracking", "/profile",
-    "/add-vehicle", "/booking", "/find-garage", "/garage-detail",
+    "/add-vehicle", "/booking", "/find-garage", "/garage-detail", "/payment-result",
   ]),
 };
 
@@ -619,6 +621,10 @@ function App() {
         />
       </AppShell>
     );
+  }
+
+  if (routePath === "/payment-result") {
+    return <PaymentResultPage onHomeClick={() => navigate("/home", true)} />;
   }
 
   return (

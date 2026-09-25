@@ -1048,6 +1048,48 @@ export async function getWalletBalance() {
   return result.balance;
 }
 
+type PaymentResponse = {
+  status: string;
+  message: string;
+  paymentUrl: string;
+};
+
+// POST /api/payment/top-up?amount=... — tạo link nạp tiền vào ví Servio Pay
+// qua VNPay (redirect toàn trang sang trang thanh toán, không phải fetch
+// JSON — backend nhận amount qua query param, không phải JSON body).
+export async function requestWalletTopUp(amount: number) {
+  const session = getStoredAuthSession();
+  const url = new URL(`${API_BASE_URL}/payment/top-up`);
+  url.searchParams.set("amount", String(amount));
+  const response = await fetch(url.toString(), {
+    method: "POST",
+    headers: session?.token ? { Authorization: `Bearer ${session.token}` } : {},
+  });
+  const data = (await response.json().catch(() => null)) as PaymentResponse | ApiErrorBody | null;
+  if (!response.ok) {
+    const error = data as ApiErrorBody | null;
+    throw new Error(error?.message || error?.error || "Không tạo được link nạp tiền.");
+  }
+  return data as PaymentResponse;
+}
+
+export type VnpayReturnResult = {
+  success: boolean;
+  message: string;
+  type?: string;
+  newBalance?: number;
+  amount?: number;
+  [key: string]: unknown;
+};
+
+// GET /api/payment/vnpay-return?<toàn bộ query VNPay redirect về> — xác
+// thực chữ ký giao dịch VÀ cộng tiền vào ví nếu hợp lệ. Đây là bước THẬT
+// SỰ ghi nhận giao dịch (không phải chỉ hiển thị) nên trang kết quả bắt
+// buộc phải gọi API này, không được tự suy trạng thái từ query string.
+export async function confirmVnpayReturn(search: string) {
+  return apiRequest<VnpayReturnResult>(`/payment/vnpay-return${search}`);
+}
+
 // GET /api/notifications/me — danh sách thông báo của người dùng đang đăng
 // nhập, mới nhất trước.
 export function getMyNotifications() {
