@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import {
   getEngineerAppointmentDetail,
-  updateEngineerAppointment,
+  getEngineerAppointmentSteps,
+  startEngineerAppointment,
+  completeEngineerAppointment,
+  updateEngineerAppointmentStep,
   type AppointmentDto,
+  type AppointmentStep,
 } from "../../services/api";
-import {
-  getSelectableStatusOptions,
-  isTerminalStatus,
-  statusBadgeClass,
-  statusLabel,
-} from "./engineerStatus";
+import { statusBadgeClass, statusLabel } from "./engineerStatus";
 
 const navItems = [
   ["dashboard", "Tổng quan"],
@@ -44,15 +43,15 @@ export default function EngineerJobDetailPage({
   onLogout,
 }: EngineerJobDetailPageProps) {
   const [appointment, setAppointment] = useState<AppointmentDto | null>(null);
+  const [steps, setSteps] = useState<AppointmentStep[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [status, setStatus] = useState("pending");
-  const [notes, setNotes] = useState("");
   const [engineerNotes, setEngineerNotes] = useState("");
   const [partsUsed, setPartsUsed] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
+  const [togglingStepId, setTogglingStepId] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
 
   const showNotice = (msg: string) => {
@@ -60,77 +59,86 @@ export default function EngineerJobDetailPage({
     window.setTimeout(() => setNotice(""), 3000);
   };
 
-  useEffect(() => {
+  const loadAll = () => {
     if (!appointmentId) {
       setIsLoading(false);
       setLoadError("Không xác định được lịch hẹn cần xem.");
       return;
     }
-
-    let cancelled = false;
     setIsLoading(true);
     setLoadError(null);
-
-    getEngineerAppointmentDetail(appointmentId)
-      .then((data) => {
-        if (cancelled) return;
-        setAppointment(data);
-        setStatus(data.status.toLowerCase());
-        setNotes(data.notes ?? "");
-        setEngineerNotes(data.engineerNotes ?? "");
-        setPartsUsed(data.partsUsed ?? "");
+    Promise.all([
+      getEngineerAppointmentDetail(appointmentId),
+      getEngineerAppointmentSteps(appointmentId),
+    ])
+      .then(([appt, stepList]) => {
+        setAppointment(appt);
+        setSteps(stepList);
       })
       .catch((err) => {
-        if (cancelled) return;
         setLoadError(
           err instanceof Error ? err.message : "Không tải được chi tiết công việc.",
         );
       })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
+      .finally(() => setIsLoading(false));
+  };
 
-    return () => {
-      cancelled = true;
-    };
+  useEffect(() => {
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appointmentId]);
 
-  const applyUpdate = (payload: {
-    status?: string;
-    notes?: string;
-    engineerNotes?: string;
-    partsUsed?: string;
-  }) => {
+  const startProcessing = () => {
     if (!appointmentId) return;
     setIsSaving(true);
-    updateEngineerAppointment(appointmentId, payload)
+    startEngineerAppointment(appointmentId)
       .then((updated) => {
         setAppointment(updated);
-        setStatus(updated.status.toLowerCase());
-        setNotes(updated.notes ?? "");
-        setEngineerNotes(updated.engineerNotes ?? "");
-        setPartsUsed(updated.partsUsed ?? "");
-        showNotice(`Đã cập nhật công việc #${updated.id} thành công!`);
+        showNotice("Đã bắt đầu xử lý công việc.");
       })
       .catch((err) => {
         showNotice(
-          err instanceof Error ? err.message : "Không thể cập nhật công việc này.",
+          err instanceof Error ? err.message : "Không thể bắt đầu xử lý.",
         );
       })
       .finally(() => setIsSaving(false));
   };
 
-  const saveReport = () => {
-    if (!notes.trim()) {
-      showNotice("Vui lòng nhập ghi chú kỹ thuật!");
-      return;
-    }
-    applyUpdate({ status, notes, engineerNotes, partsUsed });
+  const toggleStep = (step: AppointmentStep) => {
+    if (!appointmentId) return;
+    setTogglingStepId(step.id);
+    updateEngineerAppointmentStep(appointmentId, step.id, !step.isCompleted)
+      .then((updatedStep) => {
+        setSteps((prev) =>
+          prev.map((s) => (s.id === updatedStep.id ? updatedStep : s)),
+        );
+      })
+      .catch((err) => {
+        showNotice(
+          err instanceof Error ? err.message : "Không thể cập nhật bước này.",
+        );
+      })
+      .finally(() => setTogglingStepId(null));
   };
 
   const completeJob = () => {
-    applyUpdate({ status: "completed", notes, engineerNotes, partsUsed });
+    if (!appointmentId) return;
+    setIsSaving(true);
+    completeEngineerAppointment(appointmentId, { engineerNotes, partsUsed })
+      .then((updated) => {
+        setAppointment(updated);
+        showNotice(`Đã hoàn thành công việc #${updated.id}!`);
+      })
+      .catch((err) => {
+        showNotice(
+          err instanceof Error ? err.message : "Không thể hoàn thành công việc này.",
+        );
+      })
+      .finally(() => setIsSaving(false));
   };
+
+  const status = appointment?.status.toLowerCase() ?? "";
+  const allStepsCompleted = steps.length > 0 && steps.every((s) => s.isCompleted);
 
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
@@ -312,6 +320,57 @@ export default function EngineerJobDetailPage({
                       )}
                     </article>
                   </div>
+
+                  {/* Step Checklist — chỉ hiện khi đang xử lý hoặc đã xong */}
+                  {steps.length > 0 &&
+                    (status === "in_progress" ||
+                      status === "completed" ||
+                      status === "successful") && (
+                      <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+                        <div className="mb-4 flex items-center gap-2 text-primary font-bold">
+                          <span className="material-symbols-outlined text-xl">
+                            checklist
+                          </span>
+                          <h2>
+                            Các bước bảo dưỡng ({steps.filter((s) => s.isCompleted).length}/
+                            {steps.length})
+                          </h2>
+                        </div>
+                        <ul className="space-y-2">
+                          {steps.map((step) => (
+                            <li key={step.id}>
+                              <label
+                                className={`flex items-center gap-3 rounded-lg border border-outline-variant p-3 text-body-sm ${
+                                  status === "in_progress"
+                                    ? "cursor-pointer hover:bg-surface-container-low"
+                                    : "opacity-70"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={step.isCompleted}
+                                  disabled={
+                                    status !== "in_progress" ||
+                                    togglingStepId === step.id
+                                  }
+                                  onChange={() => toggleStep(step)}
+                                  className="h-4 w-4 rounded accent-primary"
+                                />
+                                <span
+                                  className={
+                                    step.isCompleted
+                                      ? "line-through text-on-surface-variant"
+                                      : ""
+                                  }
+                                >
+                                  {step.stepName}
+                                </span>
+                              </label>
+                            </li>
+                          ))}
+                        </ul>
+                      </article>
+                    )}
                 </div>
 
                 {/* Right Column (Report & Updates Panel) */}
@@ -324,95 +383,90 @@ export default function EngineerJobDetailPage({
                       <h2>Báo cáo & Cập nhật</h2>
                     </div>
 
-                    {/* Status Select */}
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                        Trạng thái công việc
-                      </label>
-                      <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        disabled={isTerminalStatus(appointment.status)}
-                        className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {getSelectableStatusOptions(appointment.status).map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      {isTerminalStatus(appointment.status) && (
-                        <p className="mt-1 text-xs text-on-surface-variant">
-                          Công việc đã ở trạng thái cuối, không thể đổi lại.
+                    {status === "confirmed" && (
+                      <>
+                        <p className="text-body-sm text-on-surface-variant">
+                          Lịch hẹn đã được tiếp nhận. Bấm bắt đầu để chuyển sang
+                          xử lý và mở checklist các bước bảo dưỡng.
                         </p>
-                      )}
-                    </div>
+                        <button
+                          type="button"
+                          onClick={startProcessing}
+                          disabled={isSaving}
+                          className="w-full rounded-lg bg-primary py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+                        >
+                          {isSaving ? "Đang xử lý..." : "Bắt đầu xử lý"}
+                        </button>
+                      </>
+                    )}
 
-                    {/* Notes Textarea */}
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                        Ghi chú chung *
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Nhập ghi chú về lịch hẹn..."
-                        className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                      />
-                    </div>
+                    {status === "in_progress" && (
+                      <>
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                            Ghi chú kỹ thuật
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={engineerNotes}
+                            onChange={(e) => setEngineerNotes(e.target.value)}
+                            placeholder="Chẩn đoán, tình trạng xe, hướng xử lý..."
+                            className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
 
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                        Ghi chú kỹ thuật
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={engineerNotes}
-                        onChange={(e) => setEngineerNotes(e.target.value)}
-                        placeholder="Chẩn đoán, tình trạng xe, hướng xử lý..."
-                        className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                      />
-                    </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                            Vật tư/linh kiện đã dùng
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={partsUsed}
+                            onChange={(e) => setPartsUsed(e.target.value)}
+                            placeholder="Ví dụ: má phanh trước, dầu động cơ 4L..."
+                            className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
 
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                        Vật tư/linh kiện đã dùng
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={partsUsed}
-                        onChange={(e) => setPartsUsed(e.target.value)}
-                        placeholder="Ví dụ: má phanh trước, dầu động cơ 4L..."
-                        className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                      />
-                    </div>
+                        {!allStepsCompleted && (
+                          <p className="text-xs text-on-surface-variant">
+                            Cần tích đủ tất cả các bước bảo dưỡng bên trái trước
+                            khi có thể hoàn thành công việc.
+                          </p>
+                        )}
 
-                    {/* Buttons */}
-                    <div className="space-y-2 pt-2">
-                      <button
-                        type="button"
-                        onClick={saveReport}
-                        disabled={isSaving}
-                        className="w-full rounded-lg bg-primary py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
-                      >
-                        {isSaving ? "Đang lưu..." : "Cập nhật & Lưu thông tin"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={completeJob}
-                        disabled={isSaving || isTerminalStatus(appointment.status)}
-                        className={`w-full rounded-lg border py-2.5 font-label-md text-label-md transition ${
-                          isTerminalStatus(appointment.status)
-                            ? "border-outline-variant bg-surface-container-high text-outline cursor-not-allowed"
-                            : "border-tertiary bg-tertiary-container/10 text-tertiary hover:bg-tertiary/20 active:scale-[0.98]"
-                        }`}
-                      >
-                        {status === "completed"
-                          ? "Đã hoàn thành"
-                          : "Xác nhận hoàn thành công việc"}
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={completeJob}
+                          disabled={isSaving || !allStepsCompleted}
+                          className={`w-full rounded-lg border py-2.5 font-label-md text-label-md transition ${
+                            allStepsCompleted
+                              ? "border-tertiary bg-tertiary-container/10 text-tertiary hover:bg-tertiary/20 active:scale-[0.98]"
+                              : "border-outline-variant bg-surface-container-high text-outline cursor-not-allowed"
+                          }`}
+                        >
+                          {isSaving ? "Đang lưu..." : "Xác nhận hoàn thành công việc"}
+                        </button>
+                      </>
+                    )}
+
+                    {(status === "completed" || status === "successful") && (
+                      <p className="text-body-sm text-tertiary">
+                        Công việc đã hoàn thành, không thể chỉnh sửa thêm.
+                      </p>
+                    )}
+
+                    {(status === "cancelled" || status === "no_show") && (
+                      <p className="text-body-sm text-error">
+                        Lịch hẹn đã bị hủy hoặc khách không đến.
+                      </p>
+                    )}
+
+                    {status === "pending" && (
+                      <p className="text-body-sm text-on-surface-variant">
+                        Lịch hẹn đang chờ lễ tân xác nhận.
+                      </p>
+                    )}
                   </article>
                 </aside>
               </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   getEngineerDashboard,
-  updateEngineerAppointment,
+  acceptEngineerAppointment,
   type AppointmentDto,
 } from "../../services/api";
 import { isTerminalStatus, statusBadgeClass, statusLabel } from "./engineerStatus";
@@ -85,7 +85,7 @@ export default function EngineerDashboardPage({
 
   const acceptJob = (id: number) => {
     setAcceptingId(id);
-    updateEngineerAppointment(id, { status: "confirmed" })
+    acceptEngineerAppointment(id)
       .then((updated) => {
         setAppointments((prev) => prev.map((a) => (a.id === id ? updated : a)));
         showNotice(`Đã tiếp nhận thành công lịch làm việc #${id}`);

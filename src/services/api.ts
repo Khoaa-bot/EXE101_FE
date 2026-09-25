@@ -392,11 +392,20 @@ export type EngineerDashboard = {
   appointments: AppointmentDto[];
 };
 
-export type EngineerAppointmentUpdatePayload = {
-  status?: string;
+export type EngineerCompletePayload = {
   notes?: string;
   engineerNotes?: string;
   partsUsed?: string;
+};
+
+export type AppointmentStep = {
+  id: number;
+  stepOrder: number;
+  stepName: string;
+  description: string;
+  isCompleted: boolean;
+  completedAt: string | null;
+  completedByName: string | null;
 };
 
 // GET /api/engineer/dashboard — danh sách công việc của kỹ thuật viên đang
@@ -410,16 +419,53 @@ export function getEngineerAppointmentDetail(appointmentId: number | string) {
   return apiRequest<AppointmentDto>(`/engineer/appointments/${appointmentId}`);
 }
 
-// PUT /api/engineer/appointments/{id} — cập nhật trạng thái/ghi chú công
-// việc (chỉ kỹ thuật viên được giao mới cập nhật được).
-export function updateEngineerAppointment(
+// Luồng cập nhật lịch hẹn của kỹ thuật viên chỉ có 3 bước cố định, mỗi bước
+// một endpoint riêng (không còn PUT /engineer/appointments/{id} chung nữa —
+// endpoint đó đã bị xoá khỏi backend, gọi vào sẽ lỗi 500 "PUT not supported").
+// pending -> (accept) -> confirmed -> (processing) -> in_progress -> (complete,
+// yêu cầu mọi bước bảo dưỡng đã tích) -> completed.
+
+// PUT /api/engineer/appointments/{id}/accept — tiếp nhận lịch (chỉ từ pending).
+export function acceptEngineerAppointment(appointmentId: number | string) {
+  return apiRequest<AppointmentDto>(`/engineer/appointments/${appointmentId}/accept`, {
+    method: "PUT",
+  });
+}
+
+// PUT /api/engineer/appointments/{id}/processing — bắt đầu xử lý (chỉ từ confirmed).
+export function startEngineerAppointment(appointmentId: number | string) {
+  return apiRequest<AppointmentDto>(`/engineer/appointments/${appointmentId}/processing`, {
+    method: "PUT",
+  });
+}
+
+// PUT /api/engineer/appointments/{id}/complete — hoàn thành (chỉ từ in_progress,
+// backend từ chối nếu còn bước bảo dưỡng chưa tích hoàn tất).
+export function completeEngineerAppointment(
   appointmentId: number | string,
-  payload: EngineerAppointmentUpdatePayload,
+  payload: EngineerCompletePayload,
 ) {
-  return apiRequest<AppointmentDto>(`/engineer/appointments/${appointmentId}`, {
+  return apiRequest<AppointmentDto>(`/engineer/appointments/${appointmentId}/complete`, {
     method: "PUT",
     body: payload,
   });
+}
+
+// GET /api/engineer/appointments/{id}/steps — danh sách bước bảo dưỡng.
+export function getEngineerAppointmentSteps(appointmentId: number | string) {
+  return apiRequest<AppointmentStep[]>(`/engineer/appointments/${appointmentId}/steps`);
+}
+
+// PUT /api/engineer/appointments/{id}/steps/{stepId} — tích/bỏ tích một bước.
+export function updateEngineerAppointmentStep(
+  appointmentId: number | string,
+  stepId: number | string,
+  isCompleted: boolean,
+) {
+  return apiRequest<AppointmentStep>(
+    `/engineer/appointments/${appointmentId}/steps/${stepId}`,
+    { method: "PUT", body: { isCompleted } },
+  );
 }
 
 // POST /api/reviews — đánh giá một lịch hẹn đã hoàn thành.
