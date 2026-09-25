@@ -10,6 +10,7 @@ export type RegisterPayload = LoginPayload & {
   phone: string;
   email: string;
   dob: string;
+  otp: string;
 };
 
 export type AuthSession = {
@@ -66,6 +67,27 @@ export function login(payload: LoginPayload) {
 
 export function register(payload: RegisterPayload) {
   return request("/auth/register", payload);
+}
+
+// POST /api/auth/register/send-otp — gửi mã OTP xác minh email trước khi
+// đăng ký. Backend trả về text thuần (không phải JSON).
+export async function sendRegisterOtp(email: string) {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/auth/register/send-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch {
+    throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
+  }
+
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(text || "Gửi mã OTP không thành công.");
+  }
+  return text;
 }
 
 export async function checkDbConnection() {

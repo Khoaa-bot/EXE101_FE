@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { register } from "../../services/api";
+import { register, sendRegisterOtp, type RegisterPayload } from "../../services/api";
 
 type RegisterPageProps = {
   onBackToLogin: () => void;
@@ -11,26 +11,54 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  // Đăng ký cần xác minh email bằng OTP trước — bước 1 gửi mã và giữ lại
+  // thông tin đã điền, bước 2 mới thật sự tạo tài khoản kèm mã OTP.
+  const [pendingInfo, setPendingInfo] = useState<Omit<RegisterPayload, "otp"> | null>(
+    null,
+  );
+  const [otpCode, setOtpCode] = useState("");
+
+  const handleRequestOtp = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (submitState !== "idle") {
-      return;
-    }
+    if (submitState === "loading") return;
 
     const formData = new FormData(event.currentTarget);
+    const info: Omit<RegisterPayload, "otp"> = {
+      username: String(formData.get("username") || "").trim(),
+      password: String(formData.get("password") || ""),
+      phone: String(formData.get("phone") || "").trim(),
+      email: String(formData.get("email") || "").trim(),
+      dob: String(formData.get("dob") || ""),
+    };
+
+    setError("");
+    setNotice("");
+    setSubmitState("loading");
+
+    try {
+      await sendRegisterOtp(info.email);
+      setPendingInfo(info);
+      setNotice(`Đã gửi mã OTP xác minh đến ${info.email}. Vui lòng kiểm tra email.`);
+      setSubmitState("idle");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error ? requestError.message : "Gửi mã OTP không thành công.",
+      );
+      setSubmitState("error");
+    }
+  };
+
+  const handleConfirmRegister = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!pendingInfo || submitState === "loading") return;
+
     setError("");
     setSubmitState("loading");
 
     try {
-      await register({
-        username: String(formData.get("username") || "").trim(),
-        password: String(formData.get("password") || ""),
-        phone: String(formData.get("phone") || "").trim(),
-        email: String(formData.get("email") || "").trim(),
-        dob: String(formData.get("dob") || ""),
-      });
+      await register({ ...pendingInfo, otp: otpCode.trim() });
       setSubmitState("success");
     } catch (requestError) {
       setError(
@@ -38,6 +66,14 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
       );
       setSubmitState("error");
     }
+  };
+
+  const handleBackToForm = () => {
+    setPendingInfo(null);
+    setOtpCode("");
+    setError("");
+    setNotice("");
+    setSubmitState("idle");
   };
 
   return (
@@ -95,7 +131,14 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
                 </p>
               </div>
 
-              <form className="space-y-lg" onSubmit={handleSubmit}>
+              {notice && !error && (
+                <p className="mb-lg rounded-lg bg-tertiary-container/20 px-3 py-2 font-body-sm text-body-sm text-on-surface" role="status">
+                  {notice}
+                </p>
+              )}
+
+              {!pendingInfo && (
+              <form className="space-y-lg" onSubmit={handleRequestOtp}>
                 <div className="space-y-xs">
               <label
                 className="ml-1 block font-label-md text-label-md text-on-surface-variant"
@@ -244,31 +287,20 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
             </div>
 
             <button
-              className={`flex w-full items-center justify-center gap-2 rounded-lg py-3.5 font-label-md text-label-md text-on-primary shadow-md transition-all active:scale-[0.98] ${
-                submitState === "success" ? "bg-tertiary" : "bg-primary"
-              }`}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3.5 font-label-md text-label-md text-on-primary shadow-md transition-all active:scale-[0.98] disabled:opacity-60"
               type="submit"
-              disabled={submitState === "loading" || submitState === "success"}
+              disabled={submitState === "loading"}
             >
-              {submitState === "loading" && (
+              {submitState === "loading" ? (
                 <>
                   <span className="material-symbols-outlined animate-spin">
                     sync
                   </span>
-                  <span>Đang xử lý...</span>
+                  <span>Đang gửi mã OTP...</span>
                 </>
-              )}
-              {submitState === "success" && (
+              ) : (
                 <>
-                  <span className="material-symbols-outlined">
-                    check_circle
-                  </span>
-                  <span>Thành công!</span>
-                </>
-              )}
-              {submitState === "idle" && (
-                <>
-                  <span>Đăng ký</span>
+                  <span>Gửi mã OTP xác minh</span>
                   <span className="material-symbols-outlined">
                     arrow_forward
                   </span>
@@ -276,6 +308,83 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
               )}
             </button>
               </form>
+              )}
+
+              {pendingInfo && submitState !== "success" && (
+                <form className="space-y-lg" onSubmit={handleConfirmRegister}>
+                  <p className="font-body-md text-body-md text-on-surface-variant">
+                    Nhập mã OTP 6 số đã gửi tới <strong>{pendingInfo.email}</strong>.
+                  </p>
+
+                  <div className="space-y-xs">
+                    <label
+                      className="ml-1 block font-label-md text-label-md text-on-surface-variant"
+                      htmlFor="otp"
+                    >
+                      Mã OTP
+                    </label>
+                    <input
+                      className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-center font-body-md text-body-md tracking-[0.5em] text-on-surface outline-none transition-all placeholder:tracking-normal placeholder:text-outline focus:border-transparent focus:ring-2 focus:ring-primary"
+                      id="otp"
+                      name="otp"
+                      placeholder="000000"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, ""))}
+                      autoFocus
+                      required
+                    />
+                  </div>
+
+                  {error && (
+                    <p className="rounded-lg bg-error-container px-3 py-2 font-body-sm text-body-sm text-on-error-container" role="alert">
+                      {error}
+                    </p>
+                  )}
+
+                  <button
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3.5 font-label-md text-label-md text-on-primary shadow-md transition-all active:scale-[0.98] disabled:opacity-60"
+                    type="submit"
+                    disabled={submitState === "loading" || otpCode.length !== 6}
+                  >
+                    {submitState === "loading" ? (
+                      <>
+                        <span className="material-symbols-outlined animate-spin">
+                          sync
+                        </span>
+                        <span>Đang xử lý...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Xác nhận đăng ký</span>
+                        <span className="material-symbols-outlined">
+                          arrow_forward
+                        </span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    className="w-full text-center font-label-md text-label-md text-on-surface-variant hover:text-primary"
+                    type="button"
+                    onClick={handleBackToForm}
+                  >
+                    ← Quay lại chỉnh sửa thông tin
+                  </button>
+                </form>
+              )}
+
+              {submitState === "success" && (
+                <div className="flex flex-col items-center gap-3 rounded-lg bg-tertiary-container/20 px-4 py-6 text-center">
+                  <span className="material-symbols-outlined text-4xl text-tertiary">
+                    check_circle
+                  </span>
+                  <p className="font-body-md text-body-md text-on-surface">
+                    Đăng ký thành công! Bạn có thể đăng nhập ngay bây giờ.
+                  </p>
+                </div>
+              )}
 
               <div className="mt-xl text-center">
                 <p className="font-body-md text-body-md text-on-surface-variant">
