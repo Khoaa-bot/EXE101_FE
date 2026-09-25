@@ -296,6 +296,7 @@ export type AppointmentDto = {
   timeFrame: string;
   garageId: number;
   garageName: string;
+  engineerId: number | null;
   engineerName: string | null;
   status: AppointmentStatus;
   notes: string | null;
@@ -837,6 +838,16 @@ export function deleteAdminCustomer(customerId: number | string) {
   return apiRequest<void>(`/garage-owner/customers/${customerId}`, {
     method: "DELETE",
   });
+}
+
+// PUT /api/garage-owner/customers/{id}/no-show — cập nhật số lần khách
+// không đến (garage_owner only). Backend tự cấm khách khỏi garage nếu
+// noShow > 3.
+export function updateAdminCustomerNoShow(customerId: number | string, noShow: number) {
+  return apiRequest<AdminCustomer | { message: string }>(
+    `/garage-owner/customers/${customerId}/no-show`,
+    { method: "PUT", body: { noShow } },
+  );
 }
 
 // GET & POST /api/garage-owner/employees — quản lý nhân viên (garage_owner only).

@@ -16,6 +16,8 @@ export type Customer = {
   plate: string;
   servicedAt: string;
   state: "all" | "repair" | "vip";
+  noShow: number;
+  isBanned: boolean;
 };
 
 function mapApiCustomer(c: AdminCustomer): Customer {
@@ -36,6 +38,8 @@ function mapApiCustomer(c: AdminCustomer): Customer {
       ? new Date(c.createdAt).toLocaleDateString("vi-VN")
       : "—",
     state: c.isBanned ? "repair" : "all",
+    noShow: c.noShow,
+    isBanned: c.isBanned,
   };
 }
 

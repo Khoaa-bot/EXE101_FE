@@ -1,16 +1,8 @@
 import { useState } from "react";
+import { updateAdminCustomerNoShow } from "../../services/api";
+import type { Customer } from "./AdminCustomersPage";
 
-export type Customer = {
-  id: string;
-  name: string;
-  initials: string;
-  phone: string;
-  email: string;
-  vehicle: string;
-  plate: string;
-  servicedAt: string;
-  state: "all" | "repair" | "vip";
-};
+export type { Customer };
 
 const navItems = [
   ["dashboard", "Dashboard"],
@@ -45,13 +37,7 @@ export default function AdminCustomerDetailPage({
   onLogout,
 }: AdminCustomerDetailPageProps) {
   const [cust, setCust] = useState(customer);
-  const [editOpen, setEditOpen] = useState(false);
-  const [form, setForm] = useState({
-    name: cust.name,
-    email: cust.email,
-    phone: cust.phone,
-  });
-  const [note, setNote] = useState("");
+  const [isUpdatingNoShow, setIsUpdatingNoShow] = useState(false);
   const [notice, setNotice] = useState("");
 
   const showNotice = (message: string) => {
@@ -59,10 +45,29 @@ export default function AdminCustomerDetailPage({
     window.setTimeout(() => setNotice(""), 3000);
   };
 
-  const saveEdit = () => {
-    setCust({ ...cust, name: form.name, email: form.email, phone: form.phone });
-    setEditOpen(false);
-    showNotice("Đã cập nhật hồ sơ khách hàng");
+  const addNoShow = () => {
+    const nextCount = cust.noShow + 1;
+    setIsUpdatingNoShow(true);
+    updateAdminCustomerNoShow(cust.id, nextCount)
+      .then(() => {
+        setCust((prev) => ({
+          ...prev,
+          noShow: nextCount,
+          isBanned: prev.isBanned || nextCount > 3,
+          state: prev.isBanned || nextCount > 3 ? "repair" : prev.state,
+        }));
+        showNotice(
+          nextCount > 3
+            ? "Đã ghi nhận không đến và cấm khách khỏi garage (quá 3 lần)."
+            : "Đã ghi nhận thêm 1 lần không đến.",
+        );
+      })
+      .catch((err) => {
+        showNotice(
+          err instanceof Error ? err.message : "Không thể cập nhật số lần không đến.",
+        );
+      })
+      .finally(() => setIsUpdatingNoShow(false));
   };
 
   const handleNav = (label: string) => {
@@ -136,26 +141,25 @@ export default function AdminCustomerDetailPage({
                   <h1 className="text-2xl md:text-3xl font-bold">{cust.name}</h1>
                   <span
                     className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                      cust.state === "vip"
-                        ? "bg-warning text-on-surface"
-                        : cust.state === "repair"
-                          ? "bg-tertiary-container text-on-tertiary-container"
-                          : "bg-surface-container-high text-on-surface-variant"
+                      cust.isBanned
+                        ? "bg-error-container text-on-error-container"
+                        : "bg-tertiary-container/20 text-tertiary"
                     }`}
                   >
-                    {cust.state === "vip" ? "VIP" : cust.state === "repair" ? "Đang sửa" : "Bình thường"}
+                    {cust.isBanned ? "Đã cấm khỏi garage" : "Bình thường"}
                   </span>
                 </div>
                 <p className="text-sm text-on-surface-variant mt-1">Khách hàng · #{cust.id}</p>
               </div>
             </div>
             <button
-              className="inline-flex items-center gap-2 rounded-lg border border-outline-variant px-4 py-2.5 font-label-md text-label-md text-on-surface-variant hover:border-primary hover:text-primary"
               type="button"
-              onClick={() => setEditOpen(true)}
+              disabled={isUpdatingNoShow || cust.isBanned}
+              onClick={addNoShow}
+              className="inline-flex items-center gap-2 rounded-lg border border-outline-variant px-4 py-2.5 font-label-md text-label-md text-on-surface-variant hover:border-error hover:text-error disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span className="material-symbols-outlined text-base">edit</span>
-              Sửa hồ sơ
+              <span className="material-symbols-outlined text-base">person_off</span>
+              {isUpdatingNoShow ? "Đang cập nhật..." : "Ghi nhận không đến"}
             </button>
           </div>
 
@@ -165,107 +169,25 @@ export default function AdminCustomerDetailPage({
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-on-surface-variant">Thông tin liên hệ</h2>
                 <Row icon="mail" label="Email" value={cust.email} />
                 <Row icon="phone" label="Số điện thoại" value={cust.phone} />
-                <Row icon="calendar_today" label="Lần bảo dưỡng cuối" value={cust.servicedAt} />
+                <Row icon="calendar_today" label="Ngày đăng ký" value={cust.servicedAt} />
               </article>
 
               <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg space-y-4">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-on-surface-variant">Phương tiện</h2>
-                <Row icon="directions_car" label="Xe" value={cust.vehicle} />
-                <Row icon="pin" label="Biển số" value={cust.plate} />
+                <Row icon="directions_car" label="Số xe đăng ký" value={cust.vehicle} />
               </article>
-            </div>
 
-            <div className="lg:col-span-2 space-y-6">
-              <article className="rounded-xl border border-outline-variant bg-surface-container-lowest">
-                <div className="border-b border-outline-variant p-lg">
-                  <h3 className="font-headline-md text-headline-md font-bold">Ghi chú nội bộ</h3>
-                </div>
-                <div className="p-lg space-y-3">
-                  <textarea
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Nhập nhận xét về khách hàng này..."
-                    rows={5}
-                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2.5 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-                  />
-                  <div className="flex justify-end">
-                    <button
-                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-label-md text-label-md text-on-primary active:scale-[0.98]"
-                      type="button"
-                      onClick={() => showNotice("Đã lưu ghi chú")}
-                    >
-                      <span className="material-symbols-outlined text-base">save</span>
-                      Lưu ghi chú
-                    </button>
-                  </div>
-                </div>
+              <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg space-y-4">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-on-surface-variant">Lịch sử không đến</h2>
+                <Row icon="event_busy" label="Số lần không đến" value={String(cust.noShow)} />
+                <p className="text-xs text-on-surface-variant">
+                  Khách hàng bị tự động cấm khỏi garage này nếu số lần không đến vượt quá 3.
+                </p>
               </article>
             </div>
           </div>
         </div>
       </main>
-
-      {editOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
-            <div className="flex items-start justify-between border-b border-outline-variant pb-4">
-              <div>
-                <h3 className="font-headline-md text-lg font-bold">Chỉnh sửa hồ sơ</h3>
-                <p className="text-xs text-outline">Cập nhật tên, email và số điện thoại khách hàng.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditOpen(false)}
-                className="rounded-full p-1 text-outline hover:bg-surface-container hover:text-on-surface"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            <div className="mt-4 space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-on-surface-variant">Họ và tên</label>
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2.5 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-on-surface-variant">Email</label>
-                <input
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2.5 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-on-surface-variant">Số điện thoại</label>
-                <input
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2.5 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-                />
-              </div>
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setEditOpen(false)}
-                className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold text-on-surface-variant"
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={saveEdit}
-                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary"
-              >
-                Lưu thay đổi
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {notice && (
         <div

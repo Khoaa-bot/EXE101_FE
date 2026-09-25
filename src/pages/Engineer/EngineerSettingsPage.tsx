@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getMyProfile, updateMyProfile, type UserProfile } from "../../services/api";
 
 const navItems = [
   ["dashboard", "Tổng quan"],
@@ -28,14 +29,11 @@ export default function EngineerSettingsPage({
   onSettingsClick,
   onLogout,
 }: EngineerSettingsPageProps) {
-  const [profile, setProfile] = useState({
-    name: "Trần Quốc Toản",
-    email: "toan.tran@servio.vn",
-    phone: "090 123 4567",
-  });
-
-  const [reminderNotif, setReminderNotif] = useState(true);
-  const [dailySummaryNotif, setDailySummaryNotif] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [fullNameInput, setFullNameInput] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState("");
 
   const showNotice = (msg: string) => {
@@ -43,10 +41,41 @@ export default function EngineerSettingsPage({
     window.setTimeout(() => setNotice(""), 3000);
   };
 
+  useEffect(() => {
+    setIsLoading(true);
+    setLoadError(null);
+    getMyProfile()
+      .then((data) => {
+        setProfile(data);
+        setFullNameInput(data.fullName || data.username);
+      })
+      .catch((err) => {
+        setLoadError(
+          err instanceof Error ? err.message : "Không tải được thông tin cá nhân.",
+        );
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    showNotice("Đã cập nhật thông tin cá nhân thành công!");
+    if (!fullNameInput.trim()) return;
+    setIsSaving(true);
+    updateMyProfile({ fullName: fullNameInput.trim() })
+      .then((updated) => {
+        setProfile(updated);
+        setFullNameInput(updated.fullName || updated.username);
+        showNotice("Đã cập nhật thông tin cá nhân thành công!");
+      })
+      .catch((err) => {
+        showNotice(
+          err instanceof Error ? err.message : "Không thể cập nhật thông tin.",
+        );
+      })
+      .finally(() => setIsSaving(false));
   };
+
+  const displayName = profile?.fullName || profile?.username || "Kỹ thuật viên";
 
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
@@ -128,13 +157,10 @@ export default function EngineerSettingsPage({
             </button>
             <div className="ml-2 flex items-center gap-2 border-l border-outline-variant pl-3">
               <div className="hidden text-right sm:block">
-                <p className="font-label-md text-label-md">{profile.name}</p>
-                <p className="text-[11px] text-on-surface-variant">
-                  KTV Trưởng
-                </p>
+                <p className="font-label-md text-label-md">{displayName}</p>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
-                {profile.name.charAt(0)}
+                {displayName.charAt(0).toUpperCase()}
               </div>
             </div>
           </div>
@@ -147,144 +173,82 @@ export default function EngineerSettingsPage({
               Cài đặt tài khoản
             </h1>
             <p className="mt-1 text-body-sm text-on-surface-variant">
-              Quản lý thông tin cá nhân và tùy chọn hiển thị thông báo.
+              Quản lý thông tin cá nhân của bạn.
             </p>
           </div>
 
-          <div className="mt-6 space-y-6">
-            {/* Personal Info Card */}
-            <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm">
-              <div className="mb-4 flex items-center gap-2 text-primary font-bold">
-                <span className="material-symbols-outlined text-xl">
-                  badge
-                </span>
-                <h2 className="font-headline-md text-lg">Thông tin cá nhân</h2>
-              </div>
+          {isLoading && (
+            <p className="mt-6 text-body-sm text-on-surface-variant">
+              Đang tải thông tin cá nhân...
+            </p>
+          )}
 
-              <form onSubmit={handleSaveProfile} className="space-y-4">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                    Họ và tên *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={profile.name}
-                    onChange={(e) =>
-                      setProfile({ ...profile, name: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
+          {!isLoading && loadError && (
+            <p className="mt-6 text-body-sm text-error">{loadError}</p>
+          )}
+
+          {!isLoading && !loadError && profile && (
+            <div className="mt-6 space-y-6">
+              {/* Personal Info Card */}
+              <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm">
+                <div className="mb-4 flex items-center gap-2 text-primary font-bold">
+                  <span className="material-symbols-outlined text-xl">
+                    badge
+                  </span>
+                  <h2 className="font-headline-md text-lg">Thông tin cá nhân</h2>
                 </div>
 
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                    Email liên hệ *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={profile.email}
-                    onChange={(e) =>
-                      setProfile({ ...profile, email: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                    Số điện thoại
-                  </label>
-                  <input
-                    type="text"
-                    value={profile.phone}
-                    onChange={(e) =>
-                      setProfile({ ...profile, phone: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-primary px-4 py-2 font-label-md text-xs font-semibold text-on-primary transition hover:opacity-90 active:scale-[0.98]"
-                  >
-                    Lưu thay đổi
-                  </button>
-                </div>
-              </form>
-            </article>
-
-            {/* Notifications Preferences Card */}
-            <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm">
-              <div className="mb-4 flex items-center gap-2 text-primary font-bold">
-                <span className="material-symbols-outlined text-xl">
-                  notifications_active
-                </span>
-                <h2 className="font-headline-md text-lg">Cài đặt thông báo</h2>
-              </div>
-
-              <div className="space-y-4 text-body-sm">
-                <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+                <form onSubmit={handleSaveProfile} className="space-y-4">
                   <div>
-                    <p className="font-bold">Nhắc lịch làm việc</p>
-                    <p className="text-xs text-on-surface-variant">
-                      Nhận thông báo nhắc ca làm việc trước 30 phút
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setReminderNotif(!reminderNotif);
-                      showNotice(
-                        `Đã ${!reminderNotif ? "bật" : "tắt"} nhắc lịch làm việc.`,
-                      );
-                    }}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                      reminderNotif ? "bg-primary" : "bg-surface-container-high"
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        reminderNotif ? "translate-x-5" : "translate-x-0"
-                      }`}
+                    <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                      Họ và tên *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={fullNameInput}
+                      onChange={(e) => setFullNameInput(e.target.value)}
+                      className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     />
-                  </button>
-                </div>
+                  </div>
 
-                <div className="flex items-center justify-between pt-1">
                   <div>
-                    <p className="font-bold">Email tổng kết cuối ngày</p>
-                    <p className="text-xs text-on-surface-variant">
-                      Tự động gửi báo cáo tổng kết các ca làm việc vào lúc 18:00
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDailySummaryNotif(!dailySummaryNotif);
-                      showNotice(
-                        `Đã ${!dailySummaryNotif ? "bật" : "tắt"} email tổng kết cuối ngày.`,
-                      );
-                    }}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                      dailySummaryNotif
-                        ? "bg-primary"
-                        : "bg-surface-container-high"
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        dailySummaryNotif ? "translate-x-5" : "translate-x-0"
-                      }`}
+                    <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                      Email liên hệ
+                    </label>
+                    <input
+                      type="email"
+                      readOnly
+                      value={profile.email}
+                      className="w-full cursor-not-allowed rounded-lg border border-outline-variant bg-surface-container-high px-3 py-2 text-body-sm text-on-surface-variant"
                     />
-                  </button>
-                </div>
-              </div>
-            </article>
-          </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                      Số điện thoại
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={profile.phone ?? "—"}
+                      className="w-full cursor-not-allowed rounded-lg border border-outline-variant bg-surface-container-high px-3 py-2 text-body-sm text-on-surface-variant"
+                    />
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isSaving}
+                      className="rounded-lg bg-primary px-4 py-2 font-label-md text-xs font-semibold text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+                    >
+                      {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+                    </button>
+                  </div>
+                </form>
+              </article>
+            </div>
+          )}
         </div>
       </main>
 
