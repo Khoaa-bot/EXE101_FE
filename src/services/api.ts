@@ -675,6 +675,7 @@ type RawService = {
   price: number;
   duration?: string;
   description?: string;
+  garageId?: number | null;
 };
 
 export type MaintenanceService = {
@@ -683,6 +684,7 @@ export type MaintenanceService = {
   price: number;
   description?: string;
   duration?: string;
+  garageId: number | null;
 };
 
 export type NewServicePayload = {
@@ -699,6 +701,7 @@ function mapService(raw: RawService): MaintenanceService {
     price: raw.price,
     duration: raw.duration,
     description: raw.description,
+    garageId: raw.garageId ?? null,
   };
 }
 
@@ -716,10 +719,18 @@ export async function addService(payload: NewServicePayload) {
   return mapService(raw);
 }
 
-// GET /api/services — danh sách toàn bộ dịch vụ (dùng để chọn khi đặt lịch).
-export async function getAllServices() {
-  const raw = await apiRequest<RawService[]>("/services");
+// GET /api/services — danh sách dịch vụ. Truyền garageId để lấy đúng dịch vụ
+// riêng của garage đó (gộp thêm các dịch vụ dùng chung không gán garage nào);
+// không truyền thì trả về toàn bộ dịch vụ trong hệ thống.
+export async function getAllServices(garageId?: number | string) {
+  const raw = await apiRequest<RawService[]>("/services", { query: { garageId } });
   return raw.map(mapService);
+}
+
+// DELETE /api/services/{id} — chỉ xóa được dịch vụ riêng của đúng garage
+// mình (không xóa được dịch vụ dùng chung, backend sẽ chặn).
+export function deleteService(serviceId: number) {
+  return apiRequest<void>(`/services/${serviceId}`, { method: "DELETE" });
 }
 
 // ---------------------------------------------------------------------------

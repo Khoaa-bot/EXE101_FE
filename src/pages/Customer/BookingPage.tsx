@@ -89,12 +89,11 @@ export default function BookingPage({
     setIsLoadingOptions(true);
     setOptionsError(null);
 
-    Promise.all([getMyFleet(), getGarages(), getAllServices()])
-      .then(([vehicleData, garageData, serviceData]) => {
+    Promise.all([getMyFleet(), getGarages()])
+      .then(([vehicleData, garageData]) => {
         if (!cancelled) {
           setVehicles(vehicleData);
           setGarages(garageData);
-          setServices(serviceData);
         }
       })
       .catch((err) => {
@@ -112,6 +111,38 @@ export default function BookingPage({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedGarageId) {
+      setServices([]);
+      setSelectedServiceId("");
+      return;
+    }
+
+    let cancelled = false;
+
+    // Dịch vụ có thể là dùng chung cho mọi garage hoặc riêng của 1 garage —
+    // phải nạp lại theo đúng garage đang chọn, không dùng chung 1 danh sách
+    // cho tất cả (mỗi garage có thể có bảng giá/dịch vụ riêng khác nhau).
+    getAllServices(selectedGarageId)
+      .then((data) => {
+        if (cancelled) return;
+        setServices(data);
+        // Chỉ bỏ chọn dịch vụ hiện tại nếu nó không còn thuộc garage vừa
+        // chọn — giữ nguyên lựa chọn khi vào thẳng từ trang garage kèm sẵn
+        // serviceId, hoặc khi danh sách reload nhưng dịch vụ đó vẫn còn.
+        setSelectedServiceId((current) =>
+          current && data.some((service) => String(service.id) === current) ? current : "",
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setServices([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedGarageId]);
 
   useEffect(() => {
     if (!selectedGarageId) {
@@ -366,7 +397,8 @@ export default function BookingPage({
                       icon="build"
                       value={selectedServiceId}
                       onChange={setSelectedServiceId}
-                      placeholder="Chọn dịch vụ"
+                      placeholder={!selectedGarageId ? "Chọn garage trước" : "Chọn dịch vụ"}
+                      disabled={!selectedGarageId}
                       options={services.map((service) => ({
                         value: String(service.id),
                         label: `${service.name} — ${formatCurrency(service.price)}`,

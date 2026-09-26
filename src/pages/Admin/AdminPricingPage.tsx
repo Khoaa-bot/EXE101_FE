@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   addService,
+  deleteService,
   getAllServices,
+  getMyProfile,
   type MaintenanceService,
 } from "../../services/api";
 
@@ -36,12 +38,14 @@ export default function AdminPricingPage({
   onLogout,
 }: AdminPricingPageProps) {
   const [list, setList] = useState<MaintenanceService[]>([]);
+  const [myGarageId, setMyGarageId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -58,7 +62,14 @@ export default function AdminPricingPage({
   const loadServices = () => {
     setIsLoading(true);
     setLoadError(null);
-    getAllServices()
+    // Lấy garageId của chính admin đang đăng nhập để chỉ hiện dịch vụ dùng
+    // chung + dịch vụ riêng của garage này — tránh hiện lẫn dịch vụ riêng mà
+    // garage khác vừa thêm.
+    getMyProfile()
+      .then((profile) => {
+        setMyGarageId(profile.garageId ?? null);
+        return getAllServices(profile.garageId ?? undefined);
+      })
       .then((data) => setList(data))
       .catch((err) => {
         setLoadError(
@@ -71,6 +82,23 @@ export default function AdminPricingPage({
   useEffect(() => {
     loadServices();
   }, []);
+
+  const removeService = (service: MaintenanceService) => {
+    if (!window.confirm(`Xóa dịch vụ "${service.name}" khỏi bảng giá?`)) return;
+    setDeletingId(service.id);
+    deleteService(service.id)
+      .then(() => {
+        setList((prev) => prev.filter((item) => item.id !== service.id));
+        showNotice("Đã xóa dịch vụ khỏi bảng giá.");
+      })
+      .catch((err) => {
+        showNotice(
+          err instanceof Error ? err.message : "Không thể xóa dịch vụ.",
+          "error",
+        );
+      })
+      .finally(() => setDeletingId(null));
+  };
 
   const visiblePricing = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -256,10 +284,14 @@ export default function AdminPricingPage({
                       <th className="px-5 py-3 font-semibold">Mô tả</th>
                       <th className="px-5 py-3 font-semibold">Thời gian dự kiến</th>
                       <th className="px-5 py-3 font-semibold">Đơn giá</th>
+                      <th className="px-5 py-3 font-semibold">Phạm vi</th>
+                      <th className="px-5 py-3 font-semibold text-right">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {visiblePricing.map((item) => (
+                    {visiblePricing.map((item) => {
+                      const isMine = item.garageId !== null && item.garageId === myGarageId;
+                      return (
                       <tr
                         key={item.id}
                         className="border-t border-outline-variant transition-colors hover:bg-surface-container-low"
@@ -287,13 +319,37 @@ export default function AdminPricingPage({
                         <td className="px-5 py-4 font-bold text-primary font-mono text-base">
                           {formatPrice(item.price)}
                         </td>
+                        <td className="px-5 py-4 text-on-surface-variant">
+                          {isMine ? (
+                            <span className="rounded-full bg-secondary-container px-2 py-0.5 text-xs text-on-secondary-container">
+                              Riêng garage này
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-surface-container px-2 py-0.5 text-xs">
+                              Dùng chung
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          {isMine && (
+                            <button
+                              type="button"
+                              onClick={() => removeService(item)}
+                              disabled={deletingId === item.id}
+                              className="rounded-lg border border-error/30 px-3 py-1.5 text-xs font-semibold text-error hover:bg-error-container/10 disabled:opacity-60"
+                            >
+                              {deletingId === item.id ? "Đang xóa..." : "Xóa"}
+                            </button>
+                          )}
+                        </td>
                       </tr>
-                    ))}
+                      );
+                    })}
 
                     {visiblePricing.length === 0 && (
                       <tr>
                         <td
-                          colSpan={4}
+                          colSpan={6}
                           className="px-5 py-8 text-center text-on-surface-variant"
                         >
                           Không có dịch vụ nào phù hợp.
