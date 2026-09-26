@@ -70,7 +70,9 @@ export function register(payload: RegisterPayload) {
 }
 
 // POST /api/auth/register/send-otp — gửi mã OTP xác minh email trước khi
-// đăng ký. Backend trả về text thuần (không phải JSON).
+// đăng ký. Khi thành công backend trả về text thuần, nhưng khi lỗi (email đã
+// tồn tại, v.v.) lại trả về JSON lỗi mặc định của Spring — nên phải thử parse
+// JSON trước, không được coi toàn bộ response luôn là text thuần.
 export async function sendRegisterOtp(email: string) {
   let response: Response;
   try {
@@ -85,7 +87,14 @@ export async function sendRegisterOtp(email: string) {
 
   const text = await response.text();
   if (!response.ok) {
-    throw new Error(text || "Gửi mã OTP không thành công.");
+    let message = text;
+    try {
+      const parsed = JSON.parse(text) as ApiErrorBody;
+      message = parsed?.message || parsed?.error || message;
+    } catch {
+      // text thuần, giữ nguyên
+    }
+    throw new Error(message || "Gửi mã OTP không thành công.");
   }
   return text;
 }
