@@ -1121,6 +1121,14 @@ export async function getUnreadNotificationCount() {
   return result.count;
 }
 
+// URL kênh SSE đẩy real-time số thông báo chưa đọc. EventSource của trình
+// duyệt không set được header Authorization nên phải truyền token qua query.
+export function getNotificationStreamUrl(): string | null {
+  const token = getStoredAuthSession()?.token;
+  if (!token) return null;
+  return `${API_BASE_URL}/notifications/stream?token=${encodeURIComponent(token)}`;
+}
+
 // PUT /api/notifications/{id}/read — đánh dấu 1 thông báo đã đọc.
 export function markNotificationAsRead(notificationId: number | string) {
   return apiRequest<AppNotification>(`/notifications/${notificationId}/read`, { method: "PUT" });
