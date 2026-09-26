@@ -389,10 +389,16 @@ export default function BookingPage({
                       disabled={!selectedGarageId || isLoadingSchedules || schedules.length === 0}
                       options={schedules.map((schedule) => ({
                         value: String(schedule.id),
-                        label: `${schedule.date} • ${schedule.timeFrame}`,
+                        label: `${schedule.date} • ${schedule.timeFrame} (còn ${schedule.availableSlots}/${schedule.totalSlots} chỗ)`,
                       }))}
                     />
                   </div>
+
+                  {selectedGarageId && !isLoadingSchedules && schedules.length > 0 && (
+                    <p className="-mt-2 px-1 text-xs text-on-surface-variant">
+                      Mỗi khung giờ chỉ nhận số lượng xe bằng số kỹ thuật viên đang có của garage. Khung giờ đã hết chỗ (khách khác đặt hết) sẽ tự động biến mất khỏi danh sách trên.
+                    </p>
+                  )}
 
                   <div className="space-y-sm pt-4">
                     <label className="px-1 font-label-md text-label-md text-on-surface-variant">

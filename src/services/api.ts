@@ -706,6 +706,8 @@ type RawSchedule = {
   available: boolean;
   garageId: number;
   garageName?: string;
+  totalSlots?: number;
+  availableSlots?: number;
 };
 
 export type Schedule = {
@@ -715,6 +717,8 @@ export type Schedule = {
   garageId: number;
   garageName?: string;
   available?: boolean;
+  totalSlots: number;
+  availableSlots: number;
 };
 
 export type NewSchedulePayload = {
@@ -724,6 +728,8 @@ export type NewSchedulePayload = {
 };
 
 function mapSchedule(raw: RawSchedule): Schedule {
+  const totalSlots = raw.totalSlots ?? 1;
+  const availableSlots = raw.availableSlots ?? (raw.available ? totalSlots : 0);
   return {
     id: raw.id,
     date: raw.atDate,
@@ -731,6 +737,8 @@ function mapSchedule(raw: RawSchedule): Schedule {
     garageId: raw.garageId,
     garageName: raw.garageName,
     available: raw.available,
+    totalSlots,
+    availableSlots,
   };
 }
 
