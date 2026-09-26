@@ -127,6 +127,17 @@ export default function SuperAdminDashboardPage({
     loadUsers();
   }, []);
 
+  // Mỗi garage chỉ nên có đúng 1 Admin Garage (garage_owner) — chỉ cho chọn
+  // garage nào chưa có ai giữ role đó, tránh 1 garage bị gán 2 admin.
+  const garagesWithoutOwner = useMemo(() => {
+    const ownedGarageIds = new Set(
+      users
+        .filter((u) => u.role.toLowerCase() === "garage_owner" && u.garageId !== null)
+        .map((u) => u.garageId),
+    );
+    return garages.filter((g) => !ownedGarageIds.has(g.id));
+  }, [users, garages]);
+
   const visibleUsers = useMemo(() => {
     const q = query.trim().toLowerCase();
     return users.filter((u) => {
@@ -429,12 +440,24 @@ export default function SuperAdminDashboardPage({
                     className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   >
                     <option value="">-- Chọn garage --</option>
-                    {garages.map((g) => (
+                    {(editRole === "garage_owner"
+                      ? garages.filter(
+                          (g) =>
+                            garagesWithoutOwner.some((gwo) => gwo.id === g.id) ||
+                            g.id === editingUser?.garageId,
+                        )
+                      : garages
+                    ).map((g) => (
                       <option key={g.id} value={g.id}>
                         {g.name}
                       </option>
                     ))}
                   </select>
+                  {editRole === "garage_owner" && (
+                    <p className="mt-1 text-xs text-on-surface-variant">
+                      Chỉ hiện garage chưa có Admin Garage (trừ garage hiện tại của người này).
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -612,12 +635,20 @@ export default function SuperAdminDashboardPage({
                   className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 >
                   <option value="">-- Chọn garage --</option>
-                  {garages.map((g) => (
+                  {garagesWithoutOwner.map((g) => (
                     <option key={g.id} value={g.id}>
                       {g.name}
                     </option>
                   ))}
                 </select>
+                {garagesWithoutOwner.length === 0 && (
+                  <p className="mt-1 text-xs text-error">
+                    Tất cả garage đều đã có Admin Garage. Tạo garage mới trước nếu muốn thêm.
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Chỉ hiện garage chưa có Admin Garage — mỗi garage chỉ được gán đúng 1 admin.
+                </p>
               </div>
             </div>
 
