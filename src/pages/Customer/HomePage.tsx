@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCount";
 import {
   getActiveAppointments,
   getMyFleet,
@@ -83,6 +84,7 @@ export default function Home({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const username = getStoredAuthSession()?.username || "bạn";
   const avatarInitial = username.charAt(0).toUpperCase();
+  const unreadNotificationCount = useUnreadNotificationCount();
 
   const [isLoading, setIsLoading] = useState(true);
   const [activeAppointment, setActiveAppointment] = useState<AppointmentDto | null>(null);
@@ -222,7 +224,9 @@ export default function Home({
           >
             <span className="material-symbols-outlined">notifications</span>
             <span className="font-label-md text-label-md">Thông báo</span>
-            <span className="ml-auto h-2 w-2 rounded-full bg-error" />
+            {unreadNotificationCount > 0 && (
+              <span className="ml-auto h-2 w-2 rounded-full bg-error" />
+            )}
           </button>
           <div className="my-sm border-t border-outline-variant" />
           <button
@@ -284,7 +288,9 @@ export default function Home({
               onClick={onNotificationsClick}
             >
               <span className="material-symbols-outlined">notifications</span>
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-surface bg-error" />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-surface bg-error" />
+              )}
             </button>
           </div>
         </header>

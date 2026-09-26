@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { getStoredAuthSession } from "../services/api";
+import { useUnreadNotificationCount } from "../hooks/useUnreadNotificationCount";
 
 export type AppSection =
   | "home"
@@ -21,18 +22,12 @@ const navItems: Array<{
   label: string;
   icon: string;
   section: AppSection;
-  hasNotification?: boolean;
 }> = [
   { label: "Trang chủ", icon: "home", section: "home" },
   { label: "Tìm garage", icon: "storefront", section: "find_garage" },
   { label: "Lịch sử", icon: "history", section: "history" },
   { label: "Theo dõi", icon: "location_on", section: "tracking" },
-  {
-    label: "Thông báo",
-    icon: "notifications",
-    section: "notifications",
-    hasNotification: true,
-  },
+  { label: "Thông báo", icon: "notifications", section: "notifications" },
 ];
 
 export default function AppSidebar({
@@ -44,6 +39,7 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   const username = getStoredAuthSession()?.username || "Tài khoản";
   const avatarInitial = username.charAt(0).toUpperCase();
+  const unreadCount = useUnreadNotificationCount();
   useEffect(() => {
     document.body.classList.toggle("overflow-hidden", isOpen);
 
@@ -103,7 +99,7 @@ export default function AppSidebar({
                     {item.icon}
                   </span>
                   <span className="font-label-md">{item.label}</span>
-                  {item.hasNotification && (
+                  {item.section === "notifications" && unreadCount > 0 && (
                     <span className="ml-auto h-2 w-2 rounded-full bg-error" />
                   )}
                 </button>

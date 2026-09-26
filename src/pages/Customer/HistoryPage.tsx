@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCount";
 import {
   createReview,
   getAppointmentHistory,
@@ -65,6 +66,7 @@ export default function HistoryPage({
   onTrackingClick,
 }: HistoryPageProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const unreadNotificationCount = useUnreadNotificationCount();
   const [activeFilter, setActiveFilter] = useState(filters[0].value);
   const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -217,7 +219,9 @@ export default function HistoryPage({
           >
             <span className="material-symbols-outlined">notifications</span>
             <span className="font-label-md text-label-md">Thông báo</span>
-            <span className="ml-auto h-2 w-2 rounded-full bg-error" />
+            {unreadNotificationCount > 0 && (
+              <span className="ml-auto h-2 w-2 rounded-full bg-error" />
+            )}
           </button>
           <div className="my-md border-t border-outline-variant opacity-50" />
           <button
