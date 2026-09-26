@@ -13,8 +13,10 @@ export type Customer = {
   phone: string;
   email: string;
   vehicle: string;
+  vehicleCount: number;
   plate: string;
   servicedAt: string;
+  createdAtRaw: string;
   state: "all" | "repair" | "vip";
   noShow: number;
   isBanned: boolean;
@@ -33,10 +35,12 @@ function mapApiCustomer(c: AdminCustomer): Customer {
     phone: c.phone,
     email: c.email,
     vehicle: `${c.vehicleCount} xe`,
+    vehicleCount: c.vehicleCount,
     plate: "—",
     servicedAt: c.createdAt
       ? new Date(c.createdAt).toLocaleDateString("vi-VN")
       : "—",
+    createdAtRaw: c.createdAt,
     state: c.isBanned ? "repair" : "all",
     noShow: c.noShow,
     isBanned: c.isBanned,
@@ -101,6 +105,20 @@ export default function AdminCustomersPage({
         setLoading(false);
       });
   }, []);
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const newThisMonth = customers.filter((c) => {
+      const d = new Date(c.createdAtRaw);
+      return !isNaN(d.getTime()) && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }).length;
+    return {
+      total: customers.length,
+      totalVehicles: customers.reduce((sum, c) => sum + c.vehicleCount, 0),
+      newThisMonth,
+      banned: customers.filter((c) => c.isBanned).length,
+    };
+  }, [customers]);
 
   const visibleCustomers = useMemo(
     () =>
@@ -233,54 +251,27 @@ export default function AdminCustomersPage({
                 Xem và quản lý danh sách khách hàng và phương tiện tại hệ thống.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-label-md text-label-md text-on-primary active:scale-[0.98]"
-                type="button"
-                onClick={() => showNotice("Mở biểu mẫu thêm khách hàng")}
-              >
-                <span className="material-symbols-outlined text-lg">
-                  person_add
-                </span>
-                Thêm khách hàng
-              </button>
-              <button
-                className="inline-flex items-center gap-2 rounded-lg border border-primary px-4 py-2.5 font-label-md text-label-md text-primary hover:bg-surface-container-low"
-                type="button"
-                onClick={() => showNotice("Đang xuất báo cáo khách hàng...")}
-              >
-                <span className="material-symbols-outlined text-lg">
-                  file_download
-                </span>
-                Xuất báo cáo
-              </button>
-            </div>
           </section>
           <section className="mb-xl grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Metric
               icon="groups"
               label="Tổng khách hàng"
-              value="1,284"
-              detail="+12%"
+              value={String(stats.total)}
             />
             <Metric
               icon="directions_car"
               label="Xe đang đăng ký"
-              value="1,452"
-              detail="+5.4%"
+              value={String(stats.totalVehicles)}
             />
             <Metric
               icon="handyman"
-              label="Khách mới"
-              value="86"
-              detail="Tháng này"
-              neutral
+              label="Khách mới tháng này"
+              value={String(stats.newThisMonth)}
             />
             <Metric
-              icon="star"
-              label="Đánh giá TB"
-              value="98%"
-              detail="4.9 / 5"
+              icon="block"
+              label="Đang bị cấm"
+              value={String(stats.banned)}
             />
           </section>
           <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
@@ -290,8 +281,7 @@ export default function AdminCustomersPage({
                   {(
                     [
                       ["all", "Tất cả"],
-                      ["repair", "Đang sửa"],
-                      ["vip", "VIP"],
+                      ["repair", "Đang bị cấm"],
                     ] as const
                   ).map(([value, label]) => (
                     <button
@@ -304,15 +294,6 @@ export default function AdminCustomersPage({
                     </button>
                   ))}
                 </div>
-                <button
-                  className="inline-flex items-center gap-2 rounded-lg border border-outline-variant px-3 py-2 font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-low"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-lg">
-                    filter_list
-                  </span>
-                  Lọc thêm
-                </button>
               </div>
               <p className="text-xs text-outline">
                 {loading ? "Đang tải..." : `Hiển thị ${visibleCustomers.length} khách hàng`}
@@ -320,12 +301,10 @@ export default function AdminCustomersPage({
             </div>
             <CustomerTable
               customers={visibleCustomers}
-              showNotice={showNotice}
               onCustomerDetailClick={onCustomerDetailClick}
               onDelete={removeCustomer}
               deletingId={deletingId}
             />
-            <Pagination />
           </section>
           <section className="mt-xl grid gap-xl xl:grid-cols-3">
             {/* <RecentActivity /> */}
@@ -349,27 +328,16 @@ function Metric({
   icon,
   label,
   value,
-  detail,
-  neutral = false,
 }: {
   icon: string;
   label: string;
   value: string;
-  detail: string;
-  neutral?: boolean;
 }) {
   return (
     <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg">
-      <div className="flex items-start justify-between">
-        <span className="material-symbols-outlined rounded-lg bg-surface-container-high p-2 text-primary">
-          {icon}
-        </span>
-        <span
-          className={`text-xs font-semibold ${neutral ? "text-on-surface-variant" : "text-tertiary"}`}
-        >
-          {detail}
-        </span>
-      </div>
+      <span className="material-symbols-outlined rounded-lg bg-surface-container-high p-2 text-primary">
+        {icon}
+      </span>
       <p className="mt-3 font-label-md text-label-md text-outline">{label}</p>
       <p className="mt-1 font-headline-lg text-headline-lg">{value}</p>
     </article>
@@ -377,13 +345,11 @@ function Metric({
 }
 function CustomerTable({
   customers,
-  showNotice,
   onCustomerDetailClick,
   onDelete,
   deletingId,
 }: {
   customers: Customer[];
-  showNotice: (message: string) => void;
   onCustomerDetailClick?: (customer: Customer) => void;
   onDelete: (customer: Customer) => void;
   deletingId: string | null;
@@ -453,18 +419,6 @@ function CustomerTable({
               <td className="px-lg py-4 text-right">
                 <div className="flex justify-end gap-2">
                   <button
-                    className="rounded-full p-2 text-primary hover:bg-surface-container-high"
-                    type="button"
-                    aria-label={`Nhắn tin với ${customer.name}`}
-                    onClick={() =>
-                      showNotice(`Mở tin nhắn với ${customer.name}`)
-                    }
-                  >
-                    <span className="material-symbols-outlined">
-                      chat_bubble
-                    </span>
-                  </button>
-                  <button
                     className="rounded-lg border border-outline-variant px-3 py-1.5 font-label-md text-label-md text-on-surface-variant hover:border-primary hover:bg-primary hover:text-on-primary"
                     type="button"
                     onClick={() => onCustomerDetailClick?.(customer)}
@@ -485,44 +439,6 @@ function CustomerTable({
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-function Pagination() {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant bg-surface-container-low p-4">
-      <label className="flex items-center gap-2 text-xs text-outline">
-        Hàng mỗi trang:
-        <select className="bg-transparent text-xs text-on-surface-variant">
-          <option>10</option>
-          <option>20</option>
-          <option>50</option>
-        </select>
-      </label>
-      <div className="flex items-center gap-2">
-        <button
-          className="rounded p-1 text-outline opacity-40"
-          type="button"
-          disabled
-        >
-          <span className="material-symbols-outlined">chevron_left</span>
-        </button>
-        {["1", "2", "3", "...", "129"].map((page) => (
-          <button
-            key={page}
-            className={`flex h-8 min-w-8 items-center justify-center rounded-lg text-xs ${page === "1" ? "bg-primary text-on-primary" : "text-on-surface-variant hover:bg-surface-container-highest"}`}
-            type="button"
-          >
-            {page}
-          </button>
-        ))}
-        <button
-          className="rounded p-1 text-outline hover:bg-surface-container-highest"
-          type="button"
-        >
-          <span className="material-symbols-outlined">chevron_right</span>
-        </button>
-      </div>
     </div>
   );
 }

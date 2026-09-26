@@ -20,8 +20,6 @@ export type EngineerRole =
   | "reception"
   | string;
 
-export type EngineerStatus = "active" | "locked";
-
 export type Engineer = {
   id: string;
   name: string;
@@ -30,11 +28,7 @@ export type Engineer = {
   role: EngineerRole;
   roleTitle: string;
   garageName?: string;
-  status: EngineerStatus;
   joined: string;
-  proficiency: number;
-  rating: number;
-  vehiclesWorked: number;
 };
 
 function mapApiEmployee(e: AdminEmployee): Engineer {
@@ -46,13 +40,9 @@ function mapApiEmployee(e: AdminEmployee): Engineer {
     role: e.role,
     roleTitle: e.role,
     garageName: e.garageName,
-    status: "active",
     joined: e.createdAt
       ? new Date(e.createdAt).toLocaleDateString("vi-VN")
       : new Date().toLocaleDateString("vi-VN"),
-    proficiency: 85,
-    rating: 5.0,
-    vehiclesWorked: 0,
   };
 }
 
@@ -65,14 +55,14 @@ const navItems = [
   ["storefront", "Thông tin garage"],
 ];
 
+// Backend (AuthService.registerEmployee) chỉ chấp nhận đúng 2 role này khi
+// garage owner tự tạo tài khoản nhân viên — mọi giá trị khác đều bị từ chối
+// với lỗi "Role must be either 'engineer' or 'reception'". Trước đây dropdown
+// có thêm GARAGE_OWNER/lead/battery/mechanical/software — chọn vào là submit
+// lỗi ngay, không tạo được tài khoản nào cả.
 const ROLE_OPTIONS: { value: string; label: string }[] = [
   { value: "ENGINEER", label: "Kỹ thuật viên (ENGINEER)" },
   { value: "RECEPTIONIST", label: "Tiếp tân (RECEPTIONIST)" },
-  { value: "GARAGE_OWNER", label: "Chủ garage (GARAGE_OWNER)" },
-  { value: "lead", label: "Kỹ thuật viên trưởng" },
-  { value: "battery", label: "Chuyên viên Pin EV" },
-  { value: "mechanical", label: "Thợ máy gầm" },
-  { value: "software", label: "Kỹ thuật viên Phần mềm" },
 ];
 
 type AdminEngineersPageProps = {
@@ -101,7 +91,7 @@ export default function AdminEngineersPage({
   const [myGarageId, setMyGarageId] = useState<number | null>(null);
   const [garageName, setGarageName] = useState("");
   const [query, setQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "locked">(
+  const [filterRole, setFilterRole] = useState<"all" | "engineer" | "reception">(
     "all",
   );
   const [notice, setNotice] = useState("");
@@ -162,23 +152,26 @@ export default function AdminEngineersPage({
   const stats = useMemo(() => {
     return {
       total: list.length,
-      active: list.filter((e) => e.status === "active").length,
-      locked: list.filter((e) => e.status === "locked").length,
+      engineers: list.filter((e) => e.role.toLowerCase() === "engineer").length,
+      reception: list.filter((e) => e.role.toLowerCase().startsWith("recep")).length,
     };
   }, [list]);
 
   const visibleEngineers = useMemo(() => {
     return list.filter((item) => {
-      const matchesStatus =
-        filterStatus === "all" || item.status === filterStatus;
+      const role = item.role.toLowerCase();
+      const matchesRole =
+        filterRole === "all" ||
+        (filterRole === "engineer" && role === "engineer") ||
+        (filterRole === "reception" && role.startsWith("recep"));
       const matchesQuery =
         item.name.toLowerCase().includes(query.toLowerCase()) ||
         item.email.toLowerCase().includes(query.toLowerCase()) ||
         item.phone.includes(query) ||
         item.id.toLowerCase().includes(query.toLowerCase());
-      return matchesStatus && matchesQuery;
+      return matchesRole && matchesQuery;
     });
-  }, [list, filterStatus, query]);
+  }, [list, filterRole, query]);
 
   const submitNewEngineer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,22 +216,6 @@ export default function AdminEngineersPage({
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const toggleStatus = (id: string) => {
-    setList((prev) =>
-      prev.map((emp) => {
-        if (emp.id === id) {
-          const nextStatus: EngineerStatus =
-            emp.status === "active" ? "locked" : "active";
-          showNotice(
-            `Đã ${nextStatus === "active" ? "mở khóa" : "khóa"} tài khoản ${emp.name}`,
-          );
-          return { ...emp, status: nextStatus };
-        }
-        return emp;
-      }),
-    );
   };
 
   const removeEmployee = async (emp: Engineer) => {
@@ -373,16 +350,6 @@ export default function AdminEngineersPage({
                 vụ.
               </p>
             </div>
-            <button
-              className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2.5 font-label-md text-label-md hover:bg-surface-container-low active:scale-[0.98]"
-              type="button"
-              onClick={() => showNotice("Đang xuất báo cáo kỹ thuật viên...")}
-            >
-              <span className="material-symbols-outlined text-lg">
-                file_download
-              </span>
-              Xuất báo cáo
-            </button>
           </section>
 
           {/* Stats Section */}
@@ -390,10 +357,10 @@ export default function AdminEngineersPage({
             <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
               <div className="flex items-center justify-between">
                 <p className="font-label-md text-label-md text-outline">
-                  TỔNG KỸ THUẬT VIÊN
+                  TỔNG NHÂN VIÊN
                 </p>
                 <span className="material-symbols-outlined rounded-lg bg-primary-container/10 p-2 text-primary">
-                  engineering
+                  groups
                 </span>
               </div>
               <p className="mt-2 font-headline-lg text-3xl font-bold">
@@ -404,28 +371,28 @@ export default function AdminEngineersPage({
             <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
               <div className="flex items-center justify-between">
                 <p className="font-label-md text-label-md text-outline">
-                  ĐANG HOẠT ĐỘNG
+                  KỸ THUẬT VIÊN
                 </p>
                 <span className="material-symbols-outlined rounded-lg bg-tertiary-container/10 p-2 text-tertiary">
-                  check_circle
+                  engineering
                 </span>
               </div>
               <p className="mt-2 font-headline-lg text-3xl font-bold text-tertiary">
-                {stats.active}
+                {stats.engineers}
               </p>
             </article>
 
             <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
               <div className="flex items-center justify-between">
                 <p className="font-label-md text-label-md text-outline">
-                  ĐANG BỊ KHÓA
+                  LỄ TÂN
                 </p>
-                <span className="material-symbols-outlined rounded-lg bg-error-container p-2 text-on-error-container">
-                  block
+                <span className="material-symbols-outlined rounded-lg bg-secondary-container/20 p-2 text-on-secondary-container">
+                  support_agent
                 </span>
               </div>
-              <p className="mt-2 font-headline-lg text-3xl font-bold text-error">
-                {stats.locked}
+              <p className="mt-2 font-headline-lg text-3xl font-bold">
+                {stats.reception}
               </p>
             </article>
           </section>
@@ -599,16 +566,16 @@ export default function AdminEngineersPage({
                   {(
                     [
                       ["all", "Tất cả"],
-                      ["active", "Hoạt động"],
-                      ["locked", "Đang khóa"],
+                      ["engineer", "Kỹ thuật viên"],
+                      ["reception", "Lễ tân"],
                     ] as const
                   ).map(([val, label]) => (
                     <button
                       key={val}
                       type="button"
-                      onClick={() => setFilterStatus(val)}
+                      onClick={() => setFilterRole(val)}
                       className={`rounded-md px-3 py-1 font-label-md text-xs transition ${
-                        filterStatus === val
+                        filterRole === val
                           ? "bg-surface-container-lowest font-semibold text-primary shadow-sm"
                           : "text-on-surface-variant hover:text-primary"
                       }`}
@@ -628,7 +595,6 @@ export default function AdminEngineersPage({
                       </th>
                       <th className="px-5 py-3 font-semibold">Vai trò</th>
                       <th className="px-5 py-3 font-semibold">Ngày tạo</th>
-                      <th className="px-5 py-3 font-semibold">Trạng thái</th>
                       <th className="px-5 py-3 font-semibold text-right">
                         Thao tác
                       </th>
@@ -641,7 +607,6 @@ export default function AdminEngineersPage({
                         .map((s) => s[0])
                         .slice(-2)
                         .join("");
-                      const isActive = emp.status === "active";
 
                       return (
                         <tr
@@ -677,20 +642,6 @@ export default function AdminEngineersPage({
                           <td className="px-5 py-4 text-on-surface-variant">
                             {emp.joined}
                           </td>
-                          <td className="px-5 py-4">
-                            <span
-                              className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
-                                isActive ? "text-tertiary" : "text-error"
-                              }`}
-                            >
-                              <span
-                                className={`h-2 w-2 rounded-full ${
-                                  isActive ? "bg-tertiary" : "bg-error"
-                                }`}
-                              />
-                              {isActive ? "Hoạt động" : "Đang khóa"}
-                            </span>
-                          </td>
                           <td className="px-5 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <button
@@ -699,17 +650,6 @@ export default function AdminEngineersPage({
                                 className="rounded-lg border border-outline-variant px-3 py-1 text-xs font-medium text-on-surface-variant hover:border-primary hover:text-primary"
                               >
                                 Chi tiết
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => toggleStatus(emp.id)}
-                                className={`rounded-lg px-2.5 py-1 text-xs font-medium ${
-                                  isActive
-                                    ? "bg-error-container text-on-error-container hover:bg-error/20"
-                                    : "bg-tertiary-container/15 text-tertiary hover:bg-tertiary/20"
-                                }`}
-                              >
-                                {isActive ? "Khóa" : "Mở khóa"}
                               </button>
                               <button
                                 type="button"
@@ -728,7 +668,7 @@ export default function AdminEngineersPage({
                     {loading && (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={4}
                           className="px-5 py-8 text-center text-on-surface-variant"
                         >
                           <div className="flex items-center justify-center gap-2">
@@ -742,7 +682,7 @@ export default function AdminEngineersPage({
                     {!loading && visibleEngineers.length === 0 && (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={4}
                           className="px-5 py-8 text-center text-on-surface-variant"
                         >
                           Không tìm thấy kỹ thuật viên nào phù hợp.
