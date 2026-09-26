@@ -303,6 +303,8 @@ export type AppointmentDto = {
   engineerNotes: string | null;
   partsUsed: string | null;
   createdAt: string;
+  invoiceId: number | null;
+  invoicePaymentStatus: "unpaid" | "paid" | null;
 };
 
 export type ReviewRequest = {
@@ -1090,6 +1092,14 @@ export async function requestWalletTopUp(amount: number) {
     throw new Error(error?.message || error?.error || "Không tạo được link nạp tiền.");
   }
   return data as PaymentResponse;
+}
+
+// GET /api/payment/create-vnpay-url?invoiceId=... — tạo link thanh toán hóa
+// đơn dịch vụ (lịch hẹn đã hoàn thành) qua VNPay.
+export async function requestInvoicePayment(invoiceId: number) {
+  return apiRequest<PaymentResponse>("/payment/create-vnpay-url", {
+    query: { invoiceId },
+  });
 }
 
 export type VnpayReturnResult = {

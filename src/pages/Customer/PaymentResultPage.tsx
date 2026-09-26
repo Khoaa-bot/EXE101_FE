@@ -68,7 +68,11 @@ export default function PaymentResultPage({ onHomeClick }: PaymentResultPageProp
               {success ? "check_circle" : "cancel"}
             </span>
             <h1 className="mt-4 font-headline-md text-headline-md">
-              {success ? "Nạp tiền thành công!" : "Giao dịch không thành công"}
+              {success
+                ? result.type === "INVOICE"
+                  ? "Thanh toán hóa đơn thành công!"
+                  : "Nạp tiền thành công!"
+                : "Giao dịch không thành công"}
             </h1>
             <p className="mt-2 font-body-md text-body-md text-on-surface-variant">
               {result.message}

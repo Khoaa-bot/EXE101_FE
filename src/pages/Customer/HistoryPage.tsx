@@ -4,6 +4,7 @@ import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCou
 import {
   createReview,
   getAppointmentHistory,
+  requestInvoicePayment,
   type AppointmentDto,
 } from "../../services/api";
 
@@ -89,6 +90,23 @@ export default function HistoryPage({
     setReviewRating(5);
     setReviewComment("");
     setReviewError(null);
+  };
+
+  const [payingInvoiceId, setPayingInvoiceId] = useState<number | null>(null);
+
+  const payInvoice = (record: AppointmentDto) => {
+    if (!record.invoiceId) return;
+    setPayingInvoiceId(record.invoiceId);
+    requestInvoicePayment(record.invoiceId)
+      .then((res) => {
+        window.location.href = res.paymentUrl;
+      })
+      .catch((err) => {
+        showNotice(
+          err instanceof Error ? err.message : "Không tạo được link thanh toán.",
+        );
+        setPayingInvoiceId(null);
+      });
   };
 
   const submitReview = () => {
@@ -413,23 +431,43 @@ export default function HistoryPage({
                           </span>
                         </td>
                         <td className="px-xl py-lg text-right">
-                          {record.status.toLowerCase() === "completed" &&
-                            (reviewedIds.has(record.id) ? (
-                              <span className="font-label-sm text-label-sm text-tertiary">
-                                Đã đánh giá
-                              </span>
-                            ) : (
+                          <div className="flex flex-col items-end gap-xs">
+                            {record.invoicePaymentStatus === "unpaid" && (
                               <button
                                 type="button"
-                                onClick={() => openReview(record)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 font-label-sm text-label-sm text-primary hover:bg-primary hover:text-on-primary"
+                                onClick={() => payInvoice(record)}
+                                disabled={payingInvoiceId === record.invoiceId}
+                                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 font-label-sm text-label-sm text-on-primary hover:opacity-90 disabled:opacity-60"
                               >
                                 <span className="material-symbols-outlined text-sm">
-                                  star
+                                  payments
                                 </span>
-                                Đánh giá
+                                {payingInvoiceId === record.invoiceId ? "Đang tạo link..." : "Thanh toán"}
                               </button>
-                            ))}
+                            )}
+                            {record.invoicePaymentStatus === "paid" && (
+                              <span className="font-label-sm text-label-sm text-tertiary">
+                                Đã thanh toán
+                              </span>
+                            )}
+                            {record.status.toLowerCase() === "completed" &&
+                              (reviewedIds.has(record.id) ? (
+                                <span className="font-label-sm text-label-sm text-tertiary">
+                                  Đã đánh giá
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => openReview(record)}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 font-label-sm text-label-sm text-primary hover:bg-primary hover:text-on-primary"
+                                >
+                                  <span className="material-symbols-outlined text-sm">
+                                    star
+                                  </span>
+                                  Đánh giá
+                                </button>
+                              ))}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -476,6 +514,28 @@ export default function HistoryPage({
                         {formatCurrency(record.servicePrice)}
                       </span>
                     </div>
+                    {record.invoicePaymentStatus === "unpaid" && (
+                      <div className="mt-md">
+                        <button
+                          type="button"
+                          onClick={() => payInvoice(record)}
+                          disabled={payingInvoiceId === record.invoiceId}
+                          className="inline-flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-3 py-2 font-label-sm text-label-sm text-on-primary disabled:opacity-60"
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            payments
+                          </span>
+                          {payingInvoiceId === record.invoiceId ? "Đang tạo link..." : "Thanh toán"}
+                        </button>
+                      </div>
+                    )}
+                    {record.invoicePaymentStatus === "paid" && (
+                      <div className="mt-md">
+                        <span className="font-label-sm text-label-sm text-tertiary">
+                          Đã thanh toán
+                        </span>
+                      </div>
+                    )}
                     {record.status.toLowerCase() === "completed" && (
                       <div className="mt-md">
                         {reviewedIds.has(record.id) ? (
