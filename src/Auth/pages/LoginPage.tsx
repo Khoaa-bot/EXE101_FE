@@ -4,11 +4,13 @@ import { login, type AuthSession } from "../../services/api";
 type LoginPageProps = {
   onLogin: (session: AuthSession) => void;
   onRegisterClick: () => void;
+  onForgotPasswordClick: () => void;
 };
 
 export default function LoginPage({
   onLogin,
   onRegisterClick,
+  onForgotPasswordClick,
 }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -133,12 +135,13 @@ export default function LoginPage({
             </div>
 
             <div className="flex justify-end">
-              <a
+              <button
                 className="font-label-md text-label-md font-semibold text-primary hover:underline"
-                href="#"
+                type="button"
+                onClick={onForgotPasswordClick}
               >
                 Quên mật khẩu?
-              </a>
+              </button>
             </div>
 
             {error && (

@@ -69,17 +69,20 @@ export function register(payload: RegisterPayload) {
   return request("/auth/register", payload);
 }
 
-// POST /api/auth/register/send-otp — gửi mã OTP xác minh email trước khi
-// đăng ký. Khi thành công backend trả về text thuần, nhưng khi lỗi (email đã
-// tồn tại, v.v.) lại trả về JSON lỗi mặc định của Spring — nên phải thử parse
-// JSON trước, không được coi toàn bộ response luôn là text thuần.
-export async function sendRegisterOtp(email: string) {
+// Vài endpoint /auth/* trả về text thuần khi thành công nhưng JSON lỗi mặc
+// định của Spring khi thất bại — helper dùng chung để không lặp lại logic
+// "thử parse JSON, không được thì coi là text thuần" ở nhiều nơi.
+async function postExpectingTextOrJsonError(
+  path: string,
+  body: unknown,
+  fallbackMessage: string,
+) {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/auth/register/send-otp`, {
+    response = await fetch(`${API_BASE_URL}${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify(body),
     });
   } catch {
     throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
@@ -94,9 +97,37 @@ export async function sendRegisterOtp(email: string) {
     } catch {
       // text thuần, giữ nguyên
     }
-    throw new Error(message || "Gửi mã OTP không thành công.");
+    throw new Error(message || fallbackMessage);
   }
   return text;
+}
+
+// POST /api/auth/register/send-otp — gửi mã OTP xác minh email trước khi đăng ký.
+export function sendRegisterOtp(email: string) {
+  return postExpectingTextOrJsonError(
+    "/auth/register/send-otp",
+    { email },
+    "Gửi mã OTP không thành công.",
+  );
+}
+
+// POST /api/auth/forgot-password — gửi mã OTP đặt lại mật khẩu (chỉ áp dụng
+// cho tài khoản khách hàng, theo giới hạn của backend).
+export function sendForgotPasswordOtp(email: string) {
+  return postExpectingTextOrJsonError(
+    "/auth/forgot-password",
+    { email },
+    "Gửi mã OTP không thành công.",
+  );
+}
+
+// POST /api/auth/reset-password — xác minh OTP và đặt mật khẩu mới.
+export function resetPassword(email: string, otp: string, newPassword: string) {
+  return postExpectingTextOrJsonError(
+    "/auth/reset-password",
+    { email, otp, newPassword },
+    "Đặt lại mật khẩu không thành công.",
+  );
 }
 
 export async function checkDbConnection() {

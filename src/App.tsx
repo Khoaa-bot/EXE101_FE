@@ -16,6 +16,7 @@ import BookingPage from "./pages/Customer/BookingPage";
 import HistoryPage from "./pages/Customer/HistoryPage";
 import Home from "./pages/Customer/HomePage";
 import LoginPage from "./Auth/pages/LoginPage";
+import ForgotPasswordPage from "./Auth/pages/ForgotPasswordPage";
 import NotificationsPage from "./pages/Customer/NotificationsPage";
 import ProfilePage from "./pages/Customer/ProfilePage";
 import RegisterPage from "./Auth/pages/RegisterPage";
@@ -79,6 +80,7 @@ const publicRoutes = new Set([
   "/",
   "/login",
   "/register",
+  "/forgot-password",
   "/preview/customer",
   "/preview/admin",
   "/preview/admin/customers",
@@ -134,7 +136,7 @@ const getRoutePath = (isAuthenticated: boolean, pathname: string, role: string) 
     return publicRoutes.has(pathname) ? pathname : "/login";
   }
 
-  if (pathname === "/" || pathname === "/login" || pathname === "/register") {
+  if (pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/forgot-password") {
     return defaultHome[role] || "/home";
   }
 
@@ -326,8 +328,13 @@ function App() {
       return <RegisterPage onBackToLogin={() => navigate("/login")} />;
     }
 
+    if (routePath === "/forgot-password") {
+      return <ForgotPasswordPage onBackToLogin={() => navigate("/login")} />;
+    }
+
     return (
       <LoginPage
+        onForgotPasswordClick={() => navigate("/forgot-password")}
         onLogin={(session) => {
           setIsAuthenticated(true);
           const r = session.role.toUpperCase();
