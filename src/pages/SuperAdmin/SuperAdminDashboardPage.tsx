@@ -330,10 +330,10 @@ export default function SuperAdminDashboardPage({
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-outline-variant bg-surface-container-low text-xs uppercase text-on-surface-variant">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Username</th>
+                    <th className="px-4 py-3 font-medium">Tên đăng nhập</th>
                     <th className="px-4 py-3 font-medium">Họ tên</th>
                     <th className="px-4 py-3 font-medium">Liên hệ</th>
-                    <th className="px-4 py-3 font-medium">Role</th>
+                    <th className="px-4 py-3 font-medium">Vai trò</th>
                     <th className="px-4 py-3 font-medium">Garage</th>
                     <th className="px-4 py-3 font-medium">Số dư</th>
                     <th className="px-4 py-3 font-medium"></th>

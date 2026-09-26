@@ -35,6 +35,123 @@ type ApiErrorBody = {
   errors?: Record<string, string>;
 };
 
+// Backend trả lỗi bằng tiếng Anh ở khá nhiều chỗ (CustomException message viết
+// tay, không đồng bộ ngôn ngữ với phần còn lại của API). Dịch tập trung ở đây
+// một lần để mọi lời gọi API trong app đều tự động hiện lỗi tiếng Việt, thay
+// vì phải sửa từng nơi hiển thị lỗi rải rác khắp các trang.
+const EXACT_ERROR_TRANSLATIONS: Record<string, string> = {
+  "Invalid username or password": "Sai tên đăng nhập hoặc mật khẩu.",
+  "Username already exists": "Tên đăng nhập này đã được sử dụng.",
+  "Email already exists": "Email này đã được sử dụng.",
+  "Email is already registered": "Email này đã được đăng ký.",
+  "Email not registered": "Email này chưa được đăng ký.",
+  "Email is required": "Vui lòng nhập email.",
+  "Email and OTP are required": "Vui lòng nhập email và mã OTP.",
+  "Email, OTP, and new password are required": "Vui lòng nhập đầy đủ email, mã OTP và mật khẩu mới.",
+  "Password is required": "Vui lòng nhập mật khẩu.",
+  "Username is required": "Vui lòng nhập tên đăng nhập.",
+  "Role is required": "Vui lòng chọn role.",
+  "Status is required": "Vui lòng chọn trạng thái.",
+  "Garage ID is required": "Vui lòng chọn garage.",
+  "Garage name is required": "Vui lòng nhập tên garage.",
+  "Garage not found": "Không tìm thấy garage.",
+  "Customer ID is required": "Vui lòng chọn khách hàng.",
+  "CustomerId is required to register a vehicle": "Vui lòng chọn khách hàng để đăng ký xe.",
+  "Customer not found": "Không tìm thấy khách hàng.",
+  "Customer is banned from booking appointments at this garage": "Khách hàng này đã bị cấm đặt lịch tại garage này.",
+  "Customer is blocked due to 3 or more no-shows": "Khách hàng bị chặn do đã không đến quá 3 lần.",
+  "You are banned from booking appointments at this garage": "Bạn đã bị cấm đặt lịch tại garage này.",
+  "Employee not found": "Không tìm thấy nhân viên.",
+  "Engineer not found": "Không tìm thấy kỹ thuật viên.",
+  "Receptionist not found": "Không tìm thấy lễ tân.",
+  "Receptionist is not assigned to any garage": "Tài khoản lễ tân này chưa được gán garage nào.",
+  "Admin is not assigned to any garage": "Tài khoản admin này chưa được gán garage nào.",
+  "Admin user not found": "Không tìm thấy tài khoản admin.",
+  "No garage found for this admin": "Không tìm thấy garage cho tài khoản admin này.",
+  "No garage found for this manager": "Không tìm thấy garage cho tài khoản quản lý này.",
+  "User not found": "Không tìm thấy người dùng.",
+  "Vehicle not found": "Không tìm thấy xe.",
+  "Vehicle does not belong to this customer": "Xe này không thuộc về khách hàng này.",
+  "Service not found": "Không tìm thấy dịch vụ.",
+  "Schedule not found": "Không tìm thấy lịch.",
+  "TimeFrame not found": "Không tìm thấy khung giờ.",
+  "Time frame slot already exists for this garage": "Khung giờ này đã tồn tại cho garage này.",
+  "Schedule slot already exists for this time frame on this date": "Khung giờ này trong ngày đã có lịch rồi.",
+  "Notification not found": "Không tìm thấy thông báo.",
+  "Part name is required": "Vui lòng nhập tên linh kiện.",
+  "Part not found": "Không tìm thấy linh kiện.",
+  "Must specify quantityToAdd or new quantity": "Vui lòng nhập số lượng cần nhập thêm.",
+  "Appointment not found": "Không tìm thấy lịch hẹn.",
+  "Appointment does not belong to this customer": "Lịch hẹn này không thuộc về khách hàng này.",
+  "This appointment has already been reviewed": "Lịch hẹn này đã được đánh giá rồi.",
+  "Only completed or successful appointments can be reviewed": "Chỉ có thể đánh giá các lịch hẹn đã hoàn thành.",
+  "Invoice ID is required": "Vui lòng chọn hóa đơn.",
+  "Invoice has already been paid": "Hóa đơn này đã được thanh toán.",
+  "OTP is required to register": "Vui lòng nhập mã OTP để đăng ký.",
+  "Invalid OTP": "Mã OTP không đúng.",
+  "OTP has expired": "Mã OTP đã hết hạn.",
+  "OTP has expired. Please request a new OTP.": "Mã OTP đã hết hạn. Vui lòng lấy mã mới.",
+  "No active OTP found": "Không tìm thấy mã OTP đang hiệu lực.",
+  "No active OTP found or OTP already used": "Không tìm thấy mã OTP hoặc mã đã được sử dụng.",
+  "Hours must be between 0 and 24": "Giờ phải nằm trong khoảng 0-24.",
+  "Start hour must be before end hour": "Giờ bắt đầu phải trước giờ kết thúc.",
+  "Start time and end time cannot be empty": "Vui lòng nhập giờ bắt đầu và kết thúc.",
+  "Role must be either 'engineer' or 'reception'": "Role phải là 'engineer' hoặc 'reception'.",
+  "Target user is not a customer": "Người dùng này không phải khách hàng.",
+  "Target user must be a customer": "Người dùng phải là khách hàng.",
+  "Target user is not a garage employee": "Người dùng này không phải nhân viên garage.",
+  "Cannot change role of system admin account": "Không thể đổi role của tài khoản Super Admin hệ thống.",
+  "Cannot delete system admin account": "Không thể xóa tài khoản Super Admin hệ thống.",
+  "Cannot delete your own account": "Không thể tự xóa tài khoản của chính mình.",
+  "Cannot delete vehicle because it is linked to existing appointments": "Không thể xóa xe vì đã có lịch hẹn liên quan.",
+  "Valid noShow count is required (0 or greater)": "Số lần không đến phải lớn hơn hoặc bằng 0.",
+  "Unauthorized: Authentication required": "Vui lòng đăng nhập để tiếp tục.",
+  "Unauthorized: You can only edit inventory parts belonging to your garage": "Bạn chỉ được sửa linh kiện thuộc garage của mình.",
+  "Access denied: Only Super Admins can change user roles": "Chỉ Super Admin mới được đổi role người dùng.",
+  "Access denied: Only Super Admins can create garage owners": "Chỉ Super Admin mới được tạo Admin Garage.",
+  "Access denied: Only Super Admins can delete users": "Chỉ Super Admin mới được xóa người dùng.",
+  "Access denied: Only Super Admins can view all users": "Chỉ Super Admin mới được xem danh sách người dùng.",
+  "Access denied: Only Super Admins can view user details": "Chỉ Super Admin mới được xem chi tiết người dùng.",
+  "Access denied: Only Super Admins can view viewers": "Chỉ Super Admin mới được xem danh sách này.",
+  "Access denied: Only garage owners or admins can delete garage employees": "Chỉ chủ garage hoặc admin mới được xóa nhân viên.",
+  "Access denied: Only garage owners or admins can perform this action": "Chỉ chủ garage hoặc admin mới được thực hiện thao tác này.",
+  "Access denied: Only garage owners or admins can update garage info": "Chỉ chủ garage hoặc admin mới được cập nhật thông tin garage.",
+  "Access denied: Only garage owners or admins can view garage employees": "Chỉ chủ garage hoặc admin mới được xem danh sách nhân viên.",
+  "Access denied: Only the owner customer, a garage owner, or an admin can delete vehicles": "Chỉ chủ xe, chủ garage hoặc admin mới được xóa xe.",
+  "Access denied: Password reset is only available for customer accounts": "Tính năng đặt lại mật khẩu chỉ áp dụng cho tài khoản khách hàng.",
+  "Access denied: You can only delete employees belonging to your garage": "Bạn chỉ được xóa nhân viên thuộc garage của mình.",
+  "Access denied: You can only delete your own vehicle": "Bạn chỉ được xóa xe của chính mình.",
+  "Access denied: You do not own this vehicle": "Xe này không thuộc sở hữu của bạn.",
+};
+
+// Với message có phần động phía sau (vd: "Appointment not found with id: 42"),
+// dịch phần tiền tố cố định rồi giữ nguyên phần còn lại.
+const PREFIX_ERROR_TRANSLATIONS: [string, string][] = [
+  ["Appointment not found with id: ", "Không tìm thấy lịch hẹn với ID: "],
+  ["Invoice not found with id: ", "Không tìm thấy hóa đơn với ID: "],
+  ["Invalid role. Allowed roles are: ", "Role không hợp lệ. Các role được phép: "],
+  [
+    "Invalid status. Allowed values: ",
+    "Trạng thái không hợp lệ. Các giá trị được phép: ",
+  ],
+];
+
+function translateApiErrorMessage(message: string | undefined | null): string | undefined {
+  if (!message) return message ?? undefined;
+  const exact = EXACT_ERROR_TRANSLATIONS[message];
+  if (exact) return exact;
+  for (const [prefix, viPrefix] of PREFIX_ERROR_TRANSLATIONS) {
+    if (message.startsWith(prefix)) {
+      return viPrefix + message.slice(prefix.length);
+    }
+  }
+  return message;
+}
+
+function resolveErrorMessage(error: ApiErrorBody | null, fallback: string): string {
+  return translateApiErrorMessage(error?.message || error?.error) || fallback;
+}
+
 async function request<T>(path: string, body: LoginPayload | RegisterPayload) {
   let response: Response;
 
@@ -55,7 +172,7 @@ async function request<T>(path: string, body: LoginPayload | RegisterPayload) {
 
   if (!response.ok) {
     const error = data as ApiErrorBody | null;
-    throw new Error(error?.message || error?.error || "Yêu cầu không thành công.");
+    throw new Error(resolveErrorMessage(error, "Yêu cầu không thành công."));
   }
 
   return data as T;
@@ -90,12 +207,12 @@ async function postExpectingTextOrJsonError(
 
   const text = await response.text();
   if (!response.ok) {
-    let message = text;
+    let message = translateApiErrorMessage(text);
     try {
       const parsed = JSON.parse(text) as ApiErrorBody;
-      message = parsed?.message || parsed?.error || message;
+      message = resolveErrorMessage(parsed, message || fallbackMessage);
     } catch {
-      // text thuần, giữ nguyên
+      // text thuần, giữ nguyên (đã thử dịch ở trên)
     }
     throw new Error(message || fallbackMessage);
   }
@@ -219,7 +336,7 @@ async function vehicleRequest<T>(
 
   if (!response.ok) {
     const error = data as ApiErrorBody | null;
-    throw new Error(error?.message || error?.error || "Yêu cầu không thành công.");
+    throw new Error(resolveErrorMessage(error, "Yêu cầu không thành công."));
   }
 
   return data as T;
@@ -291,7 +408,7 @@ export async function uploadVehicleImage(
 
   if (!response.ok) {
     const error = data as ApiErrorBody | null;
-    throw new Error(error?.message || error?.error || "Tải ảnh lên không thành công.");
+    throw new Error(resolveErrorMessage(error, "Tải ảnh lên không thành công."));
   }
 
   return data as Vehicle;
@@ -402,7 +519,7 @@ async function apiRequest<T>(
 
   if (!response.ok) {
     const error = data as ApiErrorBody | null;
-    throw new Error(error?.message || error?.error || "Yêu cầu không thành công.");
+    throw new Error(resolveErrorMessage(error, "Yêu cầu không thành công."));
   }
 
   return data as T;
@@ -659,7 +776,7 @@ export async function uploadGarageImage(file: File): Promise<Garage> {
 
   if (!response.ok) {
     const error = data as ApiErrorBody | null;
-    throw new Error(error?.message || error?.error || "Tải ảnh lên không thành công.");
+    throw new Error(resolveErrorMessage(error, "Tải ảnh lên không thành công."));
   }
 
   return data as Garage;
@@ -1081,7 +1198,7 @@ export async function uploadMyAvatar(file: File): Promise<UserProfile> {
 
   if (!response.ok) {
     const error = data as ApiErrorBody | null;
-    throw new Error(error?.message || error?.error || "Tải ảnh lên không thành công.");
+    throw new Error(resolveErrorMessage(error, "Tải ảnh lên không thành công."));
   }
 
   return data as UserProfile;
@@ -1140,7 +1257,7 @@ export async function requestWalletTopUp(amount: number) {
   const data = (await response.json().catch(() => null)) as PaymentResponse | ApiErrorBody | null;
   if (!response.ok) {
     const error = data as ApiErrorBody | null;
-    throw new Error(error?.message || error?.error || "Không tạo được link nạp tiền.");
+    throw new Error(resolveErrorMessage(error, "Không tạo được link nạp tiền."));
   }
   return data as PaymentResponse;
 }
