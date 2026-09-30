@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { register, sendRegisterOtp, type RegisterPayload } from "../../services/api";
 
 type RegisterPageProps = {
@@ -109,6 +109,18 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  // Đếm ngược trước khi cho gửi lại OTP lần nữa — tránh spam gửi email liên tục.
+  const RESEND_COOLDOWN_SECONDS = 60;
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timerId = window.setInterval(() => {
+      setResendCooldown((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => window.clearInterval(timerId);
+  }, [resendCooldown > 0]);
+
   const passwordStrength = useMemo(() => evaluatePasswordStrength(password), [password]);
   const passwordsMatch = password.length > 0 && password === confirmPassword;
 
@@ -131,6 +143,7 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
       await sendRegisterOtp(info.email.trim());
       setNotice(`Đã gửi mã OTP xác minh đến ${info.email.trim()}. Vui lòng kiểm tra email.`);
       setStep("otp");
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setSubmitState("idle");
     } catch (requestError) {
       setError(
@@ -193,10 +206,11 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
     setError("");
     setNotice("");
     setSubmitState("idle");
+    setResendCooldown(0);
   };
 
   const handleResendOtp = async () => {
-    if (submitState === "loading") return;
+    if (submitState === "loading" || resendCooldown > 0) return;
     setError("");
     setNotice("");
     setSubmitState("loading");
@@ -204,6 +218,7 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
       await sendRegisterOtp(info.email.trim());
       setOtpCode("");
       setNotice(`Đã gửi lại mã OTP mới đến ${info.email.trim()}. Vui lòng kiểm tra email.`);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setSubmitState("idle");
     } catch (requestError) {
       setError(
@@ -484,12 +499,14 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
                   </button>
 
                   <button
-                    className="w-full text-center font-label-md text-label-md text-primary hover:underline disabled:opacity-60"
+                    className="w-full text-center font-label-md text-label-md text-primary hover:underline disabled:cursor-not-allowed disabled:text-on-surface-variant disabled:no-underline disabled:opacity-60"
                     type="button"
                     onClick={() => void handleResendOtp()}
-                    disabled={submitState === "loading"}
+                    disabled={submitState === "loading" || resendCooldown > 0}
                   >
-                    Không nhận được mã? Gửi lại mã OTP
+                    {resendCooldown > 0
+                      ? `Gửi lại mã sau ${resendCooldown}s`
+                      : "Không nhận được mã? Gửi lại mã OTP"}
                   </button>
 
                   <button
