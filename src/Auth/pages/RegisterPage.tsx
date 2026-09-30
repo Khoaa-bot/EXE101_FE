@@ -195,10 +195,22 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
     setSubmitState("idle");
   };
 
-  const handleBackToOtp = () => {
-    setStep("otp");
+  const handleResendOtp = async () => {
+    if (submitState === "loading") return;
     setError("");
-    setSubmitState("idle");
+    setNotice("");
+    setSubmitState("loading");
+    try {
+      await sendRegisterOtp(info.email.trim());
+      setOtpCode("");
+      setNotice(`Đã gửi lại mã OTP mới đến ${info.email.trim()}. Vui lòng kiểm tra email.`);
+      setSubmitState("idle");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error ? requestError.message : "Gửi lại mã OTP không thành công.",
+      );
+      setSubmitState("error");
+    }
   };
 
   const showFieldError = (field: keyof InfoForm) => touched[field] && fieldErrors[field];
@@ -472,6 +484,15 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
                   </button>
 
                   <button
+                    className="w-full text-center font-label-md text-label-md text-primary hover:underline disabled:opacity-60"
+                    type="button"
+                    onClick={() => void handleResendOtp()}
+                    disabled={submitState === "loading"}
+                  >
+                    Không nhận được mã? Gửi lại mã OTP
+                  </button>
+
+                  <button
                     className="w-full text-center font-label-md text-label-md text-on-surface-variant hover:text-primary"
                     type="button"
                     onClick={handleBackToInfo}
@@ -626,14 +647,6 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
                         </span>
                       </>
                     )}
-                  </button>
-
-                  <button
-                    className="w-full text-center font-label-md text-label-md text-on-surface-variant hover:text-primary"
-                    type="button"
-                    onClick={handleBackToOtp}
-                  >
-                    ← Quay lại nhập mã OTP
                   </button>
                 </form>
               )}
