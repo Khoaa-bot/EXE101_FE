@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { register, sendRegisterOtp, type RegisterPayload } from "../../services/api";
+import { EMAIL_REGEX, NAME_REGEX, PHONE_REGEX, USERNAME_REGEX } from "../../utils/validators";
+import { evaluatePasswordStrength } from "../../utils/passwordStrength";
 
 type RegisterPageProps = {
   onBackToLogin: () => void;
@@ -15,15 +17,6 @@ type InfoForm = {
   phone: string;
   email: string;
 };
-
-// Chỉ chữ cái (kể cả có dấu tiếng Việt) và khoảng trắng — không cho số/ký tự đặc biệt.
-const NAME_REGEX =
-  /^[A-Za-zÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỂưăạảấầẩẫậắằẳẵặẹẻẽềểưỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s]+$/;
-// Bắt đầu bằng chữ, chỉ gồm chữ/số/gạch dưới, 3-20 ký tự — không dấu, không khoảng trắng.
-const USERNAME_REGEX = /^[A-Za-z][A-Za-z0-9_]{2,19}$/;
-// Số điện thoại di động Việt Nam: 10 số, bắt đầu 03/05/07/08/09.
-const PHONE_REGEX = /^(0[35789])[0-9]{8}$/;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateInfo(info: InfoForm): Partial<Record<keyof InfoForm, string>> {
   const errors: Partial<Record<keyof InfoForm, string>> = {};
@@ -57,33 +50,6 @@ function validateInfo(info: InfoForm): Partial<Record<keyof InfoForm, string>> {
   else if (!EMAIL_REGEX.test(email)) errors.email = "Email không hợp lệ.";
 
   return errors;
-}
-
-type PasswordStrength = {
-  score: 0 | 1 | 2 | 3 | 4;
-  label: string;
-  colorClass: string;
-};
-
-function evaluatePasswordStrength(password: string): PasswordStrength {
-  if (!password) return { score: 0, label: "", colorClass: "bg-outline-variant" };
-
-  let score = 0;
-  if (password.length >= 8) score++;
-  if (password.length >= 12) score++;
-  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
-  if (/\d/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
-
-  const clamped = Math.min(score, 4) as 0 | 1 | 2 | 3 | 4;
-  const levels: Record<number, { label: string; colorClass: string }> = {
-    0: { label: "Rất yếu", colorClass: "bg-error" },
-    1: { label: "Yếu", colorClass: "bg-error" },
-    2: { label: "Trung bình", colorClass: "bg-secondary" },
-    3: { label: "Mạnh", colorClass: "bg-tertiary" },
-    4: { label: "Rất mạnh", colorClass: "bg-tertiary" },
-  };
-  return { score: clamped, ...levels[clamped] };
 }
 
 export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
