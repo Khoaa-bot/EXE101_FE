@@ -60,9 +60,13 @@ const navItems = [
 // với lỗi "Role must be either 'engineer' or 'reception'". Trước đây dropdown
 // có thêm GARAGE_OWNER/lead/battery/mechanical/software — chọn vào là submit
 // lỗi ngay, không tạo được tài khoản nào cả.
+// Dùng đúng giá trị "reception" (không phải "RECEPTIONIST") — gửi sai giá trị
+// khiến backend từng lưu role thành "receptionist" (khác "reception" mà toàn
+// bộ hệ thống kiểm tra), làm tài khoản tạo ra bị đẩy nhầm sang giao diện
+// customer khi đăng nhập.
 const ROLE_OPTIONS: { value: string; label: string }[] = [
-  { value: "ENGINEER", label: "Kỹ thuật viên (ENGINEER)" },
-  { value: "RECEPTIONIST", label: "Tiếp tân (RECEPTIONIST)" },
+  { value: "engineer", label: "Kỹ thuật viên" },
+  { value: "reception", label: "Tiếp tân" },
 ];
 
 type AdminEngineersPageProps = {
@@ -138,7 +142,7 @@ export default function AdminEngineersPage({
     email: "",
     phone: "",
     dob: "2000-01-01",
-    role: "ENGINEER",
+    role: "engineer",
     garageId: 1,
     password: "",
   });
@@ -194,7 +198,9 @@ export default function AdminEngineersPage({
         email: form.email.trim(),
         dob: form.dob || "2000-01-01",
         role: form.role,
-        garageId: Number(form.garageId) || myGarageId || (garages[0]?.id ?? 1),
+        // Backend luôn tự gán vào đúng garage của admin đang đăng nhập, bỏ
+        // qua giá trị này — vẫn gửi cho rõ ràng, không phải để chọn garage khác.
+        garageId: myGarageId ?? garages[0]?.id ?? 1,
       });
 
       const newEmp = mapApiEmployee(created);
@@ -204,7 +210,7 @@ export default function AdminEngineersPage({
         email: "",
         phone: "",
         dob: "2000-01-01",
-        role: "ENGINEER",
+        role: "engineer",
         garageId: myGarageId ?? garages[0]?.id ?? 1,
         password: "",
       });
@@ -475,25 +481,15 @@ export default function AdminEngineersPage({
 
                 <div>
                   <label className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
-                    Garage trực thuộc *
+                    Garage trực thuộc
                   </label>
-                  <select
-                    value={form.garageId}
-                    onChange={(e) =>
-                      setForm({ ...form, garageId: Number(e.target.value) })
-                    }
-                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  >
-                    {garages.length > 0 ? (
-                      garages.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.name}
-                        </option>
-                      ))
-                    ) : (
-                      <option value={1}>Garage Mặc định (ID: 1)</option>
-                    )}
-                  </select>
+                  {/* Chỉ được tạo nhân viên cho đúng garage của mình — không
+                      cho chọn garage khác (backend cũng chặn/bỏ qua nếu cố
+                      gửi garageId khác). Hiện cố định, không phải dropdown,
+                      để tránh hiểu lầm là chọn được garage khác. */}
+                  <div className="w-full rounded-lg border border-outline-variant bg-surface-container-high px-3 py-2 text-body-sm text-on-surface-variant">
+                    {garageName || "Garage của bạn"}
+                  </div>
                 </div>
 
                 <div>
