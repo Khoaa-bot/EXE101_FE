@@ -133,7 +133,7 @@ export default function TrackingPage({
       await cancelAppointment(target.id);
       setAppointments((current) => current.filter((item) => item.id !== target.id));
       setSelectedId(null);
-      setCancelMessage({ type: "success", text: `Khách hàng đã huỷ lịch hẹn #${target.id} thành công.` });
+      setCancelMessage({ type: "success", text: "Khách hàng đã huỷ lịch thành công." });
     } catch (err) {
       setCancelMessage({
         type: "error",
