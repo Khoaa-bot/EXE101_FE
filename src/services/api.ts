@@ -463,6 +463,51 @@ export type AppointmentDto = {
   createdAt: string;
   invoiceId: number | null;
   invoicePaymentStatus: "unpaid" | "paid" | null;
+  extras?: AppointmentExtra[];
+  parts?: AppointmentPart[];
+  totalAmount?: number;
+  garagePhone?: string | null;
+};
+
+export type ExtraStatus = "proposed" | "approved" | "rejected";
+
+export type AppointmentExtra = {
+  id: number;
+  name: string;
+  price: number;
+  reason: string | null;
+  status: ExtraStatus;
+  createdAt: string;
+  decidedAt: string | null;
+};
+
+export type AppointmentPart = {
+  id: number;
+  partId: number;
+  partName: string;
+  unitPrice: number;
+  quantity: number;
+  lineTotal: number;
+};
+
+export type GaragePart = {
+  id: number;
+  partName: string;
+  category: string | null;
+  quantity: number;
+  price: number | null;
+};
+
+export type AppointmentMessage = {
+  id: number;
+  appointmentId: number;
+  senderId: number;
+  senderRole: string;
+  senderName: string;
+  content: string;
+  createdAt: string;
+  // Thời điểm phía bên kia đã xem tin này (null nếu chưa xem).
+  readAt: string | null;
 };
 
 export type ReviewRequest = {
@@ -691,6 +736,7 @@ export type ReceptionAppointmentStatusPayload = {
     | "confirmed"
     | "in_progress"
     | "completed"
+    | "successful"
     | "cancelled"
     | "no_show";
   notes?: string;
@@ -1353,11 +1399,109 @@ export async function requestWalletTopUp(amount: number) {
   return data as PaymentResponse;
 }
 
-// GET /api/payment/create-vnpay-url?invoiceId=... — tạo link thanh toán hóa
-// đơn dịch vụ (lịch hẹn đã hoàn thành) qua VNPay.
+// GET /api/payment/create-payment-url?invoiceId=... — tạo link thanh toán hóa
+// đơn dịch vụ (lịch hẹn đã hoàn thành) qua PayOS.
 export async function requestInvoicePayment(invoiceId: number) {
-  return apiRequest<PaymentResponse>("/payment/create-vnpay-url", {
+  return apiRequest<PaymentResponse>("/payment/create-payment-url", {
     query: { invoiceId },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Dịch vụ phát sinh, phụ tùng, thu tiền mặt và chat theo lịch hẹn.
+// ---------------------------------------------------------------------------
+
+export type ExtraProposalPayload = {
+  serviceId?: number;
+  name?: string;
+  price?: number;
+  reason?: string;
+};
+
+// POST /api/engineer/appointments/{id}/extras — KTV đề xuất hạng mục phát sinh
+// (chỉ khi lịch đang in_progress).
+export function proposeExtra(appointmentId: number | string, payload: ExtraProposalPayload) {
+  return apiRequest<AppointmentExtra>(`/engineer/appointments/${appointmentId}/extras`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+// GET /api/engineer/parts — kho phụ tùng của garage KTV đang đăng nhập.
+export function getEngineerGarageParts() {
+  return apiRequest<GaragePart[]>("/engineer/parts");
+}
+
+// POST /api/engineer/appointments/{id}/parts — lấy phụ tùng từ kho cho lịch hẹn.
+export function addAppointmentPart(
+  appointmentId: number | string,
+  payload: { partId: number; quantity: number },
+) {
+  return apiRequest<AppointmentPart>(`/engineer/appointments/${appointmentId}/parts`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+// DELETE /api/engineer/appointments/{id}/parts/{usageId} — gỡ phụ tùng, hoàn lại kho.
+export function removeAppointmentPart(appointmentId: number | string, usageId: number) {
+  return apiRequest<void>(`/engineer/appointments/${appointmentId}/parts/${usageId}`, {
+    method: "DELETE",
+  });
+}
+
+// PUT /api/appointments/{id}/extras/{extraId}/approve|reject — khách duyệt phát sinh.
+export function decideExtraAsCustomer(
+  appointmentId: number | string,
+  extraId: number,
+  approve: boolean,
+) {
+  return apiRequest<AppointmentExtra>(
+    `/appointments/${appointmentId}/extras/${extraId}/${approve ? "approve" : "reject"}`,
+    { method: "PUT" },
+  );
+}
+
+// PUT /api/reception/appointments/{id}/extras/{extraId}/approve|reject — lễ tân
+// duyệt thay khách (khách đã đồng ý qua điện thoại).
+export function decideExtraAsReception(
+  appointmentId: number | string,
+  extraId: number,
+  approve: boolean,
+) {
+  return apiRequest<AppointmentExtra>(
+    `/reception/appointments/${appointmentId}/extras/${extraId}/${approve ? "approve" : "reject"}`,
+    { method: "PUT" },
+  );
+}
+
+// PUT /api/reception/appointments/{id}/pay-cash — lễ tân xác nhận đã thu tiền mặt.
+export function markInvoicePaidCash(appointmentId: number | string) {
+  return apiRequest<AppointmentDto>(`/reception/appointments/${appointmentId}/pay-cash`, {
+    method: "PUT",
+  });
+}
+
+// GET /api/appointments/{id}/messages?after= — tin nhắn của lịch hẹn (mới hơn `after`).
+export function getAppointmentMessages(appointmentId: number | string, after?: number) {
+  return apiRequest<AppointmentMessage[]>(`/appointments/${appointmentId}/messages`, {
+    query: { after },
+  });
+}
+
+// PUT /api/appointments/{id}/messages/read — đánh dấu đã xem các tin do phía bên
+// kia gửi; trả về số tin vừa được đánh dấu.
+export function markAppointmentMessagesRead(appointmentId: number | string) {
+  return apiRequest<{ updated: number }>(`/appointments/${appointmentId}/messages/read`, {
+    method: "PUT",
+  });
+}
+
+// POST /api/appointments/{id}/messages — gửi tin nhắn.
+export function sendAppointmentMessage(appointmentId: number | string, content: string) {
+  return apiRequest<AppointmentMessage>(`/appointments/${appointmentId}/messages`, {
+    method: "POST",
+    body: { content },
   });
 }
 

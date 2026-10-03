@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  getAllServices,
   getEngineerAppointmentDetail,
   getEngineerAppointmentSteps,
   startEngineerAppointment,
@@ -7,8 +8,13 @@ import {
   updateEngineerAppointmentStep,
   type AppointmentDto,
   type AppointmentStep,
+  type MaintenanceService,
 } from "../../services/api";
-import { statusBadgeClass, statusLabel } from "./engineerStatus";
+import AppointmentChat from "../../components/AppointmentChat";
+import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
+import EngineerExtrasForm from "../../components/EngineerExtrasForm";
+import EngineerPartsPanel from "../../components/EngineerPartsPanel";
+import { isTerminalStatus, statusBadgeClass, statusLabel } from "./engineerStatus";
 
 const navItems = [
   ["dashboard", "Tổng quan"],
@@ -44,6 +50,7 @@ export default function EngineerJobDetailPage({
 }: EngineerJobDetailPageProps) {
   const [appointment, setAppointment] = useState<AppointmentDto | null>(null);
   const [steps, setSteps] = useState<AppointmentStep[]>([]);
+  const [services, setServices] = useState<MaintenanceService[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -70,10 +77,12 @@ export default function EngineerJobDetailPage({
     Promise.all([
       getEngineerAppointmentDetail(appointmentId),
       getEngineerAppointmentSteps(appointmentId),
+      getAllServices().catch(() => [] as MaintenanceService[]),
     ])
-      .then(([appt, stepList]) => {
+      .then(([appt, stepList, serviceList]) => {
         setAppointment(appt);
         setSteps(stepList);
+        setServices(serviceList);
       })
       .catch((err) => {
         setLoadError(
@@ -137,8 +146,19 @@ export default function EngineerJobDetailPage({
       .finally(() => setIsSaving(false));
   };
 
+  const refreshAppointment = () => {
+    if (!appointmentId) return;
+    getEngineerAppointmentDetail(appointmentId)
+      .then(setAppointment)
+      .catch((err) => {
+        showNotice(err instanceof Error ? err.message : "Không làm mới được công việc.");
+      });
+  };
+
   const status = appointment?.status.toLowerCase() ?? "";
   const allStepsCompleted = steps.length > 0 && steps.every((s) => s.isCompleted);
+  const hasPendingExtras = (appointment?.extras ?? []).some((extra) => extra.status === "proposed");
+  const canComplete = allStepsCompleted && !hasPendingExtras;
 
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
@@ -301,6 +321,15 @@ export default function EngineerJobDetailPage({
                       <p className="font-bold text-base">
                         {appointment.customerName}
                       </p>
+                      {appointment.customerPhone && (
+                        <a
+                          href={`tel:${appointment.customerPhone}`}
+                          className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">call</span>
+                          Gọi khách: {appointment.customerPhone}
+                        </a>
+                      )}
                     </article>
 
                     <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
@@ -371,6 +400,61 @@ export default function EngineerJobDetailPage({
                         </ul>
                       </article>
                     )}
+
+                  {/* Hạng mục phát sinh — KTV đề xuất, khách duyệt */}
+                  {(status === "in_progress" || (appointment.extras ?? []).length > 0) && (
+                    <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+                      <div className="mb-4 flex items-center gap-2 text-primary font-bold">
+                        <span className="material-symbols-outlined text-xl">add_task</span>
+                        <h2>Hạng mục phát sinh</h2>
+                      </div>
+                      <ExtrasList extras={appointment.extras ?? []} />
+                      {status === "in_progress" && (
+                        <div className={(appointment.extras ?? []).length > 0 ? "mt-4" : ""}>
+                          <EngineerExtrasForm
+                            appointmentId={appointment.id}
+                            services={services}
+                            onProposed={() => {
+                              showNotice("Đã gửi đề xuất, đang chờ khách duyệt.");
+                              refreshAppointment();
+                            }}
+                          />
+                        </div>
+                      )}
+                    </article>
+                  )}
+
+                  {/* Phụ tùng lấy từ kho garage */}
+                  {(status === "in_progress" || (appointment.parts ?? []).length > 0) && (
+                    <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+                      <div className="mb-4 flex items-center gap-2 text-primary font-bold">
+                        <span className="material-symbols-outlined text-xl">inventory_2</span>
+                        <h2>Phụ tùng từ kho</h2>
+                      </div>
+                      <EngineerPartsPanel
+                        appointmentId={appointment.id}
+                        parts={appointment.parts ?? []}
+                        editable={status === "in_progress"}
+                        onChanged={refreshAppointment}
+                      />
+                    </article>
+                  )}
+
+                  <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+                    <div className="mb-4 flex items-center gap-2 text-primary font-bold">
+                      <span className="material-symbols-outlined text-xl">receipt_long</span>
+                      <h2>Chi phí dự kiến</h2>
+                    </div>
+                    <CostBreakdown appointment={appointment} />
+                  </article>
+
+                  <AppointmentChat
+                    key={appointment.id}
+                    appointmentId={appointment.id}
+                    closed={isTerminalStatus(status)}
+                    callPhone={appointment.customerPhone}
+                    callLabel="Gọi khách"
+                  />
                 </div>
 
                 {/* Right Column (Report & Updates Panel) */}
@@ -435,12 +519,19 @@ export default function EngineerJobDetailPage({
                           </p>
                         )}
 
+                        {hasPendingExtras && (
+                          <p className="text-xs text-error">
+                            Còn hạng mục phát sinh đang chờ khách duyệt. Hoàn thành
+                            được sau khi khách đồng ý hoặc từ chối.
+                          </p>
+                        )}
+
                         <button
                           type="button"
                           onClick={completeJob}
-                          disabled={isSaving || !allStepsCompleted}
+                          disabled={isSaving || !canComplete}
                           className={`w-full rounded-lg border py-2.5 font-label-md text-label-md transition ${
-                            allStepsCompleted
+                            canComplete
                               ? "border-tertiary bg-tertiary-container/10 text-tertiary hover:bg-tertiary/20 active:scale-[0.98]"
                               : "border-outline-variant bg-surface-container-high text-outline cursor-not-allowed"
                           }`}

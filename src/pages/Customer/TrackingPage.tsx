@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import AppointmentChat from "../../components/AppointmentChat";
+import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
 import {
   cancelAppointment,
+  decideExtraAsCustomer,
   getActiveAppointments,
   getMyFleet,
+  requestInvoicePayment,
+  type AppointmentExtra,
   type AppointmentDto,
   type Vehicle,
 } from "../../services/api";
@@ -28,11 +33,6 @@ const STEP_META: Record<string, { title: string; icon: string }> = {
 };
 
 const CANCELLABLE_STATUSES = ["pending", "confirmed"];
-
-function formatCurrency(value: number | null | undefined) {
-  if (value === null || value === undefined) return "—";
-  return `${value.toLocaleString("vi-VN")}đ`;
-}
 
 function statusTitle(rawStatus: string) {
   const status = rawStatus.toLowerCase();
@@ -84,6 +84,9 @@ export default function TrackingPage({
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelMessage, setCancelMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [busyExtraId, setBusyExtraId] = useState<number | null>(null);
+  const [isPaying, setIsPaying] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,6 +144,33 @@ export default function TrackingPage({
       });
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const handleDecideExtra = async (target: AppointmentDto, extra: AppointmentExtra, approve: boolean) => {
+    if (busyExtraId !== null) return;
+    setBusyExtraId(extra.id);
+    setActionError(null);
+    try {
+      await decideExtraAsCustomer(target.id, extra.id, approve);
+      setAppointments(await getActiveAppointments());
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Không gửi được phản hồi. Vui lòng thử lại.");
+    } finally {
+      setBusyExtraId(null);
+    }
+  };
+
+  const handlePay = async (target: AppointmentDto) => {
+    if (!target.invoiceId || isPaying) return;
+    setIsPaying(true);
+    setActionError(null);
+    try {
+      const response = await requestInvoicePayment(target.invoiceId);
+      window.location.href = response.paymentUrl;
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Không tạo được link thanh toán.");
+      setIsPaying(false);
     }
   };
 
@@ -408,6 +438,27 @@ export default function TrackingPage({
                 )}
               </section>
 
+              {(appointment.extras ?? []).length > 0 && (
+                <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg lg:col-span-12">
+                  <h3 className="mb-lg flex items-center gap-md font-headline-md text-headline-md">
+                    <span className="material-symbols-outlined text-primary">add_task</span>
+                    Hạng mục phát sinh
+                  </h3>
+                  <p className="mb-md font-body-md text-body-md text-on-surface-variant">
+                    Kỹ thuật viên phát hiện thêm việc cần làm. Hạng mục chỉ được tính tiền khi bạn đồng ý.
+                  </p>
+                  <ExtrasList
+                    extras={appointment.extras ?? []}
+                    busyId={busyExtraId}
+                    onDecide={
+                      appointment.status.toLowerCase() === "in_progress"
+                        ? (extra, approve) => void handleDecideExtra(appointment, extra, approve)
+                        : undefined
+                    }
+                  />
+                </section>
+              )}
+
               <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg lg:col-span-6">
                 <h3 className="mb-lg flex items-center gap-md font-headline-md text-headline-md">
                   <span className="material-symbols-outlined text-primary">
@@ -415,19 +466,35 @@ export default function TrackingPage({
                   </span>
                   Chi phí dịch vụ
                 </h3>
-                <div className="space-y-sm">
-                  <div className="flex justify-between py-sm font-body-md text-body-md">
-                    <span className="text-on-surface-variant">{appointment.serviceName}</span>
-                    <span className="font-bold">{formatCurrency(appointment.servicePrice)}</span>
+                <CostBreakdown appointment={appointment} />
+
+                {appointment.invoiceId && appointment.invoicePaymentStatus === "unpaid" && (
+                  <div className="mt-lg space-y-sm">
+                    <button
+                      type="button"
+                      onClick={() => void handlePay(appointment)}
+                      disabled={isPaying}
+                      className="w-full rounded-lg bg-primary py-3 font-label-md text-label-md text-on-primary transition hover:opacity-90 disabled:opacity-50"
+                    >
+                      {isPaying ? "Đang chuyển sang trang thanh toán..." : "Thanh toán online"}
+                    </button>
+                    <p className="text-center text-xs text-on-surface-variant">
+                      Hoặc thanh toán tiền mặt tại quầy lễ tân khi nhận xe.
+                    </p>
                   </div>
-                  <div className="mt-lg flex items-center justify-between border-t border-outline-variant pt-lg">
-                    <span className="font-headline-md text-headline-md">Tổng cộng</span>
-                    <span className="font-display-lg text-display-lg text-primary">
-                      {formatCurrency(appointment.servicePrice)}
-                    </span>
-                  </div>
-                </div>
+                )}
+
+                {actionError && <p className="mt-md text-sm text-error">{actionError}</p>}
               </section>
+
+              <div className="lg:col-span-12">
+                <AppointmentChat
+                  key={appointment.id}
+                  appointmentId={appointment.id}
+                  callPhone={appointment.garagePhone}
+                  callLabel="Gọi garage"
+                />
+              </div>
             </div>
           )}
         </div>

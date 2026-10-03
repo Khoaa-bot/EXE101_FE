@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
+import AppointmentChat from "../../components/AppointmentChat";
+import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
 import {
+  decideExtraAsReception,
   getReceptionAppointment,
+  markInvoicePaidCash,
   updateReceptionAppointmentStatus,
   type AppointmentDto,
+  type AppointmentExtra,
 } from "../../services/api";
 import { mapStatus, STATUS_MAP, type Appt } from "./ReceptionAppointmentsPage";
 
@@ -79,8 +84,41 @@ export default function ReceptionAppointmentDetailPage({
     window.setTimeout(() => setNotice(""), 3000);
   };
 
+  const [busyExtraId, setBusyExtraId] = useState<number | null>(null);
+  const [isCollecting, setIsCollecting] = useState(false);
+
+  const decideExtra = async (extra: AppointmentExtra, approve: boolean) => {
+    if (busyExtraId !== null) return;
+    setBusyExtraId(extra.id);
+    try {
+      await decideExtraAsReception(appointmentId, extra.id, approve);
+      const fresh = await getReceptionAppointment(appointmentId);
+      setAppt(fresh);
+      setStatus(mapStatus(fresh.status));
+      showNotice(approve ? "Đã đồng ý hạng mục thay khách." : "Đã từ chối hạng mục thay khách.");
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : "Không xử lý được hạng mục phát sinh.");
+    } finally {
+      setBusyExtraId(null);
+    }
+  };
+
+  const collectCash = async () => {
+    if (isCollecting) return;
+    setIsCollecting(true);
+    try {
+      const updated = await markInvoicePaidCash(appointmentId);
+      setAppt(updated);
+      showNotice("Đã ghi nhận thu tiền mặt.");
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : "Không ghi nhận được thanh toán.");
+    } finally {
+      setIsCollecting(false);
+    }
+  };
+
   const updateStatus = async (
-    next: "confirmed" | "cancelled",
+    next: "confirmed" | "cancelled" | "successful",
     successMsg: string,
   ) => {
     if (isUpdating) return;
@@ -253,10 +291,13 @@ export default function ReceptionAppointmentDetailPage({
                     <div className="rounded-xl bg-surface-container p-5 space-y-3">
                       <p className="text-lg font-semibold">{appt.customerName}</p>
                       {appt.customerPhone && (
-                        <p className="text-sm inline-flex items-center gap-2">
-                          <span className="material-symbols-outlined text-on-surface-variant">phone</span>
-                          {appt.customerPhone}
-                        </p>
+                        <a
+                          href={`tel:${appt.customerPhone}`}
+                          className="text-sm inline-flex items-center gap-2 text-primary hover:underline"
+                        >
+                          <span className="material-symbols-outlined text-on-surface-variant">call</span>
+                          Gọi khách: {appt.customerPhone}
+                        </a>
                       )}
                       {appt.customerEmail && (
                         <p className="text-sm inline-flex items-center gap-2">
@@ -299,6 +340,76 @@ export default function ReceptionAppointmentDetailPage({
                     </div>
                   </div>
                 )}
+
+                {(appt.extras ?? []).length > 0 && (
+                  <div className="mt-6">
+                    <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-3">
+                      Hạng mục phát sinh
+                    </p>
+                    <ExtrasList
+                      extras={appt.extras ?? []}
+                      busyId={busyExtraId}
+                      onDecide={
+                        appt.status.toLowerCase() === "in_progress"
+                          ? (extra, approve) => void decideExtra(extra, approve)
+                          : undefined
+                      }
+                    />
+                    {appt.status.toLowerCase() === "in_progress" &&
+                      (appt.extras ?? []).some((extra) => extra.status === "proposed") && (
+                        <p className="mt-2 text-xs text-on-surface-variant">
+                          Chỉ duyệt thay khách sau khi đã được khách đồng ý qua điện thoại.
+                        </p>
+                      )}
+                  </div>
+                )}
+
+                <div className="mt-6">
+                  <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-3">Chi phí</p>
+                  <div className="rounded-xl bg-surface-container p-5">
+                    <CostBreakdown appointment={appt} />
+                  </div>
+
+                  {appt.status.toLowerCase() === "completed" && (
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      {appt.invoicePaymentStatus !== "paid" && (
+                        <button
+                          type="button"
+                          onClick={() => void collectCash()}
+                          disabled={isCollecting}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary-container/10 disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-lg">payments</span>
+                          {isCollecting ? "Đang ghi nhận..." : "Đã thu tiền mặt"}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => void updateStatus("successful", `Đã bàn giao xe cho lịch #${appointmentId}`)}
+                        disabled={isUpdating || appt.invoicePaymentStatus !== "paid"}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <span className="material-symbols-outlined text-lg">key</span>
+                        Bàn giao xe
+                      </button>
+                      {appt.invoicePaymentStatus !== "paid" && (
+                        <p className="self-center text-xs text-on-surface-variant">
+                          Cần thanh toán xong mới bàn giao được xe.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6">
+                  <AppointmentChat
+                    key={appt.id}
+                    appointmentId={appt.id}
+                    closed={["cancelled", "no_show", "successful", "successed"].includes(appt.status.toLowerCase())}
+                    callPhone={appt.customerPhone}
+                    callLabel="Gọi khách"
+                  />
+                </div>
 
                 <div className="mt-6 rounded-xl bg-surface-container p-4 flex flex-col md:flex-row md:items-center gap-4">
                   <div className="flex items-start gap-3 flex-1">
