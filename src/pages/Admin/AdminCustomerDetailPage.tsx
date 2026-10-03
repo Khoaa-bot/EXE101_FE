@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { updateAdminCustomerNoShow } from "../../services/api";
 import type { Customer } from "./AdminCustomersPage";
 
 export type { Customer };
@@ -36,39 +34,7 @@ export default function AdminCustomerDetailPage({
   onGarageClick,
   onLogout,
 }: AdminCustomerDetailPageProps) {
-  const [cust, setCust] = useState(customer);
-  const [isUpdatingNoShow, setIsUpdatingNoShow] = useState(false);
-  const [notice, setNotice] = useState("");
-
-  const showNotice = (message: string) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(""), 3000);
-  };
-
-  const addNoShow = () => {
-    const nextCount = cust.noShow + 1;
-    setIsUpdatingNoShow(true);
-    updateAdminCustomerNoShow(cust.id, nextCount)
-      .then(() => {
-        setCust((prev) => ({
-          ...prev,
-          noShow: nextCount,
-          isBanned: prev.isBanned || nextCount > 3,
-          state: prev.isBanned || nextCount > 3 ? "repair" : prev.state,
-        }));
-        showNotice(
-          nextCount > 3
-            ? "Đã ghi nhận không đến và cấm khách khỏi garage (quá 3 lần)."
-            : "Đã ghi nhận thêm 1 lần không đến.",
-        );
-      })
-      .catch((err) => {
-        showNotice(
-          err instanceof Error ? err.message : "Không thể cập nhật số lần không đến.",
-        );
-      })
-      .finally(() => setIsUpdatingNoShow(false));
-  };
+  const cust = customer;
 
   const handleNav = (label: string) => {
     if (label === "Dashboard") onDashboardClick?.();
@@ -152,15 +118,6 @@ export default function AdminCustomerDetailPage({
                 <p className="text-sm text-on-surface-variant mt-1">Khách hàng · #{cust.id}</p>
               </div>
             </div>
-            <button
-              type="button"
-              disabled={isUpdatingNoShow || cust.isBanned}
-              onClick={addNoShow}
-              className="inline-flex items-center gap-2 rounded-lg border border-outline-variant px-4 py-2.5 font-label-md text-label-md text-on-surface-variant hover:border-error hover:text-error disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <span className="material-symbols-outlined text-base">person_off</span>
-              {isUpdatingNoShow ? "Đang cập nhật..." : "Ghi nhận không đến"}
-            </button>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
@@ -180,23 +137,12 @@ export default function AdminCustomerDetailPage({
               <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg space-y-4">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-on-surface-variant">Lịch sử không đến</h2>
                 <Row icon="event_busy" label="Số lần không đến" value={String(cust.noShow)} />
-                <p className="text-xs text-on-surface-variant">
-                  Khách hàng bị tự động cấm khỏi garage này nếu số lần không đến vượt quá 3.
-                </p>
               </article>
             </div>
           </div>
         </div>
       </main>
 
-      {notice && (
-        <div
-          className="fixed bottom-5 right-5 z-50 rounded-lg bg-inverse-surface px-4 py-3 text-body-sm text-inverse-on-surface shadow-lg"
-          role="status"
-        >
-          {notice}
-        </div>
-      )}
     </div>
   );
 }

@@ -1018,23 +1018,6 @@ export function getAdminCustomers() {
   return apiRequest<AdminCustomer[]>("/garage-owner/customers");
 }
 
-// DELETE /api/garage-owner/customers/{id} — xoá khách hàng (garage_owner only).
-export function deleteAdminCustomer(customerId: number | string) {
-  return apiRequest<void>(`/garage-owner/customers/${customerId}`, {
-    method: "DELETE",
-  });
-}
-
-// PUT /api/garage-owner/customers/{id}/no-show — cập nhật số lần khách
-// không đến (garage_owner only). Backend tự cấm khách khỏi garage nếu
-// noShow > 3.
-export function updateAdminCustomerNoShow(customerId: number | string, noShow: number) {
-  return apiRequest<AdminCustomer | { message: string }>(
-    `/garage-owner/customers/${customerId}/no-show`,
-    { method: "PUT", body: { noShow } },
-  );
-}
-
 // GET & POST /api/garage-owner/employees — quản lý nhân viên (garage_owner only).
 export type AdminEmployee = {
   id: number;
@@ -1099,7 +1082,61 @@ export type SuperAdminUser = {
   balance: number;
   noShow: number | null;
   avatarUrl: string | null;
+  status: "active" | "blocked";
+  hidden: boolean;
+  appointmentCount: number | null;
   createdAt: string;
+};
+
+export type SuperAdminGarage = {
+  id: number;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  imageUrl: string | null;
+  status: "active" | "blocked";
+  hidden: boolean;
+  ownerId: number | null;
+  ownerUsername: string | null;
+  ownerName: string | null;
+  employeeCount: number;
+  appointmentCount: number;
+  createdAt: string;
+};
+
+export type AdminAppointment = {
+  id: number;
+  customerId: number;
+  customerName: string;
+  customerPhone: string | null;
+  vehicleModel: string | null;
+  vehicleLicensePlate: string | null;
+  serviceName: string;
+  servicePrice: number | null;
+  garageId: number | null;
+  garageName: string | null;
+  scheduleDate: string | null;
+  timeFrame: string | null;
+  status: string;
+  createdAt: string;
+};
+
+export type AdminAppointmentFilters = {
+  customerId?: number;
+  garageId?: number;
+  status?: string;
+  fromDate?: string;
+  toDate?: string;
+  q?: string;
+  page?: number;
+  size?: number;
+};
+
+export type AdminAppointmentPage = {
+  items: AdminAppointment[];
+  total: number;
+  page: number;
+  size: number;
 };
 
 export type CreateGarageOwnerPayload = {
@@ -1111,15 +1148,15 @@ export type CreateGarageOwnerPayload = {
   garageId: number;
 };
 
-export type ChangeUserRolePayload = {
-  role: "viewer" | "customer" | "garage_owner" | "reception" | "engineer" | "admin";
-  garageId?: number;
-};
-
-// GET /api/admin/users — danh sách toàn bộ user, lọc theo role/garageId.
-export function getAllUsers(filters?: { role?: string; garageId?: number }) {
+// GET /api/admin/users — danh sách user, lọc theo role/garageId. Mặc định
+// backend bỏ user đã ẩn; includeHidden=true để hiện cả user đã ẩn.
+export function getAllUsers(filters?: { role?: string; garageId?: number; includeHidden?: boolean }) {
   return apiRequest<SuperAdminUser[]>("/admin/users", {
-    query: { role: filters?.role, garageId: filters?.garageId },
+    query: {
+      role: filters?.role,
+      garageId: filters?.garageId,
+      includeHidden: filters?.includeHidden ? "true" : undefined,
+    },
   });
 }
 
@@ -1133,11 +1170,58 @@ export function getUserById(userId: number | string) {
   return apiRequest<SuperAdminUser>(`/admin/users/${userId}`);
 }
 
-// PUT /api/admin/users/{id}/role — đổi role của 1 user.
-export function changeUserRole(userId: number | string, payload: ChangeUserRolePayload) {
-  return apiRequest<SuperAdminUser>(`/admin/users/${userId}/role`, {
+// PUT /api/admin/users/{id}/status — chặn / mở chặn user.
+export function setUserStatus(userId: number | string, status: "active" | "blocked") {
+  return apiRequest<SuperAdminUser>(`/admin/users/${userId}/status`, {
     method: "PUT",
-    body: payload,
+    body: { status },
+  });
+}
+
+// PUT /api/admin/users/{id}/hidden — ẩn / bỏ ẩn user khỏi danh sách quản lý.
+export function setUserHidden(userId: number | string, hidden: boolean) {
+  return apiRequest<SuperAdminUser>(`/admin/users/${userId}/hidden`, {
+    method: "PUT",
+    body: { hidden },
+  });
+}
+
+// GET /api/admin/garages — danh sách garage kèm Admin Garage phụ trách.
+export function getAdminGarages(includeHidden = false) {
+  return apiRequest<SuperAdminGarage[]>("/admin/garages", {
+    query: { includeHidden: includeHidden ? "true" : undefined },
+  });
+}
+
+// PUT /api/admin/garages/{id}/status — chặn / mở chặn garage.
+export function setGarageStatus(garageId: number | string, status: "active" | "blocked") {
+  return apiRequest<SuperAdminGarage>(`/admin/garages/${garageId}/status`, {
+    method: "PUT",
+    body: { status },
+  });
+}
+
+// PUT /api/admin/garages/{id}/hidden — ẩn / bỏ ẩn garage khỏi danh sách quản lý.
+export function setGarageHidden(garageId: number | string, hidden: boolean) {
+  return apiRequest<SuperAdminGarage>(`/admin/garages/${garageId}/hidden`, {
+    method: "PUT",
+    body: { hidden },
+  });
+}
+
+// GET /api/admin/appointments — lịch sử đặt lịch toàn hệ thống (chỉ đọc).
+export function getAdminAppointments(filters: AdminAppointmentFilters = {}) {
+  return apiRequest<AdminAppointmentPage>("/admin/appointments", {
+    query: {
+      customerId: filters.customerId,
+      garageId: filters.garageId,
+      status: filters.status || undefined,
+      fromDate: filters.fromDate || undefined,
+      toDate: filters.toDate || undefined,
+      q: filters.q || undefined,
+      page: filters.page,
+      size: filters.size,
+    },
   });
 }
 
