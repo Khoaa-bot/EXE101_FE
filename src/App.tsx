@@ -365,6 +365,7 @@ function App() {
     onNotificationsClick: () => navigate("/notifications"),
     onProfileClick: () => navigate("/profile"),
     onTrackingClick: () => navigate("/tracking"),
+    onWalletClick: () => navigate("/wallet"),
     onLogout: () => {
       localStorage.removeItem("auth_session");
       setIsAuthenticated(false);
@@ -644,14 +645,9 @@ function App() {
 
   if (routePath === "/wallet") {
     return (
-      <WalletPage
-        onHomeClick={shellProps.onHomeClick}
-        onHistoryClick={shellProps.onHistoryClick}
-        onNotificationsClick={shellProps.onNotificationsClick}
-        onProfileClick={shellProps.onProfileClick}
-        onTrackingClick={shellProps.onTrackingClick}
-        onLogout={shellProps.onLogout}
-      />
+      <AppShell active="wallet" title="Ví Servio" {...shellProps}>
+        <WalletPage />
+      </AppShell>
     );
   }
 

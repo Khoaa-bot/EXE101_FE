@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import {
   getMyWithdrawals,
   getWalletHistory,
@@ -11,15 +10,6 @@ import {
   type WithdrawalRequestItem,
 } from "../../services/api";
 import { formatVnd } from "../../utils/format";
-
-type WalletPageProps = {
-  onHomeClick: () => void;
-  onHistoryClick: () => void;
-  onNotificationsClick: () => void;
-  onProfileClick: () => void;
-  onTrackingClick: () => void;
-  onLogout?: () => void;
-};
 
 const TOP_UP_MIN = 10000;
 const WITHDRAW_MIN = 50000;
@@ -59,15 +49,8 @@ function maskAccount(accountNumber: string) {
   return accountNumber.length > 4 ? `****${accountNumber.slice(-4)}` : accountNumber;
 }
 
-export default function WalletPage({
-  onHomeClick,
-  onHistoryClick,
-  onNotificationsClick,
-  onProfileClick,
-  onTrackingClick,
-  onLogout,
-}: WalletPageProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+// Nội dung trang ví; khung điều hướng (thanh bên, header) do AppShell cung cấp như các trang khách khác.
+export default function WalletPage() {
   const [summary, setSummary] = useState<WalletSummary | null>(null);
   const [history, setHistory] = useState<WalletTransactionItem[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequestItem[]>([]);
@@ -86,14 +69,6 @@ export default function WalletPage({
   const [isWithdrawSubmitting, setIsWithdrawSubmitting] = useState(false);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-
-  const handleNavigate = (section: AppSection) => {
-    if (section === "home") onHomeClick();
-    if (section === "history") onHistoryClick();
-    if (section === "notifications") onNotificationsClick();
-    if (section === "tracking") onTrackingClick();
-    if (section === "profile") onProfileClick();
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -191,29 +166,8 @@ export default function WalletPage({
     "w-full rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 font-body-md text-body-md outline-none focus:border-primary focus:ring-1 focus:ring-primary";
 
   return (
-    <div className="min-h-dvh bg-background font-sans text-on-surface">
-      <AppSidebar
-        active="wallet"
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        onNavigate={handleNavigate}
-        onLogout={onLogout}
-      />
-
-      <header className="fixed top-0 z-50 flex h-16 w-full items-center gap-2 border-b border-outline-variant bg-surface px-margin-mobile md:px-margin-desktop">
-        <button
-          className="-ml-2 rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
-          type="button"
-          aria-label="Mở menu"
-          onClick={() => setIsSidebarOpen(true)}
-        >
-          <span className="material-symbols-outlined">menu</span>
-        </button>
-        <span className="material-symbols-outlined text-[28px] text-primary">account_balance_wallet</span>
-        <h1 className="font-headline-lg text-headline-lg font-bold text-primary">Ví Servio</h1>
-      </header>
-
-      <main className="mx-auto max-w-[960px] space-y-lg px-margin-mobile pb-16 pt-24 md:px-margin-desktop">
+    <div className="font-sans text-on-surface">
+      <div className="mx-auto max-w-[960px] space-y-lg p-margin-mobile pb-16 md:p-xl">
         {isLoading && (
           <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-xl text-center text-on-surface-variant">
             Đang tải thông tin ví...
@@ -478,7 +432,7 @@ export default function WalletPage({
             </section>
           </>
         )}
-      </main>
+      </div>
     </div>
   );
 }
