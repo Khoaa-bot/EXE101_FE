@@ -348,6 +348,12 @@ export function createAppointment(payload: AppointmentRequest) {
   return apiRequest<AppointmentDto>("/appointments", { method: "POST", body: payload });
 }
 
+// PUT /api/appointments/{id}/cancel — khách tự huỷ lịch hẹn của mình (chỉ khi
+// lịch đang pending/confirmed). Backend tự trả lại slot cho khung giờ.
+export function cancelAppointment(appointmentId: number | string) {
+  return apiRequest<AppointmentDto>(`/appointments/${appointmentId}/cancel`, { method: "PUT" });
+}
+
 // GET /api/appointments/status — các lịch hẹn đang hoạt động của khách hàng
 // đang đăng nhập (dùng cho trang Tracking).
 export function getActiveAppointments() {

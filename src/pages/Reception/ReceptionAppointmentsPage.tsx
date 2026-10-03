@@ -24,15 +24,18 @@ export type Appt = {
   vehicle: string;
   service: string;
   note: string;
-  status: "pending" | "confirmed" | "done" | "canceled";
+  status: "pending" | "confirmed" | "in_progress" | "done" | "handed_over" | "canceled" | "no_show";
 };
 
-function mapStatus(status: string): Appt["status"] {
+export function mapStatus(status: string): Appt["status"] {
   const s = status.toLowerCase();
   if (s === "completed") return "done";
+  if (s === "successful" || s === "successed") return "handed_over";
   if (s === "cancelled" || s === "canceled") return "canceled";
-  if (s === "pending") return "pending";
-  return "confirmed";
+  if (s === "no_show") return "no_show";
+  if (s === "in_progress") return "in_progress";
+  if (s === "confirmed") return "confirmed";
+  return "pending";
 }
 
 function toAppt(a: AppointmentDto): Appt {
@@ -54,11 +57,14 @@ function toAppt(a: AppointmentDto): Appt {
   };
 }
 
-const STATUS_MAP = {
+export const STATUS_MAP = {
   pending: { label: "Đang chờ", cls: "bg-tertiary-container/10 text-tertiary" },
   confirmed: { label: "Đã xác nhận", cls: "bg-primary-container/10 text-primary" },
+  in_progress: { label: "Đang thực hiện", cls: "bg-primary-container/15 text-primary" },
   done: { label: "Hoàn thành", cls: "bg-surface-container text-on-surface-variant" },
+  handed_over: { label: "Đã bàn giao", cls: "bg-tertiary text-on-tertiary" },
   canceled: { label: "Đã huỷ", cls: "bg-error-container/10 text-error" },
+  no_show: { label: "Khách không đến", cls: "bg-error-container/10 text-error" },
 } as const;
 
 type ReceptionAppointmentsPageProps = {
@@ -225,7 +231,7 @@ export default function ReceptionAppointmentsPage({
                 />
               </div>
               <div className="inline-flex rounded-lg border border-outline-variant bg-surface-container-low p-1 overflow-x-auto">
-                {(["all", "pending", "confirmed", "done"] as const).map((k) => (
+                {(["all", "pending", "confirmed", "in_progress", "done"] as const).map((k) => (
                   <button
                     key={k}
                     onClick={() => setFilter(k)}

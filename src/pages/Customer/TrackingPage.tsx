@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import {
+  cancelAppointment,
   getActiveAppointments,
   getMyFleet,
   type AppointmentDto,
@@ -25,6 +26,8 @@ const STEP_META: Record<string, { title: string; icon: string }> = {
   in_progress: { title: "Đang sửa chữa", icon: "build" },
   completed: { title: "Hoàn thành", icon: "flag" },
 };
+
+const CANCELLABLE_STATUSES = ["pending", "confirmed"];
 
 function formatCurrency(value: number | null | undefined) {
   if (value === null || value === undefined) return "—";
@@ -78,6 +81,9 @@ export default function TrackingPage({
   const [fleet, setFleet] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelMessage, setCancelMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,7 +120,34 @@ export default function TrackingPage({
     if (section === "profile") onProfileClick();
   };
 
-  const appointment = appointments[0];
+  const handleCancel = async (target: AppointmentDto) => {
+    if (isCancelling) return;
+    const confirmed = window.confirm(
+      `Bạn chắc chắn muốn huỷ lịch hẹn #${target.id} (${target.scheduleDate} - ${target.timeFrame})?`,
+    );
+    if (!confirmed) return;
+
+    setIsCancelling(true);
+    setCancelMessage(null);
+    try {
+      await cancelAppointment(target.id);
+      setAppointments((current) => current.filter((item) => item.id !== target.id));
+      setSelectedId(null);
+      setCancelMessage({ type: "success", text: `Đã huỷ lịch hẹn #${target.id}.` });
+    } catch (err) {
+      setCancelMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Huỷ lịch không thành công. Vui lòng thử lại.",
+      });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const appointment = appointments.find((item) => item.id === selectedId) ?? appointments[0];
+  const canCancel = appointment
+    ? CANCELLABLE_STATUSES.includes(appointment.status.toLowerCase())
+    : false;
   const steps = appointment ? getSteps(appointment.status) : [];
   const vehicle = appointment
     ? fleet.find((v) => v.id === appointment.vehicleId)
@@ -199,9 +232,41 @@ export default function TrackingPage({
             </div>
           )}
 
+          {cancelMessage && (
+            <div
+              role="status"
+              className={`rounded-xl border p-lg font-body-md text-body-md ${
+                cancelMessage.type === "success"
+                  ? "border-tertiary/30 bg-tertiary-container/20 text-on-surface"
+                  : "border-error/30 bg-error-container/10 text-error"
+              }`}
+            >
+              {cancelMessage.text}
+            </div>
+          )}
+
           {!isLoading && !error && !appointment && (
             <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-xl text-center font-body-md text-body-md text-on-surface-variant">
               Hiện bạn không có lịch hẹn nào đang được xử lý.
+            </div>
+          )}
+
+          {!isLoading && !error && appointments.length > 1 && (
+            <div className="flex flex-wrap gap-sm">
+              {appointments.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setSelectedId(item.id)}
+                  className={`rounded-full border px-md py-xs font-label-md text-label-md transition-colors ${
+                    item.id === appointment?.id
+                      ? "border-primary bg-primary text-white"
+                      : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container"
+                  }`}
+                >
+                  #{item.id} · {item.vehicleModel}
+                </button>
+              ))}
             </div>
           )}
 
@@ -260,6 +325,17 @@ export default function TrackingPage({
                       </span>
                       <span className="font-label-md">{appointment.garageName}</span>
                     </div>
+                    {canCancel && (
+                      <button
+                        type="button"
+                        onClick={() => void handleCancel(appointment)}
+                        disabled={isCancelling}
+                        className="mt-md flex w-full items-center justify-center gap-sm rounded-lg border border-error px-md py-sm font-label-md text-label-md text-error transition-colors hover:bg-error-container/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">cancel</span>
+                        {isCancelling ? "Đang huỷ..." : "Huỷ lịch hẹn"}
+                      </button>
+                    )}
                   </div>
                 </div>
               </section>

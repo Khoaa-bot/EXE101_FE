@@ -33,13 +33,12 @@ function formatCurrency(value: number | null | undefined) {
   return `${value.toLocaleString("vi-VN")}đ`;
 }
 
-function isTodayOrFuture(dateStr: string) {
+function isSlotUpcoming(dateStr: string, timeFrame: string) {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return true;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  date.setHours(0, 0, 0, 0);
-  return date >= today;
+  const startHour = Number.parseInt(timeFrame, 10);
+  date.setHours(Number.isNaN(startHour) ? 0 : Math.min(Math.max(startHour, 0), 23), 0, 0, 0);
+  return date >= new Date();
 }
 
 export default function BookingPage({
@@ -126,7 +125,7 @@ export default function BookingPage({
 
     getAvailableSchedules(selectedGarageId)
       .then((data) => {
-        if (!cancelled) setSchedules(data.filter((schedule) => isTodayOrFuture(schedule.date)));
+        if (!cancelled) setSchedules(data.filter((schedule) => isSlotUpcoming(schedule.date, schedule.timeFrame)));
       })
       .catch(() => {
         if (!cancelled) setSchedules([]);

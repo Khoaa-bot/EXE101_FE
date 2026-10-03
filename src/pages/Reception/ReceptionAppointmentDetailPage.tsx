@@ -4,7 +4,7 @@ import {
   updateReceptionAppointmentStatus,
   type AppointmentDto,
 } from "../../services/api";
-import type { Appt } from "./ReceptionAppointmentsPage";
+import { mapStatus, STATUS_MAP, type Appt } from "./ReceptionAppointmentsPage";
 
 const navItems = [
   ["dashboard", "Dashboard"],
@@ -13,20 +13,7 @@ const navItems = [
   ["person", "Customers"],
 ];
 
-const statusMap: Record<Appt["status"], { label: string; cls: string }> = {
-  pending: { label: "Đang chờ", cls: "bg-tertiary-container/10 text-tertiary" },
-  confirmed: { label: "Đã xác nhận", cls: "bg-primary-container/10 text-primary" },
-  done: { label: "Hoàn thành", cls: "bg-surface-container text-on-surface-variant" },
-  canceled: { label: "Đã hủy", cls: "bg-error-container/10 text-on-error-container" },
-};
-
-function mapStatus(status: string): Appt["status"] {
-  const s = status.toLowerCase();
-  if (s === "completed") return "done";
-  if (s === "cancelled" || s === "canceled") return "canceled";
-  if (s === "pending") return "pending";
-  return "confirmed";
-}
+const FINAL_STATUSES: Appt["status"][] = ["done", "handed_over", "canceled", "no_show"];
 
 type ReceptionAppointmentDetailPageProps = {
   appointmentId: string;
@@ -125,7 +112,7 @@ export default function ReceptionAppointmentDetailPage({
     void updateStatus("cancelled", `Đã hủy lịch #${appointmentId} giúp khách`);
   };
 
-  const { label: statusLabel, cls: statusCls } = statusMap[status];
+  const { label: statusLabel, cls: statusCls } = STATUS_MAP[status];
   const scheduleDate = appt
     ? new Date(appt.scheduleDate).toLocaleDateString("vi-VN")
     : "";
@@ -332,7 +319,7 @@ export default function ReceptionAppointmentDetailPage({
                     <button
                       className="inline-flex items-center gap-2 rounded-lg bg-error px-4 py-2.5 text-sm font-medium text-on-error hover:bg-error/90 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={onCancel}
-                      disabled={isUpdating || status === "done" || status === "canceled"}
+                      disabled={isUpdating || FINAL_STATUSES.includes(status)}
                     >
                       <span className="material-symbols-outlined text-lg">cancel</span>
                       Hủy lịch giúp khách

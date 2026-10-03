@@ -5,6 +5,7 @@ export type EngineerAppointmentStatus =
   | "confirmed"
   | "in_progress"
   | "completed"
+  | "successful"
   | "cancelled"
   | "no_show";
 
@@ -13,6 +14,7 @@ export const ENGINEER_STATUS_OPTIONS: { value: EngineerAppointmentStatus; label:
   { value: "confirmed", label: "Đã tiếp nhận" },
   { value: "in_progress", label: "Đang thực hiện" },
   { value: "completed", label: "Hoàn thành" },
+  { value: "successful", label: "Đã bàn giao" },
   { value: "cancelled", label: "Đã hủy" },
   { value: "no_show", label: "Khách không đến" },
 ];
@@ -25,6 +27,7 @@ const ALLOWED_NEXT_STATUSES: Record<EngineerAppointmentStatus, EngineerAppointme
   confirmed: ["confirmed", "in_progress", "cancelled", "no_show"],
   in_progress: ["in_progress", "completed", "cancelled", "no_show"],
   completed: ["completed"],
+  successful: ["successful"],
   cancelled: ["cancelled"],
   no_show: ["no_show"],
 };
@@ -37,7 +40,7 @@ export function getSelectableStatusOptions(currentStatus: string) {
 
 export function isTerminalStatus(status: string): boolean {
   const s = status.toLowerCase();
-  return s === "completed" || s === "cancelled" || s === "no_show";
+  return s === "completed" || s === "successful" || s === "successed" || s === "cancelled" || s === "no_show";
 }
 
 export function statusLabel(status: string): string {
@@ -54,6 +57,7 @@ export function statusBadgeClass(status: string): string {
     case "confirmed":
       return "bg-tertiary-container/15 text-tertiary";
     case "completed":
+    case "successful":
       return "bg-tertiary text-on-tertiary";
     case "cancelled":
     case "no_show":
