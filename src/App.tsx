@@ -31,6 +31,7 @@ import TrackingPage from "./pages/Customer/TrackingPage";
 import FindGaragePage from "./pages/Customer/FindGaragePage";
 import GarageDetailPage from "./pages/Customer/GarageDetailPage";
 import PaymentResultPage from "./pages/Customer/PaymentResultPage";
+import WalletPage from "./pages/Customer/WalletPage";
 import ReceptionDashboardPage from "./pages/Reception/ReceptionDashboardPage";
 import ReceptionSchedulePage from "./pages/Reception/ReceptionSchedulePage";
 import ReceptionAppointmentsPage from "./pages/Reception/ReceptionAppointmentsPage";
@@ -54,6 +55,7 @@ const appRoutes = new Set([
   "/find-garage",
   "/garage-detail",
   "/payment-result",
+  "/wallet",
   "/admin",
   "/admin/customers",
   "/admin/engineers",
@@ -119,7 +121,7 @@ const roleRoutes: Record<string, Set<string>> = {
   ]),
   CUSTOMER: new Set([
     "/home", "/history", "/notifications", "/tracking", "/profile",
-    "/add-vehicle", "/booking", "/find-garage", "/garage-detail", "/payment-result",
+    "/add-vehicle", "/booking", "/find-garage", "/garage-detail", "/payment-result", "/wallet",
   ]),
 };
 
@@ -631,7 +633,26 @@ function App() {
   }
 
   if (routePath === "/payment-result") {
-    return <PaymentResultPage onHomeClick={() => navigate("/home", true)} />;
+    return (
+      <PaymentResultPage
+        onHomeClick={() => navigate("/home", true)}
+        onTrackingClick={() => navigate("/tracking", true)}
+        onWalletClick={() => navigate("/wallet", true)}
+      />
+    );
+  }
+
+  if (routePath === "/wallet") {
+    return (
+      <WalletPage
+        onHomeClick={shellProps.onHomeClick}
+        onHistoryClick={shellProps.onHistoryClick}
+        onNotificationsClick={shellProps.onNotificationsClick}
+        onProfileClick={shellProps.onProfileClick}
+        onTrackingClick={shellProps.onTrackingClick}
+        onLogout={shellProps.onLogout}
+      />
+    );
   }
 
   return (
@@ -650,6 +671,7 @@ function App() {
         onNotificationsClick={shellProps.onNotificationsClick}
         onTrackingClick={shellProps.onTrackingClick}
         onProfileClick={shellProps.onProfileClick}
+        onWalletClick={() => navigate("/wallet")}
       />
     </AppShell>
   );

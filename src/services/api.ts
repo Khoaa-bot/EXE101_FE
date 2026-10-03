@@ -1505,21 +1505,107 @@ export function sendAppointmentMessage(appointmentId: number | string, content: 
   });
 }
 
-export type VnpayReturnResult = {
+export type PaymentReturnResult = {
   success: boolean;
   message: string;
-  type?: string;
-  newBalance?: number;
+  orderCode?: number;
+  // INVOICE: thanh toán hoá đơn dịch vụ; TOPUP: nạp tiền vào ví.
+  type?: "INVOICE" | "TOPUP" | string;
   amount?: number;
-  [key: string]: unknown;
+  appointmentId?: number;
 };
 
-// GET /api/payment/vnpay-return?<toàn bộ query VNPay redirect về> — xác
-// thực chữ ký giao dịch VÀ cộng tiền vào ví nếu hợp lệ. Đây là bước THẬT
-// SỰ ghi nhận giao dịch (không phải chỉ hiển thị) nên trang kết quả bắt
-// buộc phải gọi API này, không được tự suy trạng thái từ query string.
-export async function confirmVnpayReturn(search: string) {
-  return apiRequest<VnpayReturnResult>(`/payment/vnpay-return${search}`);
+// GET /api/payment/payos-return?orderCode=&status=&cancel= — PayOS chuyển
+// trình duyệt về /payment-result?code=..&id=..&cancel=..&status=..&orderCode=..
+// Backend đồng bộ với PayOS rồi ghi nhận giao dịch, nên trang kết quả bắt
+// buộc gọi API này thay vì tự suy trạng thái từ query string.
+export function confirmPayosReturn(search: string) {
+  const params = new URLSearchParams(search);
+  const orderCode = params.get("orderCode");
+  if (!orderCode) {
+    return Promise.reject(new Error("Không tìm thấy mã giao dịch trong đường dẫn."));
+  }
+  return apiRequest<PaymentReturnResult>("/payment/payos-return", {
+    query: {
+      orderCode,
+      status: params.get("status") ?? undefined,
+      cancel: params.get("cancel") ?? undefined,
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Ví Servio: tổng quan, lịch sử và rút tiền.
+// ---------------------------------------------------------------------------
+
+export type WalletSummary = {
+  userId: number;
+  fullName: string;
+  role: string;
+  balance: number;
+  totalTopUp: number;
+  totalSpent: number;
+  totalEarned: number;
+};
+
+export type WalletTransactionItem = {
+  id: number;
+  userId: number;
+  // TOPUP, PAYMENT, RECEIVE_PAYMENT, COMMISSION, REFUND, WITHDRAW, WITHDRAW_REFUND
+  type: string;
+  amount: number;
+  balanceBefore: number | null;
+  balanceAfter: number | null;
+  description: string | null;
+  referenceType: string | null;
+  referenceId: number | null;
+  createdAt: string;
+};
+
+export type WithdrawalStatus = "PENDING" | "COMPLETED" | "REJECTED";
+
+export type WithdrawalRequestItem = {
+  id: number;
+  userId: number;
+  amount: number;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+  status: WithdrawalStatus;
+  note: string | null;
+  processedAt: string | null;
+  createdAt: string;
+};
+
+export type WithdrawPayload = {
+  amount: number;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+};
+
+// GET /api/payment/wallet-summary — số dư và tổng nạp/chi/nhận.
+export function getWalletSummary() {
+  return apiRequest<WalletSummary>("/payment/wallet-summary");
+}
+
+// GET /api/payment/wallet-history — lịch sử giao dịch ví, mới nhất trước.
+export function getWalletHistory() {
+  return apiRequest<WalletTransactionItem[]>("/payment/wallet-history");
+}
+
+// POST /api/payment/withdraw — tạo yêu cầu rút tiền; tiền bị giữ khỏi ví ngay
+// và admin sẽ chuyển khoản thủ công.
+export function requestWithdrawal(payload: WithdrawPayload) {
+  return apiRequest<WithdrawalRequestItem>("/payment/withdraw", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+// GET /api/payment/withdrawals — các yêu cầu rút tiền của tôi.
+export function getMyWithdrawals() {
+  return apiRequest<WithdrawalRequestItem[]>("/payment/withdrawals");
 }
 
 // GET /api/notifications/me — danh sách thông báo của người dùng đang đăng

@@ -8,7 +8,16 @@ export type AppSection =
   | "tracking"
   | "notifications"
   | "profile"
+  | "wallet"
   | "find_garage";
+
+// Ví Servio được mở trực tiếp từ thanh bên (qua lịch sử trình duyệt mà App đang lắng nghe) để các trang
+// không cần xử lý thêm một mục điều hướng mới.
+function openWallet() {
+  if (window.location.pathname === "/wallet") return;
+  window.history.pushState(null, "", "/wallet");
+  window.dispatchEvent(new PopStateEvent("popstate"));
+}
 
 type AppSidebarProps = {
   active: AppSection;
@@ -28,6 +37,7 @@ const navItems: Array<{
   { label: "Lịch sử", icon: "history", section: "history" },
   { label: "Theo dõi", icon: "location_on", section: "tracking" },
   { label: "Thông báo", icon: "notifications", section: "notifications" },
+  { label: "Ví Servio", icon: "account_balance_wallet", section: "wallet" },
 ];
 
 export default function AppSidebar({
@@ -82,6 +92,10 @@ export default function AppSidebar({
                   type="button"
                   onClick={() => {
                     onClose();
+                    if (item.section === "wallet") {
+                      openWallet();
+                      return;
+                    }
                     onNavigate(item.section);
                   }}
                   className={`relative flex w-full items-center gap-4 rounded-xl p-md text-left transition-colors ${

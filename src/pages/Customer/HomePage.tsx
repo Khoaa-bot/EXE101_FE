@@ -72,6 +72,7 @@ type HomeProps = {
   onNotificationsClick: () => void;
   onProfileClick: () => void;
   onTrackingClick: () => void;
+  onWalletClick?: () => void;
 };
 
 export default function Home({
@@ -80,6 +81,7 @@ export default function Home({
   onNotificationsClick,
   onProfileClick,
   onTrackingClick,
+  onWalletClick,
 }: HomeProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const username = getStoredAuthSession()?.username || "bạn";
@@ -433,14 +435,26 @@ export default function Home({
                     {walletBalance === null ? "..." : formatCurrency(walletBalance)}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsTopUpOpen(true)}
-                  className="mt-md inline-flex items-center gap-xs self-start rounded-lg bg-primary px-md py-sm font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-[18px]">add</span>
-                  Nạp tiền
-                </button>
+                <div className="mt-md flex flex-wrap gap-sm">
+                  <button
+                    type="button"
+                    onClick={() => setIsTopUpOpen(true)}
+                    className="inline-flex items-center gap-xs self-start rounded-lg bg-primary px-md py-sm font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">add</span>
+                    Nạp tiền
+                  </button>
+                  {onWalletClick && (
+                    <button
+                      type="button"
+                      onClick={onWalletClick}
+                      className="inline-flex items-center gap-xs self-start rounded-lg border border-primary px-md py-sm font-label-md text-label-md text-primary transition hover:bg-primary-container/10 active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                      Xem ví &amp; rút tiền
+                    </button>
+                  )}
+                </div>
               </div>
             </aside>
           </div>
@@ -611,7 +625,7 @@ export default function Home({
               </button>
             </div>
             <p className="mt-1 font-body-sm text-body-sm text-on-surface-variant">
-              Bạn sẽ được chuyển sang cổng thanh toán VNPay để hoàn tất giao dịch.
+              Bạn sẽ được chuyển sang cổng thanh toán PayOS (VietQR) để hoàn tất giao dịch.
             </p>
 
             <div className="mt-lg space-y-sm">
@@ -650,7 +664,7 @@ export default function Home({
               disabled={isTopUpSubmitting}
               className="mt-lg w-full rounded-lg bg-primary py-3 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
             >
-              {isTopUpSubmitting ? "Đang chuyển đến VNPay..." : "Tiếp tục thanh toán"}
+              {isTopUpSubmitting ? "Đang chuyển đến PayOS..." : "Tiếp tục thanh toán"}
             </button>
           </div>
         </div>
