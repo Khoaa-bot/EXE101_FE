@@ -38,7 +38,7 @@ export default function GarageDetailPage({
     setIsLoading(true);
     setError(null);
 
-    Promise.all([getGarageById(garageId), getAllServices()])
+    Promise.all([getGarageById(garageId), getAllServices(garageId)])
       .then(([garageData, serviceData]) => {
         if (!cancelled) {
           setGarage(garageData);

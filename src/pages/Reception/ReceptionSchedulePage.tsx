@@ -1,4 +1,9 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  getReceptionDashboard,
+  type AppointmentDto,
+  type ReceptionDashboard,
+} from "../../services/api";
 
 const navItems = [
   ["dashboard", "Dashboard"],
@@ -16,46 +21,30 @@ type ReceptionSchedulePageProps = {
   onLogout?: () => void;
 };
 
-const DAYS = [
-  { label: "Thứ 2", date: "15/06" },
-  { label: "Thứ 3", date: "16/06" },
-  { label: "Thứ 4", date: "17/06" },
-  { label: "Thứ 5", date: "18/06" },
-  { label: "Thứ 6", date: "19/06" },
-  { label: "Thứ 7", date: "20/06" },
-  { label: "Chủ Nhật", date: "21/06" },
-];
+const SLOTS = ["09:00 - 11:00", "11:00 - 13:00", "13:00 - 15:00", "15:00 - 17:00"];
 
-const SLOTS = ["09:00 - 11:00", "11:00 - 13:00", "13:00 - 15:00", "15:00 - 17:00", "17:00 - 19:00"];
-
-type Ev = { day: number; slot: number; name: string; detail: string; tone: "blue" | "green" | "orange" };
-
-const EVENTS: Ev[] = [
-  { day: 0, slot: 0, name: "Nguyễn Văn A", detail: "Toyota Vios - Bảo dưỡng", tone: "blue" },
-  { day: 2, slot: 0, name: "Trần Thị B", detail: "Mazda 3 - Sửa chữa", tone: "green" },
-  { day: 4, slot: 0, name: "Lê Văn C", detail: "Honda CR-V - Kiểm tra", tone: "blue" },
-  { day: 1, slot: 1, name: "Phạm Quốc H", detail: "Kia Morning - Thay nhớt", tone: "orange" },
-  { day: 3, slot: 1, name: "Đặng Thị K", detail: "Ford Ranger - Lốp", tone: "blue" },
-  { day: 5, slot: 1, name: "Trần Hoàng N", detail: "Hyundai Accent - Bảo dưỡng", tone: "blue" },
-  { day: 0, slot: 2, name: "Hoàng Minh T", detail: "VinFast VF8 - Điện", tone: "green" },
-  { day: 3, slot: 2, name: "Bùi Thanh L", detail: "Lexus RX350 - Thay dầu", tone: "blue" },
-  { day: 1, slot: 3, name: "Lương Anh D", detail: "Toyota Cross - Phanh", tone: "blue" },
-  { day: 4, slot: 3, name: "Vũ Minh H", detail: "Suzuki Swift - Động cơ", tone: "orange" },
-  { day: 2, slot: 4, name: "Phan Văn P", detail: "Mitsubishi Xpander", tone: "blue" },
-];
-
-const TONE: Record<Ev["tone"], string> = {
-  blue: "bg-primary-container/10 border-primary/30 text-primary",
-  green: "bg-tertiary-container/10 border-tertiary/30 text-tertiary",
-  orange: "bg-error-container/10 border-error/30 text-on-error-container",
+const STATUS_TONE: Record<string, string> = {
+  pending: "bg-error-container/10 border-error/30 text-on-error-container",
+  confirmed: "bg-primary-container/10 border-primary/30 text-primary",
+  in_progress: "bg-primary-container/10 border-primary/30 text-primary",
+  completed: "bg-tertiary-container/10 border-tertiary/30 text-tertiary",
 };
 
-const SUMMARY = [
-  { label: "Tổng lịch hẹn", value: "42", delta: "+5%", icon: "calendar_month", tone: "bg-primary-container/10 text-primary" },
-  { label: "Đã hoàn thành", value: "28", delta: "+12%", icon: "check_circle", tone: "bg-tertiary-container/10 text-tertiary" },
-  { label: "Đang chờ", value: "14", delta: "", icon: "schedule", tone: "bg-surface-container text-on-surface-variant" },
-  { label: "Đã hủy", value: "02", delta: "", icon: "cancel", tone: "bg-error-container/10 text-on-error-container" },
-];
+function getWeekDays(): { label: string; iso: string; display: string }[] {
+  const today = new Date();
+  const dow = today.getDay() === 0 ? 7 : today.getDay(); // 1 (Mon) .. 7 (Sun)
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (dow - 1));
+
+  const labels = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
+  return labels.map((label, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const iso = d.toISOString().slice(0, 10);
+    const display = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return { label, iso, display };
+  });
+}
 
 export default function ReceptionSchedulePage({
   onDashboardClick,
@@ -66,12 +55,52 @@ export default function ReceptionSchedulePage({
   onLogout,
 }: ReceptionSchedulePageProps) {
   const [notice, setNotice] = useState("");
+  const [dashboard, setDashboard] = useState<ReceptionDashboard | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const showNotice = (message: string) => {
     setNotice(message);
     window.setTimeout(() => setNotice(""), 3000);
   };
 
-  const evAt = (d: number, s: number) => EVENTS.find((e) => e.day === d && e.slot === s);
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(null);
+    getReceptionDashboard()
+      .then((data) => {
+        if (!cancelled) setDashboard(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setLoadError(
+            err instanceof Error ? err.message : "Không tải được lịch làm việc.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const days = useMemo(() => getWeekDays(), []);
+  const appointments = dashboard?.appointments ?? [];
+
+  const apptAt = (iso: string, slot: string): AppointmentDto | undefined =>
+    appointments.find((a) => a.scheduleDate === iso && a.timeFrame === slot);
+
+  const summary = dashboard
+    ? [
+        { label: "Tổng lịch hẹn", value: dashboard.totalAppointments, icon: "calendar_month", tone: "bg-primary-container/10 text-primary" },
+        { label: "Đã hoàn thành", value: dashboard.completedCount, icon: "check_circle", tone: "bg-tertiary-container/10 text-tertiary" },
+        { label: "Đang chờ", value: dashboard.pendingCount, icon: "schedule", tone: "bg-surface-container text-on-surface-variant" },
+        { label: "Đã hủy", value: dashboard.cancelledCount, icon: "cancel", tone: "bg-error-container/10 text-on-error-container" },
+      ]
+    : [];
 
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
@@ -138,11 +167,15 @@ export default function ReceptionSchedulePage({
             </button>
             <div className="ml-2 flex items-center gap-2 border-l border-outline-variant pl-3">
               <div className="hidden text-right sm:block">
-                <p className="font-label-md text-label-md">Nguyễn Lễ Tân</p>
-                <p className="text-[11px] text-on-surface-variant">Lễ tân</p>
+                <p className="font-label-md text-label-md">
+                  {dashboard?.receptionistName ?? "Lễ tân"}
+                </p>
+                <p className="text-[11px] text-on-surface-variant">
+                  {dashboard?.garageName ?? "Lễ tân"}
+                </p>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
-                L
+                {(dashboard?.receptionistName ?? "L")[0].toUpperCase()}
               </div>
             </div>
           </div>
@@ -156,13 +189,11 @@ export default function ReceptionSchedulePage({
           <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold">Lịch làm việc xưởng</h1>
-              <p className="text-on-surface-variant mt-1">Tuần: 15/06 - 21/06/2024</p>
+              <p className="text-on-surface-variant mt-1">
+                Tuần: {days[0]?.display} - {days[6]?.display}
+              </p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="inline-flex rounded-lg border border-outline-variant bg-surface-container-low p-1">
-                <button className="px-3 py-1.5 text-sm rounded-md bg-primary-container/10 text-primary font-medium">Tuần này</button>
-                <button className="px-3 py-1.5 text-sm rounded-md text-on-surface-variant">Tuần tới</button>
-              </div>
               <button
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors active:scale-[0.98]"
                 onClick={() => {
@@ -176,67 +207,82 @@ export default function ReceptionSchedulePage({
             </div>
           </div>
 
-          <article className="mb-6 rounded-xl border border-outline-variant bg-surface-container-lowest">
-            <div className="p-0 overflow-x-auto">
-              <table className="w-full min-w-[900px] border-collapse">
-                <thead>
-                  <tr className="bg-surface-container-low">
-                    <th className="text-left text-sm font-semibold p-3 border-b border-outline-variant w-32">Khung Giờ</th>
-                    {DAYS.map((d) => (
-                      <th key={d.date} className="text-left text-sm font-semibold p-3 border-b border-outline-variant border-l">
-                        <div>{d.label}</div>
-                        <div className="text-xs font-normal text-on-surface-variant">{d.date}</div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {SLOTS.map((slot, si) => (
-                    <tr key={slot}>
-                      <td className="align-top p-3 border-b border-outline-variant text-sm font-semibold">
-                        {slot.split(" - ")[0]}
-                        <div className="text-xs font-normal text-on-surface-variant">{slot.split(" - ")[1]}</div>
-                      </td>
-                      {DAYS.map((_, di) => {
-                        const e = evAt(di, si);
-                        return (
-                          <td key={di} className="align-top p-2 border-b border-outline-variant border-l h-24">
-                            {e && (
-                              <div className={`rounded-md border-l-4 p-2 text-xs ${TONE[e.tone]}`}>
-                                <div className="flex items-center justify-between gap-1">
-                                  <span className="font-semibold truncate">{e.name}</span>
-                                  <span className="material-symbols-outlined text-sm shrink-0 opacity-70">visibility</span>
-                                </div>
-                                <p className="mt-1 text-[11px] opacity-80">{e.detail}</p>
-                              </div>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </article>
+          {isLoading && (
+            <p className="text-body-sm text-on-surface-variant">Đang tải lịch làm việc...</p>
+          )}
 
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-            {SUMMARY.map((s) => (
-              <article key={s.label} className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
-                <div className="flex items-center gap-3">
-                  <span className={`grid h-11 w-11 place-items-center rounded-lg ${s.tone}`}>
-                    <span className="material-symbols-outlined">{s.icon}</span>
-                  </span>
-                  <div>
-                    <p className="text-sm text-on-surface-variant">{s.label}</p>
-                    <p className="text-2xl font-bold">
-                      {s.value} {s.delta && <span className="text-xs text-tertiary font-medium">{s.delta}</span>}
-                    </p>
-                  </div>
+          {!isLoading && loadError && (
+            <p className="text-body-sm text-error">{loadError}</p>
+          )}
+
+          {!isLoading && !loadError && dashboard && (
+            <>
+              <article className="mb-6 rounded-xl border border-outline-variant bg-surface-container-lowest">
+                <div className="p-0 overflow-x-auto">
+                  <table className="w-full min-w-[900px] border-collapse">
+                    <thead>
+                      <tr className="bg-surface-container-low">
+                        <th className="text-left text-sm font-semibold p-3 border-b border-outline-variant w-32">Khung Giờ</th>
+                        {days.map((d) => (
+                          <th key={d.iso} className="text-left text-sm font-semibold p-3 border-b border-outline-variant border-l">
+                            <div>{d.label}</div>
+                            <div className="text-xs font-normal text-on-surface-variant">{d.display}</div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {SLOTS.map((slot) => (
+                        <tr key={slot}>
+                          <td className="align-top p-3 border-b border-outline-variant text-sm font-semibold">
+                            {slot.split(" - ")[0]}
+                            <div className="text-xs font-normal text-on-surface-variant">{slot.split(" - ")[1]}</div>
+                          </td>
+                          {days.map((d) => {
+                            const appt = apptAt(d.iso, slot);
+                            const tone =
+                              (appt && STATUS_TONE[appt.status.toLowerCase()]) ??
+                              "bg-error-container/10 border-error/30 text-on-error-container";
+                            return (
+                              <td key={d.iso} className="align-top p-2 border-b border-outline-variant border-l h-24">
+                                {appt && (
+                                  <div className={`rounded-md border-l-4 p-2 text-xs ${tone}`}>
+                                    <div className="flex items-center justify-between gap-1">
+                                      <span className="font-semibold truncate">{appt.customerName}</span>
+                                      <span className="material-symbols-outlined text-sm shrink-0 opacity-70">visibility</span>
+                                    </div>
+                                    <p className="mt-1 text-[11px] opacity-80">
+                                      {appt.vehicleModel} - {appt.serviceName}
+                                    </p>
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </article>
-            ))}
-          </div>
+
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                {summary.map((s) => (
+                  <article key={s.label} className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
+                    <div className="flex items-center gap-3">
+                      <span className={`grid h-11 w-11 place-items-center rounded-lg ${s.tone}`}>
+                        <span className="material-symbols-outlined">{s.icon}</span>
+                      </span>
+                      <div>
+                        <p className="text-sm text-on-surface-variant">{s.label}</p>
+                        <p className="text-2xl font-bold">{s.value}</p>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </main>
 

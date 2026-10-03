@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
-import { getAppointmentHistory, type AppointmentDto } from "../../services/api";
+import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCount";
+import {
+  createReview,
+  getAppointmentHistory,
+  requestInvoicePayment,
+  type AppointmentDto,
+} from "../../services/api";
 
 type HistoryPageProps = {
   onHomeClick: () => void;
@@ -61,10 +67,75 @@ export default function HistoryPage({
   onTrackingClick,
 }: HistoryPageProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const unreadNotificationCount = useUnreadNotificationCount();
   const [activeFilter, setActiveFilter] = useState(filters[0].value);
   const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reviewingRecord, setReviewingRecord] = useState<AppointmentDto | null>(null);
+  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
+
+  const showNotice = (msg: string) => {
+    setNotice(msg);
+    window.setTimeout(() => setNotice(""), 3000);
+  };
+
+  const openReview = (record: AppointmentDto) => {
+    setReviewingRecord(record);
+    setReviewRating(5);
+    setReviewComment("");
+    setReviewError(null);
+  };
+
+  const [payingInvoiceId, setPayingInvoiceId] = useState<number | null>(null);
+
+  const payInvoice = (record: AppointmentDto) => {
+    if (!record.invoiceId) return;
+    setPayingInvoiceId(record.invoiceId);
+    requestInvoicePayment(record.invoiceId)
+      .then((res) => {
+        window.location.href = res.paymentUrl;
+      })
+      .catch((err) => {
+        showNotice(
+          err instanceof Error ? err.message : "Không tạo được link thanh toán.",
+        );
+        setPayingInvoiceId(null);
+      });
+  };
+
+  const submitReview = () => {
+    if (!reviewingRecord) return;
+    setIsSubmittingReview(true);
+    setReviewError(null);
+    createReview({
+      appointmentId: reviewingRecord.id,
+      rating: reviewRating,
+      comment: reviewComment.trim() || undefined,
+    })
+      .then(() => {
+        setReviewedIds((prev) => new Set(prev).add(reviewingRecord.id));
+        showNotice("Cảm ơn bạn đã đánh giá dịch vụ!");
+        setReviewingRecord(null);
+      })
+      .catch((err) => {
+        const message =
+          err instanceof Error ? err.message : "Không thể gửi đánh giá.";
+        if (message.toLowerCase().includes("already been reviewed")) {
+          setReviewedIds((prev) => new Set(prev).add(reviewingRecord.id));
+          setReviewingRecord(null);
+          showNotice("Lịch hẹn này đã được đánh giá trước đó.");
+        } else {
+          setReviewError(message);
+        }
+      })
+      .finally(() => setIsSubmittingReview(false));
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -166,7 +237,9 @@ export default function HistoryPage({
           >
             <span className="material-symbols-outlined">notifications</span>
             <span className="font-label-md text-label-md">Thông báo</span>
-            <span className="ml-auto h-2 w-2 rounded-full bg-error" />
+            {unreadNotificationCount > 0 && (
+              <span className="ml-auto h-2 w-2 rounded-full bg-error" />
+            )}
           </button>
           <div className="my-md border-t border-outline-variant opacity-50" />
           <button
@@ -290,7 +363,7 @@ export default function HistoryPage({
                 <table className="w-full border-collapse text-left">
                   <thead className="border-b border-outline-variant bg-surface-container-low">
                     <tr>
-                      {["DỊCH VỤ", "TRẠNG THÁI", "NGÀY HẸN", "GARAGE", "CHI PHÍ"].map(
+                      {["DỊCH VỤ", "TRẠNG THÁI", "NGÀY HẸN", "GARAGE", "CHI PHÍ", ""].map(
                         (heading) => (
                           <th
                             key={heading}
@@ -357,6 +430,45 @@ export default function HistoryPage({
                             {formatCurrency(record.servicePrice)}
                           </span>
                         </td>
+                        <td className="px-xl py-lg text-right">
+                          <div className="flex flex-col items-end gap-xs">
+                            {record.invoicePaymentStatus === "unpaid" && (
+                              <button
+                                type="button"
+                                onClick={() => payInvoice(record)}
+                                disabled={payingInvoiceId === record.invoiceId}
+                                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 font-label-sm text-label-sm text-on-primary hover:opacity-90 disabled:opacity-60"
+                              >
+                                <span className="material-symbols-outlined text-sm">
+                                  payments
+                                </span>
+                                {payingInvoiceId === record.invoiceId ? "Đang tạo link..." : "Thanh toán"}
+                              </button>
+                            )}
+                            {record.invoicePaymentStatus === "paid" && (
+                              <span className="font-label-sm text-label-sm text-tertiary">
+                                Đã thanh toán
+                              </span>
+                            )}
+                            {record.status.toLowerCase() === "completed" &&
+                              (reviewedIds.has(record.id) ? (
+                                <span className="font-label-sm text-label-sm text-tertiary">
+                                  Đã đánh giá
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => openReview(record)}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 font-label-sm text-label-sm text-primary hover:bg-primary hover:text-on-primary"
+                                >
+                                  <span className="material-symbols-outlined text-sm">
+                                    star
+                                  </span>
+                                  Đánh giá
+                                </button>
+                              ))}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -402,6 +514,48 @@ export default function HistoryPage({
                         {formatCurrency(record.servicePrice)}
                       </span>
                     </div>
+                    {record.invoicePaymentStatus === "unpaid" && (
+                      <div className="mt-md">
+                        <button
+                          type="button"
+                          onClick={() => payInvoice(record)}
+                          disabled={payingInvoiceId === record.invoiceId}
+                          className="inline-flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-3 py-2 font-label-sm text-label-sm text-on-primary disabled:opacity-60"
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            payments
+                          </span>
+                          {payingInvoiceId === record.invoiceId ? "Đang tạo link..." : "Thanh toán"}
+                        </button>
+                      </div>
+                    )}
+                    {record.invoicePaymentStatus === "paid" && (
+                      <div className="mt-md">
+                        <span className="font-label-sm text-label-sm text-tertiary">
+                          Đã thanh toán
+                        </span>
+                      </div>
+                    )}
+                    {record.status.toLowerCase() === "completed" && (
+                      <div className="mt-md">
+                        {reviewedIds.has(record.id) ? (
+                          <span className="font-label-sm text-label-sm text-tertiary">
+                            Đã đánh giá
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openReview(record)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 font-label-sm text-label-sm text-primary"
+                          >
+                            <span className="material-symbols-outlined text-sm">
+                              star
+                            </span>
+                            Đánh giá
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </article>
                 ))}
               </div>
@@ -452,6 +606,88 @@ export default function HistoryPage({
           <span className="font-label-sm text-label-sm">Cá nhân</span>
         </button>
       </nav>
+
+      {reviewingRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-lg shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-headline-md text-headline-md">
+                Đánh giá dịch vụ
+              </h3>
+              <button
+                type="button"
+                onClick={() => setReviewingRecord(null)}
+                className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <p className="mt-1 font-body-sm text-body-sm text-on-surface-variant">
+              {reviewingRecord.serviceName} · {reviewingRecord.vehicleModel}
+            </p>
+
+            <div className="mt-lg flex justify-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setReviewRating(star)}
+                  aria-label={`${star} sao`}
+                  className="p-1"
+                >
+                  <span
+                    className="material-symbols-outlined text-3xl"
+                    style={{
+                      fontVariationSettings: star <= reviewRating ? "'FILL' 1" : "'FILL' 0",
+                      color:
+                        star <= reviewRating
+                          ? "var(--color-tertiary)"
+                          : "var(--color-outline-variant)",
+                    }}
+                  >
+                    star
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-lg space-y-sm">
+              <label className="block font-label-md text-label-md text-on-surface-variant">
+                Nhận xét (không bắt buộc)
+              </label>
+              <textarea
+                rows={3}
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Chia sẻ trải nghiệm của bạn về dịch vụ này..."
+                className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 font-body-md text-body-md outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {reviewError && (
+              <p className="mt-3 font-body-sm text-body-sm text-error">{reviewError}</p>
+            )}
+
+            <button
+              type="button"
+              onClick={submitReview}
+              disabled={isSubmittingReview}
+              className="mt-lg w-full rounded-lg bg-primary py-3 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+            >
+              {isSubmittingReview ? "Đang gửi..." : "Gửi đánh giá"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {notice && (
+        <div
+          className="fixed bottom-5 right-5 z-50 rounded-lg bg-inverse-surface px-4 py-3 text-body-sm text-inverse-on-surface shadow-lg"
+          role="status"
+        >
+          {notice}
+        </div>
+      )}
     </div>
   );
 }

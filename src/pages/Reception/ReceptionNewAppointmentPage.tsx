@@ -72,7 +72,7 @@ export default function ReceptionNewAppointmentPage({
         Promise.all([
           dashboard,
           getVehicles(),
-          getAllServices(),
+          getAllServices(dashboard.garageId),
           getAvailableSchedules(dashboard.garageId),
         ]),
       )
