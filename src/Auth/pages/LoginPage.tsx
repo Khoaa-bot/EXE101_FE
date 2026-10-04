@@ -53,10 +53,48 @@ export default function LoginPage({
         </div>
       </header>
 
-      <main className="relative flex flex-1 items-center justify-center overflow-hidden px-margin-mobile pb-12 pt-24 md:px-margin-desktop">
-        <div className="pointer-events-none absolute inset-0 opacity-40" />
+      <main className="grid flex-1 pt-16 lg:grid-cols-2">
+        <div className="relative hidden overflow-hidden bg-[#0b1f3f] lg:block">
+          <img
+            src="/landing/hero-1.jpg"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{ objectPosition: "center 55%" }}
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-xl text-white xl:p-12">
+            <p className="mb-3 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-widest backdrop-blur">
+              Nền tảng chăm sóc xe
+            </p>
+            <h2 className="max-w-[28rem] text-[34px] font-extrabold leading-tight tracking-tight">
+              Chăm sóc xe, dễ như vài cú chạm
+            </h2>
+            <ul className="mt-6 space-y-3">
+              {[
+                ["event_available", "Đặt lịch với garage gần bạn"],
+                ["location_on", "Theo dõi tiến độ sửa xe theo thời gian thực"],
+                ["receipt_long", "Báo giá rõ ràng, thanh toán an tâm"],
+              ].map(([icon, text]) => (
+                <li key={text} className="flex items-center gap-3 text-sm font-medium text-white/95">
+                  <span
+                    aria-hidden="true"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">{icon}</span>
+                  </span>
+                  {text}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
 
-        <section className="relative z-10 w-full max-w-[480px] rounded-xl border border-[#EFEFEF] bg-surface-container-lowest p-8 shadow-[0_4px_20px_rgba(0,0,0,0.05)] md:p-10">
+        <div className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-surface via-surface to-primary-fixed/50 px-margin-mobile py-12 md:px-margin-desktop">
+        <section className="relative z-10 w-full max-w-[480px] rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-8 shadow-[0_24px_60px_-24px_rgba(0,89,187,0.35)] md:p-10">
           <div className="mb-8 text-center">
             <div className="mb-4 flex items-center justify-center gap-2">
               <span
@@ -173,8 +211,9 @@ export default function LoginPage({
           </div>
         </section>
 
-        <div className="pointer-events-none absolute right-[10%] top-1/2 hidden h-96 w-96 -translate-y-1/2 rounded-full bg-primary-fixed opacity-20 blur-3xl xl:block" />
-        <div className="pointer-events-none absolute left-[8%] top-32 hidden h-40 w-40 rounded-full bg-secondary-fixed opacity-30 blur-3xl lg:block" />
+        <div className="pointer-events-none absolute -right-24 top-1/3 h-80 w-80 rounded-full bg-primary-fixed opacity-40 blur-3xl" />
+        <div className="pointer-events-none absolute -left-16 bottom-10 h-48 w-48 rounded-full bg-tertiary-fixed opacity-20 blur-3xl" />
+        </div>
       </main>
 
       <footer className="flex h-12 items-center justify-center border-t border-outline-variant bg-surface-container-lowest px-margin-mobile text-center md:px-margin-desktop">
