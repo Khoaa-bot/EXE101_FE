@@ -53,6 +53,7 @@ const navItems = [
   ["inventory_2", "Kho linh kiện"],
   ["payments", "Bảng giá"],
   ["storefront", "Thông tin garage"],
+  ["account_balance_wallet", "Ví garage"],
 ];
 
 // Backend (AuthService.registerEmployee) chỉ chấp nhận đúng 2 role này khi
@@ -76,6 +77,7 @@ type AdminEngineersPageProps = {
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
   onGarageClick?: () => void;
+  onWalletClick?: () => void;
   onEmployeeDetailClick?: (id: string) => void;
   onLogout?: () => void;
 };
@@ -87,6 +89,7 @@ export default function AdminEngineersPage({
   onInventoryClick,
   onPricingClick,
   onGarageClick,
+  onWalletClick,
   onEmployeeDetailClick,
   onLogout,
 }: AdminEngineersPageProps) {
@@ -279,6 +282,7 @@ export default function AdminEngineersPage({
                   else if (label === "Kho linh kiện") onInventoryClick?.();
                   else if (label === "Bảng giá") onPricingClick?.();
                   else if (label === "Thông tin garage") onGarageClick?.();
+                  else if (label === "Ví garage") onWalletClick?.();
                 }}
               >
                 <span className="material-symbols-outlined">{icon}</span>

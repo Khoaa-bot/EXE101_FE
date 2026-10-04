@@ -53,6 +53,7 @@ const navItems = [
   ["inventory_2", "Kho linh kiện"],
   ["payments", "Bảng giá"],
   ["storefront", "Thông tin garage"],
+  ["account_balance_wallet", "Ví garage"],
 ];
 
 type AdminCustomersPageProps = {
@@ -62,6 +63,7 @@ type AdminCustomersPageProps = {
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
   onGarageClick?: () => void;
+  onWalletClick?: () => void;
   onCustomerDetailClick?: (customer: Customer) => void;
   onLogout?: () => void;
 };
@@ -73,6 +75,7 @@ export default function AdminCustomersPage({
   onInventoryClick,
   onPricingClick,
   onGarageClick,
+  onWalletClick,
   onCustomerDetailClick,
   onLogout,
 }: AdminCustomersPageProps) {
@@ -159,6 +162,7 @@ export default function AdminCustomersPage({
                 else if (label === "Kho linh kiện") onInventoryClick?.();
                 else if (label === "Bảng giá") onPricingClick?.();
                 else if (label === "Thông tin garage") onGarageClick?.();
+                else if (label === "Ví garage") onWalletClick?.();
               }}
             >
               <span className="material-symbols-outlined">{icon}</span>

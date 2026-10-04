@@ -538,7 +538,8 @@ async function apiRequest<T>(
 ): Promise<T> {
   const session = getStoredAuthSession();
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const isForm = body instanceof FormData;
+  if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
   if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
 
   const url = new URL(`${API_BASE_URL}${path}`);
@@ -553,7 +554,7 @@ async function apiRequest<T>(
     response = await fetch(url.toString(), {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
     });
   } catch {
     throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
@@ -1573,6 +1574,8 @@ export type WithdrawalRequestItem = {
   accountHolder: string;
   status: WithdrawalStatus;
   note: string | null;
+  qrImageUrl?: string | null;
+  requesterRole?: string | null;
   processedAt: string | null;
   createdAt: string;
 };
@@ -1582,6 +1585,27 @@ export type WithdrawPayload = {
   bankName: string;
   accountNumber: string;
   accountHolder: string;
+  qrImage?: File | null;
+};
+
+export type WithdrawalEligibility = {
+  eligible: boolean;
+  nextAvailableAt: string | null;
+  message: string | null;
+};
+
+// Yêu cầu rút tiền dưới góc nhìn admin: kèm thông tin người yêu cầu.
+export type WithdrawalAdminItem = WithdrawalRequestItem & {
+  requesterName: string | null;
+  requesterPhone: string | null;
+  requesterEmail: string | null;
+  garageName: string | null;
+  processedById: number | null;
+};
+
+export type WithdrawalAdminFilter = {
+  status?: WithdrawalStatus | "ALL";
+  requesterType?: "customer" | "garage";
 };
 
 // GET /api/payment/wallet-summary — số dư và tổng nạp/chi/nhận.
@@ -1597,9 +1621,52 @@ export function getWalletHistory() {
 // POST /api/payment/withdraw — tạo yêu cầu rút tiền; tiền bị giữ khỏi ví ngay
 // và admin sẽ chuyển khoản thủ công.
 export function requestWithdrawal(payload: WithdrawPayload) {
+  const formData = new FormData();
+  formData.append("amount", String(payload.amount));
+  formData.append("bankName", payload.bankName);
+  formData.append("accountNumber", payload.accountNumber);
+  formData.append("accountHolder", payload.accountHolder);
+  if (payload.qrImage) formData.append("qrImage", payload.qrImage);
   return apiRequest<WithdrawalRequestItem>("/payment/withdraw", {
     method: "POST",
-    body: payload,
+    body: formData,
+  });
+}
+
+// GET /api/payment/withdrawal-eligibility — garage chỉ được rút 1 lần/7 ngày.
+export function getWithdrawalEligibility() {
+  return apiRequest<WithdrawalEligibility>("/payment/withdrawal-eligibility");
+}
+
+// GET /api/admin/withdrawals — danh sách yêu cầu rút tiền (admin).
+export function getAdminWithdrawals(filter: WithdrawalAdminFilter = {}) {
+  return apiRequest<WithdrawalAdminItem[]>("/admin/withdrawals", {
+    query: {
+      status: filter.status === "ALL" ? undefined : filter.status,
+      requesterType: filter.requesterType,
+    },
+  });
+}
+
+// GET /api/admin/withdrawals/pending-count — số yêu cầu đang chờ.
+export async function getPendingWithdrawalCount() {
+  const result = await apiRequest<{ count: number }>("/admin/withdrawals/pending-count");
+  return result.count;
+}
+
+// PUT /api/admin/withdrawals/{id}/complete — xác nhận đã chuyển khoản (note = mã giao dịch, tuỳ chọn).
+export function completeWithdrawal(id: number, note?: string) {
+  return apiRequest<WithdrawalAdminItem>(`/admin/withdrawals/${id}/complete`, {
+    method: "PUT",
+    body: { note: note?.trim() || null },
+  });
+}
+
+// PUT /api/admin/withdrawals/{id}/reject — từ chối, tiền hoàn lại ví.
+export function rejectWithdrawal(id: number, reason: string) {
+  return apiRequest<WithdrawalAdminItem>(`/admin/withdrawals/${id}/reject`, {
+    method: "PUT",
+    body: { note: reason.trim() },
   });
 }
 

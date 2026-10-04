@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getMyWithdrawals,
+  getWithdrawalEligibility,
   getWalletHistory,
   getWalletSummary,
   requestWalletTopUp,
   requestWithdrawal,
   type WalletSummary,
   type WalletTransactionItem,
+  type WithdrawalEligibility,
   type WithdrawalRequestItem,
 } from "../../services/api";
 import { formatVnd } from "../../utils/format";
@@ -14,6 +16,7 @@ import { formatVnd } from "../../utils/format";
 const TOP_UP_MIN = 10000;
 const WITHDRAW_MIN = 50000;
 const WITHDRAW_MAX = 50000000;
+const QR_MAX_BYTES = 5 * 1024 * 1024;
 const QUICK_AMOUNTS = [50000, 100000, 200000, 500000];
 
 // Loại giao dịch -> nhãn, icon và chiều tiền (+ vào ví, - ra khỏi ví).
@@ -68,13 +71,41 @@ export default function WalletPage() {
   const [accountHolder, setAccountHolder] = useState("");
   const [isWithdrawSubmitting, setIsWithdrawSubmitting] = useState(false);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const [qrImage, setQrImage] = useState<File | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [eligibility, setEligibility] = useState<WithdrawalEligibility | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const qrPreview = useMemo(() => (qrImage ? URL.createObjectURL(qrImage) : null), [qrImage]);
+  useEffect(() => {
+    return () => {
+      if (qrPreview) URL.revokeObjectURL(qrPreview);
+    };
+  }, [qrPreview]);
+
+  const pickQr = (file: File | null) => {
+    setQrError(null);
+    if (!file) {
+      setQrImage(null);
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setQrError("Chỉ nhận ảnh JPG, PNG hoặc WebP.");
+      return;
+    }
+    if (file.size > QR_MAX_BYTES) {
+      setQrError("Ảnh QR tối đa 5 MB.");
+      return;
+    }
+    setQrImage(file);
+  };
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getWalletSummary(), getWalletHistory(), getMyWithdrawals()])
-      .then(([summaryData, historyData, withdrawalData]) => {
+    Promise.all([getWalletSummary(), getWalletHistory(), getMyWithdrawals(), getWithdrawalEligibility()])
+      .then(([summaryData, historyData, withdrawalData, eligibilityData]) => {
         if (cancelled) return;
+        setEligibility(eligibilityData);
         setSummary(summaryData);
         setHistory(historyData);
         setWithdrawals(withdrawalData);
@@ -94,11 +125,13 @@ export default function WalletPage() {
 
   const refresh = async () => {
     try {
-      const [summaryData, historyData, withdrawalData] = await Promise.all([
+      const [summaryData, historyData, withdrawalData, eligibilityData] = await Promise.all([
         getWalletSummary(),
         getWalletHistory(),
         getMyWithdrawals(),
+        getWithdrawalEligibility(),
       ]);
+      setEligibility(eligibilityData);
       setSummary(summaryData);
       setHistory(historyData);
       setWithdrawals(withdrawalData);
@@ -135,6 +168,7 @@ export default function WalletPage() {
           : null;
   const canWithdraw =
     !isWithdrawSubmitting &&
+    eligibility?.eligible !== false &&
     withdrawAmount !== "" &&
     withdrawAmountError === null &&
     bankName.trim().length >= 2 &&
@@ -151,8 +185,10 @@ export default function WalletPage() {
         bankName: bankName.trim(),
         accountNumber: accountNumber.trim(),
         accountHolder: accountHolder.trim(),
+        qrImage,
       });
       setWithdrawAmount("");
+      setQrImage(null);
       setNotice("Đã gửi yêu cầu rút tiền. Số tiền được giữ lại và sẽ chuyển về tài khoản của bạn sau khi được duyệt.");
       await refresh();
     } catch (err) {
@@ -331,6 +367,38 @@ export default function WalletPage() {
                       className={inputClass}
                     />
                   </div>
+                  <div>
+                    <label className="mb-1 block font-label-md text-label-md text-on-surface-variant">
+                      Ảnh mã QR ngân hàng (không bắt buộc)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(event) => {
+                        pickQr(event.target.files?.[0] ?? null);
+                        event.target.value = "";
+                      }}
+                      className="block w-full text-sm text-on-surface-variant file:mr-3 file:rounded-lg file:border-0 file:bg-surface-container file:px-4 file:py-2 file:font-label-md"
+                    />
+                    {qrError && <p className="mt-1 text-sm text-error">{qrError}</p>}
+                    {qrPreview && (
+                      <div className="mt-2 flex items-center gap-3">
+                        <img
+                          src={qrPreview}
+                          alt="QR đã chọn"
+                          className="h-24 w-24 rounded-lg border border-outline-variant object-contain"
+                        />
+                        <button type="button" onClick={() => setQrImage(null)} className="text-sm text-error">
+                          Bỏ ảnh
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {eligibility && !eligibility.eligible && (
+                    <p className="rounded-lg bg-error-container/10 p-3 text-sm text-error">
+                      {eligibility.message ?? "Hiện chưa thể tạo thêm yêu cầu rút tiền."}
+                    </p>
+                  )}
                   <p className="text-xs text-on-surface-variant">
                     Số tiền được giữ lại ngay khi gửi yêu cầu và chuyển về tài khoản của bạn sau khi quản trị
                     viên duyệt (thường trong 1–2 ngày làm việc). Nếu yêu cầu bị từ chối, tiền sẽ được hoàn lại
@@ -375,6 +443,16 @@ export default function WalletPage() {
                             {status.label}
                           </span>
                         </div>
+                        {item.qrImageUrl && (
+                          <a
+                            href={item.qrImageUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-block text-xs text-primary underline"
+                          >
+                            Xem ảnh QR đã gửi
+                          </a>
+                        )}
                         {item.note && (
                           <p className="mt-2 text-xs text-on-surface-variant">Ghi chú: {item.note}</p>
                         )}

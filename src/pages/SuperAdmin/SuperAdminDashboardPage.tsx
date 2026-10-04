@@ -1,10 +1,11 @@
-import { useState } from "react";
-import type { SuperAdminUser } from "../../services/api";
+import { useCallback, useEffect, useState } from "react";
+import { getPendingWithdrawalCount, type SuperAdminUser } from "../../services/api";
 import SuperAdminAppointmentsTab from "./SuperAdminAppointmentsTab";
 import SuperAdminCustomersTab from "./SuperAdminCustomersTab";
 import SuperAdminGaragesTab from "./SuperAdminGaragesTab";
+import SuperAdminWithdrawalsTab from "./SuperAdminWithdrawalsTab";
 
-type TabKey = "customers" | "garages" | "appointments";
+type TabKey = "customers" | "garages" | "appointments" | "withdrawals";
 
 const TABS: { key: TabKey; icon: string; label: string; description: string }[] = [
   {
@@ -24,6 +25,12 @@ const TABS: { key: TabKey; icon: string; label: string; description: string }[] 
     icon: "event_note",
     label: "Lịch sử đặt lịch",
     description: "Toàn bộ lịch hẹn của khách trên mọi garage (chỉ xem).",
+  },
+  {
+    key: "withdrawals",
+    icon: "payments",
+    label: "Yêu cầu chuyển tiền",
+    description: "Yêu cầu rút tiền của khách hàng và garage: chuyển khoản thủ công rồi bấm xác nhận.",
   },
 ];
 
@@ -51,6 +58,17 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
   const [tab, setTab] = useState<TabKey>("customers");
   const [appointmentCustomer, setAppointmentCustomer] = useState<{ id: number; name: string } | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState(0);
+
+  const refreshPending = useCallback(() => {
+    getPendingWithdrawalCount()
+      .then(setPendingWithdrawals)
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    refreshPending();
+  }, [refreshPending]);
 
   const notify = (message: string, type: Notice["type"] = "success") => {
     setNotice({ type, message: type === "error" ? translateError(message) : message });
@@ -88,6 +106,11 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
             >
               <span className="material-symbols-outlined">{t.icon}</span>
               {t.label}
+              {t.key === "withdrawals" && pendingWithdrawals > 0 && (
+                <span className="ml-auto rounded-full bg-error px-2 py-0.5 text-[11px] font-bold text-on-error">
+                  {pendingWithdrawals}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -118,6 +141,7 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
                 }`}
               >
                 {t.label}
+                {t.key === "withdrawals" && pendingWithdrawals > 0 ? ` (${pendingWithdrawals})` : ""}
               </button>
             ))}
             {onLogout && (
@@ -141,6 +165,9 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
               <SuperAdminCustomersTab notify={notify} onViewAppointments={viewAppointmentsOf} />
             )}
             {tab === "garages" && <SuperAdminGaragesTab notify={notify} />}
+            {tab === "withdrawals" && (
+              <SuperAdminWithdrawalsTab notify={notify} onChanged={refreshPending} />
+            )}
             {tab === "appointments" && (
               <SuperAdminAppointmentsTab
                 key={appointmentCustomer?.id ?? "all"}
