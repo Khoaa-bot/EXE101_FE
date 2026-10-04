@@ -142,6 +142,8 @@ export default function WalletPage() {
   };
 
   const canTopUpRole = summary?.role === "customer";
+  // Super Admin là bên nhận hoa hồng, không rút tiền về tài khoản nào: ẩn form và danh sách yêu cầu rút.
+  const isAdmin = summary?.role === "admin";
   const activeTab = canTopUpRole ? tab : "withdraw";
 
   const topUpValue = Number(topUpAmount);
@@ -263,6 +265,7 @@ export default function WalletPage() {
               </div>
             )}
 
+            {!isAdmin && (
             <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg">
               {canTopUpRole && (
               <div className="mb-lg inline-flex rounded-lg border border-outline-variant bg-surface-container-low p-1">
@@ -436,8 +439,9 @@ export default function WalletPage() {
                 </form>
               )}
             </section>
+            )}
 
-            {withdrawals.length > 0 && (
+            {withdrawals.length > 0 && !isAdmin && (
               <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg">
                 <h2 className="mb-md font-headline-md text-headline-md">Yêu cầu rút tiền</h2>
                 <ul className="space-y-3">
