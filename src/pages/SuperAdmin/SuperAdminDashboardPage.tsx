@@ -3,9 +3,10 @@ import { getPendingWithdrawalCount, type SuperAdminUser } from "../../services/a
 import SuperAdminAppointmentsTab from "./SuperAdminAppointmentsTab";
 import SuperAdminCustomersTab from "./SuperAdminCustomersTab";
 import SuperAdminGaragesTab from "./SuperAdminGaragesTab";
+import SuperAdminWalletTab from "./SuperAdminWalletTab";
 import SuperAdminWithdrawalsTab from "./SuperAdminWithdrawalsTab";
 
-type TabKey = "customers" | "garages" | "appointments" | "withdrawals";
+type TabKey = "customers" | "garages" | "appointments" | "withdrawals" | "wallet";
 
 const TABS: { key: TabKey; icon: string; label: string; description: string }[] = [
   {
@@ -31,6 +32,12 @@ const TABS: { key: TabKey; icon: string; label: string; description: string }[] 
     icon: "payments",
     label: "Yêu cầu chuyển tiền",
     description: "Yêu cầu rút tiền của khách hàng và garage: chuyển khoản thủ công rồi bấm xác nhận.",
+  },
+  {
+    key: "wallet",
+    icon: "account_balance_wallet",
+    label: "Ví nền tảng",
+    description: "Hoa hồng đã nhận, tiền đang giữ hộ khách và đối soát tiền vào/ra.",
   },
 ];
 
@@ -168,6 +175,7 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
             {tab === "withdrawals" && (
               <SuperAdminWithdrawalsTab notify={notify} onChanged={refreshPending} />
             )}
+            {tab === "wallet" && <SuperAdminWalletTab />}
             {tab === "appointments" && (
               <SuperAdminAppointmentsTab
                 key={appointmentCustomer?.id ?? "all"}

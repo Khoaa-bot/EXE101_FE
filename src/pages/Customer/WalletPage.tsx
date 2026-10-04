@@ -141,6 +141,9 @@ export default function WalletPage() {
     }
   };
 
+  const canTopUpRole = summary?.role === "customer";
+  const activeTab = canTopUpRole ? tab : "withdraw";
+
   const topUpValue = Number(topUpAmount);
   const canTopUp = !isTopUpSubmitting && Number.isInteger(topUpValue) && topUpValue >= TOP_UP_MIN;
 
@@ -225,14 +228,29 @@ export default function WalletPage() {
                 {formatVnd(summary.balance)}
               </p>
               <div className="mt-lg grid grid-cols-2 gap-md text-sm">
-                <div className="rounded-lg bg-white/10 p-md">
-                  <p className="opacity-80">Tổng đã nạp</p>
-                  <p className="mt-1 font-bold">{formatVnd(summary.totalTopUp)}</p>
-                </div>
-                <div className="rounded-lg bg-white/10 p-md">
-                  <p className="opacity-80">Tổng đã chi</p>
-                  <p className="mt-1 font-bold">{formatVnd(summary.totalSpent)}</p>
-                </div>
+                {canTopUpRole ? (
+                  <>
+                    <div className="rounded-lg bg-white/10 p-md">
+                      <p className="opacity-80">Tổng đã nạp</p>
+                      <p className="mt-1 font-bold">{formatVnd(summary.totalTopUp)}</p>
+                    </div>
+                    <div className="rounded-lg bg-white/10 p-md">
+                      <p className="opacity-80">Tổng đã chi</p>
+                      <p className="mt-1 font-bold">{formatVnd(summary.totalSpent)}</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-lg bg-white/10 p-md">
+                    <p className="opacity-80">Tổng đã nhận</p>
+                    <p className="mt-1 font-bold">{formatVnd(summary.totalEarned)}</p>
+                  </div>
+                )}
+                {(summary.heldAmount ?? 0) > 0 && (
+                  <div className="rounded-lg bg-white/10 p-md" data-testid="wallet-held">
+                    <p className="opacity-80">{canTopUpRole ? "Đang giữ cho lịch hẹn" : "Chờ bàn giao xe"}</p>
+                    <p className="mt-1 font-bold">{formatVnd(summary.heldAmount ?? 0)}</p>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -246,6 +264,7 @@ export default function WalletPage() {
             )}
 
             <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg">
+              {canTopUpRole && (
               <div className="mb-lg inline-flex rounded-lg border border-outline-variant bg-surface-container-low p-1">
                 {(["topup", "withdraw"] as const).map((key) => (
                   <button
@@ -262,8 +281,9 @@ export default function WalletPage() {
                   </button>
                 ))}
               </div>
+              )}
 
-              {tab === "topup" && (
+              {activeTab === "topup" && (
                 <form
                   className="space-y-md"
                   onSubmit={(event) => {
@@ -306,7 +326,7 @@ export default function WalletPage() {
                 </form>
               )}
 
-              {tab === "withdraw" && (
+              {activeTab === "withdraw" && (
                 <form
                   className="space-y-md"
                   onSubmit={(event) => {

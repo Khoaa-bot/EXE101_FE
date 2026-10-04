@@ -1559,6 +1559,7 @@ export type WalletSummary = {
   totalTopUp: number;
   totalSpent: number;
   totalEarned: number;
+  heldAmount?: number;
 };
 
 export type WalletTransactionItem = {
@@ -1619,6 +1620,23 @@ export type WithdrawalAdminFilter = {
   status?: WithdrawalStatus | "ALL";
   requesterType?: "customer" | "garage";
 };
+
+export type PlatformWallet = {
+  balance: number;
+  totalCommission: number;
+  heldForCustomers: number;
+  pendingWithdrawals: number;
+  totalUserBalances: number;
+  cashInViaPayos: number;
+  cashOutWithdrawals: number;
+  difference: number;
+  balanced: boolean;
+};
+
+// GET /api/admin/platform-wallet — ví nền tảng và đối soát (Super Admin).
+export function getPlatformWallet() {
+  return apiRequest<PlatformWallet>("/admin/platform-wallet");
+}
 
 // GET /api/payment/wallet-summary — số dư và tổng nạp/chi/nhận.
 export function getWalletSummary() {
