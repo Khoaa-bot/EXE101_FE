@@ -25,6 +25,7 @@ const SLIDES = [
     title: "Chăm sóc xe chuyên nghiệp,",
     highlight: "đặt lịch chỉ trong vài phút",
     text: "Chọn garage gần bạn, chọn khung giờ phù hợp và nhận xác nhận ngay trên điện thoại.",
+    image: "/landing/hero-1.png",
     car: "#d62828",
     glow: "rgba(214, 40, 40, 0.35)",
   },
@@ -32,6 +33,7 @@ const SLIDES = [
     title: "Theo dõi tiến độ sửa xe",
     highlight: "rõ ràng từng bước",
     text: "Từ lúc nhận xe, kiểm tra, báo giá đến khi hoàn tất đều cập nhật trực tiếp cho bạn.",
+    image: "/landing/hero-2.png",
     car: "#0a6fe0",
     glow: "rgba(10, 111, 224, 0.4)",
   },
@@ -39,6 +41,7 @@ const SLIDES = [
     title: "Báo giá minh bạch,",
     highlight: "thanh toán an tâm",
     text: "Mọi hạng mục và chi phí được liệt kê trước khi bạn đồng ý, không phát sinh bất ngờ.",
+    image: "/landing/hero-3.png",
     car: "#e8eaed",
     glow: "rgba(200, 210, 230, 0.35)",
   },
@@ -164,6 +167,17 @@ export default function LandingPage({
             }`}
           >
             <CarScene color={item.car} glow={item.glow} />
+            {/* Ảnh thật đặt trong public/landing/; thiếu file thì giữ hình vẽ phía dưới. */}
+            <img
+              src={item.image}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover object-[center_62%]"
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-black/10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/40" />
           </div>
         ))}
 
