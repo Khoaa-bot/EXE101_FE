@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import {
   getAdminEmployees,
   getReceptionDashboard,
+  getWalletSummary,
   type AdminEmployee,
   type AppointmentDto,
   type ReceptionDashboard,
+  type WalletSummary,
 } from "../../services/api";
 
 const navItems = [
@@ -50,6 +52,7 @@ export default function AdminDashboardPage({
   const [notice, setNotice] = useState("");
   const [dashboard, setDashboard] = useState<ReceptionDashboard | null>(null);
   const [employees, setEmployees] = useState<AdminEmployee[]>([]);
+  const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -77,6 +80,12 @@ export default function AdminDashboardPage({
       .finally(() => {
         if (!cancelled) setIsLoading(false);
       });
+    // Ví không chặn dashboard: lỗi thì chỉ ẩn thẻ số dư.
+    getWalletSummary()
+      .then((data) => {
+        if (!cancelled) setWallet(data);
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -87,7 +96,7 @@ export default function AdminDashboardPage({
   const totalRevenue = useMemo(
     () =>
       appointments
-        .filter((a) => a.status === "completed")
+        .filter((a) => a.status === "completed" || a.status === "successful")
         .reduce((sum, a) => sum + (a.servicePrice ?? 0), 0),
     [appointments],
   );
@@ -211,8 +220,9 @@ export default function AdminDashboardPage({
 
           {!isLoading && !loadError && dashboard && (
             <>
-              <section className="mb-6 grid gap-4 lg:grid-cols-5">
+              <section className="mb-6 grid gap-4 lg:grid-cols-6">
                 <RevenueCard total={totalRevenue} />
+                <WalletCard wallet={wallet} onWalletClick={onWalletClick} />
                 <StatCard
                   icon="event_available"
                   label="Tổng lịch hẹn"
@@ -267,6 +277,38 @@ export default function AdminDashboardPage({
         </div>
       )}
     </div>
+  );
+}
+
+function WalletCard({
+  wallet,
+  onWalletClick,
+}: {
+  wallet: WalletSummary | null;
+  onWalletClick?: () => void;
+}) {
+  return (
+    <article className="rounded-xl border border-outline-variant bg-surface-container-lowest">
+      <div className="p-5">
+        <p className="font-label-md text-label-md text-on-surface-variant">SỐ DƯ VÍ GARAGE</p>
+        <p className="mt-2 font-display-lg text-display-lg" data-testid="garage-wallet-balance">
+          {wallet ? formatPrice(wallet.balance) : "..."}
+        </p>
+        <p className="mt-1 text-xs text-on-surface-variant">
+          Đã nhận tổng cộng {formatPrice(wallet?.totalEarned ?? 0)}
+        </p>
+        {onWalletClick && (
+          <button
+            type="button"
+            onClick={onWalletClick}
+            className="mt-3 inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 font-label-md text-label-md text-primary hover:bg-primary-container/10"
+          >
+            <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+            Xem ví &amp; rút tiền
+          </button>
+        )}
+      </div>
+    </article>
   );
 }
 
