@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
 @import "tailwindcss";
 
@@ -74,15 +74,15 @@
   --spacing-margin-mobile: 16px;
   --spacing-margin-desktop: 32px;
 
-  --font-sans: Geist, ui-sans-serif, system-ui, sans-serif;
-  --font-display-lg: Geist, ui-sans-serif, system-ui, sans-serif;
-  --font-label-sm: Geist, ui-sans-serif, system-ui, sans-serif;
-  --font-headline-lg-mobile: Geist, ui-sans-serif, system-ui, sans-serif;
-  --font-body-md: Geist, ui-sans-serif, system-ui, sans-serif;
-  --font-body-lg: Geist, ui-sans-serif, system-ui, sans-serif;
-  --font-headline-md: Geist, ui-sans-serif, system-ui, sans-serif;
-  --font-headline-lg: Geist, ui-sans-serif, system-ui, sans-serif;
-  --font-label-md: Geist, ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-display-lg: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-label-sm: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-headline-lg-mobile: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-body-md: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-body-lg: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-headline-md: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-headline-lg: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-label-md: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
 
   --text-display-lg: 32px;
   --text-display-lg--line-height: 40px;
@@ -114,7 +114,8 @@
 body {
   min-height: max(884px, 100dvh);
   margin: 0;
-  background: var(--color-background);
+  background: linear-gradient(180deg, #e8f0ff 0, var(--color-background) 360px)
+    no-repeat var(--color-background);
   color: var(--color-on-surface);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -166,4 +167,111 @@ button {
   margin-left: 0 !important;
   min-height: auto !important;
   padding: 0 !important;
+}
+
+/* ---- UI polish: shared look for every role (customer, reception, engineer, admin) ---- */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer base {
+  :focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  main {
+    animation: page-in 0.35s ease-out both;
+  }
+}
+
+@layer components {
+  /* Cards: soft depth instead of flat borders */
+  :is(.rounded-xl, .rounded-2xl, .rounded-3xl).bg-surface-container-lowest {
+    box-shadow: 0 10px 26px -14px rgb(25 28 29 / 0.28);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  :is(button, a, [role="button"]):is(.rounded-xl, .rounded-2xl, .rounded-3xl).bg-surface-container-lowest:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px -14px rgb(25 28 29 / 0.35);
+  }
+
+  /* Primary actions: gradient + glow */
+  :is(button, a).bg-primary:not(:disabled) {
+    background-image: linear-gradient(
+      135deg,
+      var(--color-primary),
+      var(--color-primary-container)
+    );
+    box-shadow: 0 10px 18px -10px rgb(0 89 187 / 0.8);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  }
+
+  :is(button, a).bg-primary:not(:disabled):hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+  }
+
+  /* Sticky headers and bars: frosted glass */
+  header.sticky,
+  header.fixed,
+  nav.fixed,
+  footer.fixed {
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+
+  /* Side navigation: gentle shadow separating it from content */
+  aside {
+    box-shadow: 12px 0 30px -24px rgb(25 28 29 / 0.35);
+  }
+
+  /* Status and info chips read as pills */
+  .rounded-full.px-3.py-1,
+  .rounded-full.px-2.py-1 {
+    font-weight: 600;
+  }
+
+  /* Tables and lists: row hover for easier scanning */
+  tbody tr {
+    transition: background-color 0.15s ease;
+  }
+  tbody tr:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 5%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Active item in every role's side navigation (customer, reception, engineer, admin) */
+aside nav :is(button, a)[class*="bg-primary-container/"],
+aside nav :is(button, a)[class*="bg-secondary-container"] {
+  background-image: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-primary-container)
+  );
+  color: var(--color-on-primary);
+  box-shadow: 0 10px 18px -10px rgb(0 89 187 / 0.8);
+}
+
+aside nav :is(button, a):not([class*="bg-primary-container/"]):not([class*="bg-secondary-container"]):hover {
+  color: var(--color-primary);
 }

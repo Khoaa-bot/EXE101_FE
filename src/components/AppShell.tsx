@@ -111,11 +111,12 @@ export default function AppShell({
             return (
               <button
                 key={item.section}
-                className={`flex w-full items-center gap-md rounded-lg px-md py-sm text-left transition-all ${
+                className={`flex min-h-11 w-full items-center gap-md rounded-xl px-md py-sm text-left transition-all ${
                   isActive
-                    ? "bg-primary-container/20 text-primary"
-                    : "text-on-surface-variant hover:bg-on-surface-variant/10"
+                    ? "bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-lg shadow-primary/30"
+                    : "text-on-surface-variant hover:bg-primary-fixed/50 hover:text-primary"
                 }`}
+                aria-current={isActive ? "page" : undefined}
                 type="button"
                 onClick={() => handleNavigate(item.section)}
               >
@@ -181,7 +182,7 @@ export default function AppShell({
           isDesktopSidebarOpen ? "md:ml-60" : "md:ml-0"
         }`}
       >
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-outline-variant bg-surface px-margin-mobile md:px-xl">
+        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-outline-variant/60 bg-surface/80 px-margin-mobile backdrop-blur-md md:px-xl">
           <div className="flex items-center gap-3">
             <button
               className="-ml-2 rounded-full p-2 text-on-surface-variant transition-colors active:bg-surface-container"
@@ -226,8 +227,9 @@ export default function AppShell({
               </button>
             )}
             <button
-              className="relative flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high"
+              className="relative flex h-11 w-11 items-center justify-center rounded-full bg-surface-container-lowest text-on-surface-variant shadow-md shadow-on-surface/10 hover:bg-surface-container-high"
               type="button"
+              aria-label="Thông báo"
               onClick={onNotificationsClick}
             >
               <span className="material-symbols-outlined">notifications</span>
