@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import AppointmentChat from "../../components/AppointmentChat";
 import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
+import { formatVnd } from "../../utils/format";
 import {
   cancelAppointment,
   decideExtraAsCustomer,
@@ -476,7 +477,9 @@ export default function TrackingPage({
                       disabled={isPaying}
                       className="w-full rounded-lg bg-primary py-3 font-label-md text-label-md text-on-primary transition hover:opacity-90 disabled:opacity-50"
                     >
-                      {isPaying ? "Đang chuyển sang trang thanh toán..." : "Thanh toán online"}
+                      {isPaying
+                        ? "Đang chuyển sang trang thanh toán..."
+                        : `Thanh toán online${appointment.amountDue ? ` ${formatVnd(appointment.amountDue)}` : ""}`}
                     </button>
                     <p className="text-center text-xs text-on-surface-variant">
                       Hoặc thanh toán tiền mặt tại quầy lễ tân khi nhận xe.

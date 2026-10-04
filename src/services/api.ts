@@ -466,6 +466,8 @@ export type AppointmentDto = {
   extras?: AppointmentExtra[];
   parts?: AppointmentPart[];
   totalAmount?: number;
+  amountPaid?: number;
+  amountDue?: number;
   garagePhone?: string | null;
 };
 
@@ -1148,6 +1150,8 @@ export type SuperAdminGarage = {
   ownerName: string | null;
   employeeCount: number;
   appointmentCount: number;
+  commissionRate: number | null;
+  effectiveCommissionRate: number;
   createdAt: string;
 };
 
@@ -1253,6 +1257,14 @@ export function setGarageHidden(garageId: number | string, hidden: boolean) {
   return apiRequest<SuperAdminGarage>(`/admin/garages/${garageId}/hidden`, {
     method: "PUT",
     body: { hidden },
+  });
+}
+
+// PUT /api/admin/garages/{id}/commission — hoa hồng riêng của garage (%); null = dùng mặc định.
+export function setGarageCommission(garageId: number | string, commissionPercent: number | null) {
+  return apiRequest<SuperAdminGarage>(`/admin/garages/${garageId}/commission`, {
+    method: "PUT",
+    body: { commissionPercent },
   });
 }
 

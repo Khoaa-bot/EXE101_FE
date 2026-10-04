@@ -25,6 +25,7 @@ const TRANSACTION_META: Record<string, { label: string; icon: string; sign: 1 | 
   PAYMENT: { label: "Thanh toán dịch vụ", icon: "shopping_bag", sign: -1 },
   RECEIVE_PAYMENT: { label: "Nhận thanh toán", icon: "payments", sign: 1 },
   COMMISSION: { label: "Hoa hồng", icon: "percent", sign: 1 },
+  COMMISSION_DEBIT: { label: "Trừ hoa hồng tiền mặt", icon: "percent", sign: -1 },
   REFUND: { label: "Hoàn tiền", icon: "undo", sign: 1 },
   WITHDRAW: { label: "Rút tiền", icon: "account_balance", sign: -1 },
   WITHDRAW_REFUND: { label: "Hoàn tiền rút", icon: "undo", sign: 1 },

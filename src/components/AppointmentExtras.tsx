@@ -108,13 +108,16 @@ export function CostBreakdown({ appointment }: { appointment: AppointmentDto }) 
       </div>
 
       {appointment.invoicePaymentStatus && (
-        <p
-          className={`text-right text-xs font-semibold ${
-            appointment.invoicePaymentStatus === "paid" ? "text-tertiary" : "text-error"
-          }`}
-        >
-          {appointment.invoicePaymentStatus === "paid" ? "Đã thanh toán" : "Chưa thanh toán"}
-        </p>
+        <div className="space-y-0.5 text-right text-xs font-semibold">
+          {(appointment.amountPaid ?? 0) > 0 && (
+            <p className="text-tertiary">Đã thanh toán {formatVnd(appointment.amountPaid ?? 0)}</p>
+          )}
+          {(appointment.amountDue ?? 0) > 0 ? (
+            <p className="text-error">Còn phải trả {formatVnd(appointment.amountDue ?? 0)}</p>
+          ) : (
+            <p className="text-tertiary">Đã thanh toán đủ</p>
+          )}
+        </div>
       )}
     </div>
   );

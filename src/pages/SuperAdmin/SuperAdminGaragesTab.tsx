@@ -3,6 +3,7 @@ import {
   createGarage,
   createGarageOwner,
   getAdminGarages,
+  setGarageCommission,
   setGarageHidden,
   setGarageStatus,
   type SuperAdminGarage,
@@ -91,6 +92,29 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
         notify(blocking ? `Đã chặn garage ${garage.name}.` : `Đã mở chặn garage ${garage.name}.`);
       })
       .catch((err) => notify(err instanceof Error ? err.message : "Không cập nhật được trạng thái garage.", "error"))
+      .finally(() => setBusyId(null));
+  };
+
+  const editCommission = (garage: SuperAdminGarage) => {
+    const current = Math.round(garage.effectiveCommissionRate * 1000) / 10;
+    const input = window.prompt(
+      `Hoa hồng nền tảng thu của "${garage.name}" (%, từ 0 đến 50). Để trống để dùng mức mặc định. Áp dụng cho các lịch bàn giao từ bây giờ.`,
+      String(current),
+    );
+    if (input === null) return;
+    const trimmed = input.trim();
+    const percent = trimmed === "" ? null : Number(trimmed.replace(",", "."));
+    if (percent !== null && (!Number.isFinite(percent) || percent < 0 || percent > 50)) {
+      notify("Hoa hồng phải là số từ 0 đến 50.", "error");
+      return;
+    }
+    setBusyId(garage.id);
+    setGarageCommission(garage.id, percent)
+      .then((updated) => {
+        applyUpdate(updated);
+        notify(`Hoa hồng của ${garage.name} là ${Math.round(updated.effectiveCommissionRate * 1000) / 10}%.`);
+      })
+      .catch((err) => notify(err instanceof Error ? err.message : "Không cập nhật được hoa hồng.", "error"))
       .finally(() => setBusyId(null));
   };
 
@@ -201,6 +225,7 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
                 <th className="px-4 py-3 font-medium">Admin Garage</th>
                 <th className="px-4 py-3 font-medium">Nhân viên</th>
                 <th className="px-4 py-3 font-medium">Lịch hẹn</th>
+                <th className="px-4 py-3 font-medium">Hoa hồng</th>
                 <th className="px-4 py-3 font-medium">Trạng thái</th>
                 <th className="px-4 py-3 text-right font-medium">Thao tác</th>
               </tr>
@@ -232,6 +257,12 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
                   <td className="px-4 py-3">{g.employeeCount}</td>
                   <td className="px-4 py-3">{g.appointmentCount}</td>
                   <td className="px-4 py-3">
+                    {Math.round(g.effectiveCommissionRate * 1000) / 10}%
+                    {g.commissionRate === null && (
+                      <span className="ml-1 text-xs text-on-surface-variant">(mặc định)</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         g.status === "blocked"
@@ -260,6 +291,14 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
                       <button
                         type="button"
                         disabled={busyId === g.id}
+                        onClick={() => editCommission(g)}
+                        className="text-xs font-semibold text-primary hover:underline disabled:opacity-50"
+                      >
+                        Hoa hồng
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId === g.id}
                         onClick={() => toggleHidden(g)}
                         className="text-xs font-semibold text-on-surface-variant hover:underline disabled:opacity-50"
                       >
@@ -271,7 +310,7 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
               ))}
               {garages.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-on-surface-variant">
+                  <td colSpan={7} className="px-4 py-8 text-center text-on-surface-variant">
                     Chưa có garage nào.
                   </td>
                 </tr>
