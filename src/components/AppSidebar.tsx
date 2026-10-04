@@ -108,9 +108,10 @@ export default function AppSidebar({
                     }
                     onNavigate(item.section);
                   }}
+                  aria-current={isActive ? "page" : undefined}
                   className={`relative flex w-full items-center gap-4 rounded-xl p-md text-left transition-colors ${
                     isActive
-                      ? "bg-secondary-container text-on-secondary-container"
+                      ? "bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-lg shadow-primary/30"
                       : "text-on-surface-variant hover:bg-surface-container"
                   }`}
                 >

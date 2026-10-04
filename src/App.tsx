@@ -16,6 +16,7 @@ import BookingPage from "./pages/Customer/BookingPage";
 import HistoryPage from "./pages/Customer/HistoryPage";
 import Home from "./pages/Customer/HomePage";
 import LoginPage from "./Auth/pages/LoginPage";
+import LandingPage from "./Landing/pages/LandingPage";
 import ForgotPasswordPage from "./Auth/pages/ForgotPasswordPage";
 import NotificationsPage from "./pages/Customer/NotificationsPage";
 import ProfilePage from "./pages/Customer/ProfilePage";
@@ -334,6 +335,15 @@ function App() {
 
     if (routePath === "/forgot-password") {
       return <ForgotPasswordPage onBackToLogin={() => navigate("/login")} />;
+    }
+
+    if (routePath === "/") {
+      return (
+        <LandingPage
+          onLoginClick={() => navigate("/login")}
+          onRegisterClick={() => navigate("/register")}
+        />
+      );
     }
 
     return (
