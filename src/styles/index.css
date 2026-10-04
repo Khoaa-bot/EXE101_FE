@@ -323,3 +323,89 @@ aside[class*="w-60"] > button.mt-auto:hover {
     transform: none;
   }
 }
+
+/* Auto-collapsing sidebar (md and up): 72px icon rail, expands over the content on hover or keyboard focus.
+   Covers customer, reception, engineer, admin and super admin sidebars. */
+@media (min-width: 768px) {
+  :is(aside[class*="w-60"], aside[class*="w-[240px]"]) {
+    width: 72px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+    z-index: 60 !important;
+    transition: width 0.22s ease, box-shadow 0.22s ease;
+  }
+
+  :is(aside[class*="w-60"], aside[class*="w-[240px]"]):is(:hover, :focus-within) {
+    width: 248px !important;
+    box-shadow: 24px 0 48px -20px rgb(25 28 29 / 0.35);
+  }
+
+  :is(aside[class*="w-60"], aside[class*="w-[240px]"]) nav[class*="px-"] {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  main[class*="md:ml-60"],
+  main[class*="md:ml-[240px]"] {
+    margin-left: 72px !important;
+  }
+
+  /* Collapsed state: icons only */
+  :is(aside[class*="w-60"], aside[class*="w-[240px]"]):not(:hover):not(:focus-within) {
+    & nav > :is(button, a) {
+      position: relative;
+      justify-content: center;
+      gap: 0;
+      padding-left: 0;
+      padding-right: 0;
+      font-size: 0;
+    }
+
+    & nav > :is(button, a) > :not(.material-symbols-outlined):not([class*="rounded-full"]) {
+      display: none;
+    }
+
+    & nav > :is(button, a) > [class*="rounded-full"] {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      margin: 0;
+    }
+
+    & > div:first-child {
+      display: flex;
+      justify-content: center;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    & > div:first-child span:not(.material-symbols-outlined),
+    & > div:first-child p {
+      display: none;
+    }
+
+    & > button.mt-auto {
+      gap: 0;
+      font-size: 0;
+    }
+
+    & > div.border-t button {
+      justify-content: center;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    & > div.border-t button > div.min-w-0,
+    & > div.border-t button > .material-symbols-outlined {
+      display: none;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(aside[class*="w-60"], aside[class*="w-[240px]"]) {
+    transition: none;
+  }
+}
