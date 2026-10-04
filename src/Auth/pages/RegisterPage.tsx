@@ -10,6 +10,12 @@ type RegisterPageProps = {
 type SubmitState = "idle" | "loading" | "success" | "error";
 type Step = "info" | "otp" | "password";
 
+const STEP_LABELS: Array<[Step, string]> = [
+  ["info", "Thông tin"],
+  ["otp", "Xác minh"],
+  ["password", "Mật khẩu"],
+];
+
 type InfoForm = {
   fullName: string;
   username: string;
@@ -217,30 +223,94 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
         </button>
       </header>
 
-      <main className="flex flex-1 items-center justify-center px-margin-mobile pb-12 pt-24">
-        <section className="grid w-full max-w-[1100px] overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-xl md:grid-cols-2">
-          <div className="relative hidden min-h-[640px] overflow-hidden md:block">
-            <div className="absolute inset-0 z-10 bg-primary/30" />
-            <div className="absolute inset-0 z-20 flex flex-col justify-end p-xl text-white">
-              <h2 className="mb-md font-display-lg text-display-lg leading-tight">
-                Bắt đầu quản lý phương tiện thông minh hơn cùng Servio.
-              </h2>
-              <p className="max-w-[420px] font-body-lg text-body-lg opacity-90">
-                Theo dõi lịch sử bảo dưỡng, đặt lịch dịch vụ và chăm sóc xe của bạn
-                trong một nền tảng thống nhất.
-              </p>
-            </div>
-            <div
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-[10000ms] hover:scale-105"
-              style={{
-                backgroundImage:
-                  "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBU3ITACOKvU92hRSYSe6hcxKsSLNlu6UjQ1c4H8lhEBagRLAbgNrrckPfRSPlw9I6J6Nl-VytecQtsVl9cV34Cox5xt77ydf1iMUctKaS3yJuwkqV1BA8_WwkZ_xMxd6eBE0-Qsp84tdCM7JkZLwWrMgdABfw-awDAjRWOf13LSq-DELqSSx95olOcxqHpEcO0pEhNOVyaLNBM8ARw26ymMhgEJx9iPk0j93imFlvOqzR4ILAwasDvPmtuxXMqIxJ5l5OnBwTMhbGQ')",
+      <main className="grid flex-1 pt-16 md:grid-cols-2">
+        <section className="contents">
+          <div className="relative hidden overflow-hidden bg-[#0b1f3f] md:block">
+            <img
+              src="/landing/hero-2.jpg"
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ objectPosition: "center 52%" }}
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
               }}
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-xl text-white xl:p-12">
+              <p className="mb-3 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-widest backdrop-blur">
+                Miễn phí tạo tài khoản
+              </p>
+              <h2 className="max-w-[28rem] text-[34px] font-extrabold leading-tight tracking-tight">
+                Bắt đầu quản lý phương tiện thông minh hơn
+              </h2>
+              <ul className="mt-6 space-y-3">
+                {[
+                  ["history", "Theo dõi lịch sử bảo dưỡng của từng xe"],
+                  ["event_available", "Đặt lịch dịch vụ chỉ vài thao tác"],
+                  ["notifications_active", "Nhận thông báo mỗi khi xe có cập nhật"],
+                ].map(([icon, text]) => (
+                  <li key={text} className="flex items-center gap-3 text-sm font-medium text-white/95">
+                    <span
+                      aria-hidden="true"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">{icon}</span>
+                    </span>
+                    {text}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
-          <div className="flex flex-col justify-center p-lg md:p-xl">
-            <div className="mx-auto w-full max-w-[448px]">
+          <div className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-surface via-surface to-primary-fixed/50 px-margin-mobile py-10 md:px-margin-desktop">
+            <div className="pointer-events-none absolute -right-24 top-1/3 h-80 w-80 rounded-full bg-primary-fixed opacity-40 blur-3xl" />
+            <div className="relative mx-auto w-full max-w-[480px] rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-8 shadow-[0_24px_60px_-24px_rgba(0,89,187,0.35)]">
+              <ol className="mb-6 flex items-center gap-2" aria-label="Các bước đăng ký">
+                {STEP_LABELS.map(([key, label], i) => {
+                  const currentIndex = STEP_LABELS.findIndex(([k]) => k === step);
+                  const isDone = submitState === "success" || i < currentIndex;
+                  const isCurrent = !isDone && i === currentIndex;
+                  return (
+                    <li
+                      key={key}
+                      className={`flex items-center gap-2 ${i === 1 ? "flex-1 justify-center" : i === 2 ? "flex-1 justify-end" : "flex-1"}`}
+                      aria-current={isCurrent ? "step" : undefined}
+                    >
+                      <span
+                        className={`flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                          isDone
+                            ? "bg-tertiary-container text-on-primary"
+                            : isCurrent
+                              ? "bg-primary text-on-primary"
+                              : "bg-surface-container text-on-surface-variant"
+                        }`}
+                      >
+                        {isDone ? (
+                          <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
+                            check
+                          </span>
+                        ) : (
+                          i + 1
+                        )}
+                      </span>
+                      <span
+                        className={`text-xs ${
+                          isDone
+                            ? "font-semibold text-on-tertiary-fixed-variant"
+                            : isCurrent
+                              ? "font-bold text-on-primary-fixed-variant"
+                              : "font-semibold text-on-surface-variant"
+                        }`}
+                      >
+                        {label}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            <div className="mx-auto w-full">
               <div className="mb-xl">
                 <h1 className="mb-xs font-headline-lg text-headline-lg text-on-surface">
                   Tạo tài khoản
@@ -657,6 +727,7 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
                   </button>
                 </p>
               </div>
+            </div>
             </div>
           </div>
         </section>

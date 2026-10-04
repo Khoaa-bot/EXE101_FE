@@ -10,6 +10,12 @@ type ForgotPasswordPageProps = {
 type SubmitState = "idle" | "loading" | "success" | "error";
 type Step = "email" | "otp" | "password";
 
+const STEP_LABELS: Array<[Step, string]> = [
+  ["email", "Email"],
+  ["otp", "Mã OTP"],
+  ["password", "Mật khẩu"],
+];
+
 const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
@@ -141,15 +147,114 @@ export default function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPage
         </div>
       </header>
 
-      <main className="relative flex flex-1 items-center justify-center overflow-hidden px-margin-mobile pb-12 pt-24 md:px-margin-desktop">
-        <section className="relative z-10 w-full max-w-[480px] rounded-xl border border-[#EFEFEF] bg-surface-container-lowest p-8 shadow-[0_4px_20px_rgba(0,0,0,0.05)] md:p-10">
+      <main className="grid flex-1 pt-16 lg:grid-cols-2">
+        <div className="relative hidden overflow-hidden bg-[#0b1f3f] lg:block">
+          <img
+            src="/landing/hero-3.jpg"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{ objectPosition: "center 58%" }}
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-xl text-white xl:p-12">
+            <p className="mb-3 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-widest backdrop-blur">
+              Khôi phục tài khoản
+            </p>
+            <h2 className="max-w-[28rem] text-[34px] font-extrabold leading-tight tracking-tight">
+              {submitState === "success"
+                ? "Mọi thứ đã sẵn sàng, quay lại chăm sóc xe nào"
+                : "Quên mật khẩu? Lấy lại chỉ trong một phút"}
+            </h2>
+            <ul className="mt-6 space-y-3">
+              {(submitState === "success"
+                ? [
+                    ["event_available", "Đặt lịch với garage gần bạn"],
+                    ["location_on", "Theo dõi tiến độ sửa xe"],
+                  ]
+                : [
+                    ["mail", "Nhận mã OTP qua email đăng ký"],
+                    ["pin", "Nhập mã 6 số để xác minh"],
+                    ["lock_reset", "Tạo mật khẩu mới an toàn"],
+                  ]
+              ).map(([icon, text]) => (
+                <li key={text} className="flex items-center gap-3 text-sm font-medium text-white/95">
+                  <span
+                    aria-hidden="true"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">{icon}</span>
+                  </span>
+                  {text}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-surface via-surface to-primary-fixed/50 px-margin-mobile py-12 md:px-margin-desktop">
+        <div className="pointer-events-none absolute -right-24 top-1/3 h-80 w-80 rounded-full bg-primary-fixed opacity-40 blur-3xl" />
+        <section className="relative z-10 w-full max-w-[480px] rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-8 shadow-[0_24px_60px_-24px_rgba(0,89,187,0.35)] md:p-10">
+          {submitState !== "success" && (
+            <ol className="mb-6 flex items-center gap-2" aria-label="Các bước đặt lại mật khẩu">
+              {STEP_LABELS.map(([key, label], i) => {
+                const currentIndex = STEP_LABELS.findIndex(([k]) => k === step);
+                const isDone = i < currentIndex;
+                const isCurrent = i === currentIndex;
+                return (
+                  <li
+                    key={key}
+                    className={`flex items-center gap-2 ${i === 1 ? "flex-1 justify-center" : i === 2 ? "flex-1 justify-end" : "flex-1"}`}
+                    aria-current={isCurrent ? "step" : undefined}
+                  >
+                    <span
+                      className={`flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                        isDone
+                          ? "bg-tertiary-container text-on-primary"
+                          : isCurrent
+                            ? "bg-primary text-on-primary"
+                            : "bg-surface-container text-on-surface-variant"
+                      }`}
+                    >
+                      {isDone ? (
+                        <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
+                          check
+                        </span>
+                      ) : (
+                        i + 1
+                      )}
+                    </span>
+                    <span
+                      className={`text-xs ${
+                        isDone
+                          ? "font-semibold text-on-tertiary-fixed-variant"
+                          : isCurrent
+                            ? "font-bold text-on-primary-fixed-variant"
+                            : "font-semibold text-on-surface-variant"
+                      }`}
+                    >
+                      {label}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
           <div className="mb-8 text-center">
             <div className="mb-4 flex items-center justify-center gap-2">
               <span
-                className="material-symbols-outlined text-4xl text-primary"
-                style={{ fontVariationSettings: "'FILL' 1" }}
+                aria-hidden="true"
+                className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-gradient-to-br from-primary-fixed to-secondary-fixed-dim text-on-primary-fixed-variant"
               >
-                lock_reset
+                <span
+                  className="material-symbols-outlined text-[34px]"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  lock_reset
+                </span>
               </span>
             </div>
             <h1 className="mb-2 font-display-lg text-display-lg text-on-surface">
@@ -173,9 +278,17 @@ export default function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPage
           )}
 
           {submitState === "success" ? (
-            <div className="flex flex-col items-center gap-3 rounded-lg bg-tertiary-container/20 px-4 py-6 text-center">
-              <span className="material-symbols-outlined text-4xl text-tertiary">
-                check_circle
+            <div className="flex flex-col items-center gap-4 rounded-2xl bg-tertiary-container/10 px-4 py-8 text-center">
+              <span
+                aria-hidden="true"
+                className="flex h-[88px] w-[88px] items-center justify-center rounded-full bg-gradient-to-br from-tertiary-fixed to-tertiary-fixed-dim text-on-tertiary-fixed-variant ring-[10px] ring-tertiary-fixed/25"
+              >
+                <span
+                  className="material-symbols-outlined text-[48px]"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  check_circle
+                </span>
               </span>
               <p className="font-body-md text-body-md text-on-surface">
                 Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.
@@ -396,6 +509,7 @@ export default function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPage
             </button>
           </div>
         </section>
+        </div>
       </main>
 
       <footer className="flex h-12 items-center justify-center border-t border-outline-variant bg-surface-container-lowest px-margin-mobile text-center md:px-margin-desktop">
