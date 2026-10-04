@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useDialogA11y } from "../../hooks/useDialogA11y";
 import {
   addService,
   deleteService,
@@ -47,6 +48,8 @@ export default function AdminPricingPage({
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const addRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(addOpen, addRef, () => setAddOpen(false));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -370,17 +373,23 @@ export default function AdminPricingPage({
 
       {/* Add New Pricing Modal */}
       {addOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div
+          ref={addRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Thêm dịch vụ mới vào bảng giá"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
           <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
             <h3 className="font-headline-md text-lg font-bold">
               Thêm dịch vụ mới vào bảng giá
             </h3>
             <form onSubmit={submitNewPricing} className="mt-4 space-y-4">
               <div>
-                <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                <label htmlFor="pages-admin-adminpricingpage-field-1" className="block mb-1 text-xs font-semibold text-on-surface-variant">
                   Tên dịch vụ *
                 </label>
-                <input
+                <input id="pages-admin-adminpricingpage-field-1"
                   type="text"
                   required
                   value={form.name}
@@ -391,10 +400,10 @@ export default function AdminPricingPage({
               </div>
 
               <div>
-                <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                <label htmlFor="pages-admin-adminpricingpage-field-2" className="block mb-1 text-xs font-semibold text-on-surface-variant">
                   Đơn giá (VNĐ) *
                 </label>
-                <input
+                <input id="pages-admin-adminpricingpage-field-2"
                   type="text"
                   required
                   value={form.price}
@@ -405,10 +414,10 @@ export default function AdminPricingPage({
               </div>
 
               <div>
-                <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                <label htmlFor="pages-admin-adminpricingpage-field-3" className="block mb-1 text-xs font-semibold text-on-surface-variant">
                   Thời gian thực hiện ước tính
                 </label>
-                <input
+                <input id="pages-admin-adminpricingpage-field-3"
                   type="text"
                   value={form.duration}
                   onChange={(e) =>
@@ -420,10 +429,10 @@ export default function AdminPricingPage({
               </div>
 
               <div>
-                <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                <label htmlFor="pages-admin-adminpricingpage-field-4" className="block mb-1 text-xs font-semibold text-on-surface-variant">
                   Mô tả dịch vụ
                 </label>
-                <textarea
+                <textarea id="pages-admin-adminpricingpage-field-4"
                   rows={3}
                   value={form.description}
                   onChange={(e) =>

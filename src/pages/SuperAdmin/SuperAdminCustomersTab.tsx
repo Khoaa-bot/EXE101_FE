@@ -113,13 +113,13 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3">
-        <input
+        <input aria-label="Tìm theo username, tên, email, SĐT..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Tìm theo username, tên, email, SĐT..."
           className="w-72 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         />
-        <select
+        <select aria-label="Lọc theo trạng thái"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
           className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"

@@ -292,10 +292,10 @@ export default function WalletPage() {
                   }}
                 >
                   <div>
-                    <label className="mb-1 block font-label-md text-label-md text-on-surface-variant">
+                    <label htmlFor="pages-customer-walletpage-field-1" className="mb-1 block font-label-md text-label-md text-on-surface-variant">
                       Số tiền muốn nạp (tối thiểu {formatVnd(TOP_UP_MIN)})
                     </label>
-                    <input
+                    <input id="pages-customer-walletpage-field-1"
                       value={topUpAmount}
                       onChange={(event) => setTopUpAmount(event.target.value.replace(/\D/g, ""))}
                       inputMode="numeric"
@@ -335,10 +335,10 @@ export default function WalletPage() {
                   }}
                 >
                   <div>
-                    <label className="mb-1 block font-label-md text-label-md text-on-surface-variant">
+                    <label htmlFor="pages-customer-walletpage-field-2" className="mb-1 block font-label-md text-label-md text-on-surface-variant">
                       Số tiền muốn rút ({formatVnd(WITHDRAW_MIN)} – {formatVnd(WITHDRAW_MAX)})
                     </label>
-                    <input
+                    <input id="pages-customer-walletpage-field-2"
                       value={withdrawAmount}
                       onChange={(event) => setWithdrawAmount(event.target.value.replace(/\D/g, ""))}
                       inputMode="numeric"
@@ -351,10 +351,10 @@ export default function WalletPage() {
                   </div>
                   <div className="grid gap-md sm:grid-cols-2">
                     <div>
-                      <label className="mb-1 block font-label-md text-label-md text-on-surface-variant">
+                      <label htmlFor="pages-customer-walletpage-field-3" className="mb-1 block font-label-md text-label-md text-on-surface-variant">
                         Ngân hàng
                       </label>
-                      <input
+                      <input id="pages-customer-walletpage-field-3"
                         value={bankName}
                         onChange={(event) => setBankName(event.target.value)}
                         maxLength={100}
@@ -363,10 +363,10 @@ export default function WalletPage() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block font-label-md text-label-md text-on-surface-variant">
+                      <label htmlFor="pages-customer-walletpage-field-4" className="mb-1 block font-label-md text-label-md text-on-surface-variant">
                         Số tài khoản
                       </label>
-                      <input
+                      <input id="pages-customer-walletpage-field-4"
                         value={accountNumber}
                         onChange={(event) => setAccountNumber(event.target.value.replace(/\D/g, ""))}
                         inputMode="numeric"
@@ -377,10 +377,10 @@ export default function WalletPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="mb-1 block font-label-md text-label-md text-on-surface-variant">
+                    <label htmlFor="pages-customer-walletpage-field-5" className="mb-1 block font-label-md text-label-md text-on-surface-variant">
                       Tên chủ tài khoản
                     </label>
-                    <input
+                    <input id="pages-customer-walletpage-field-5"
                       value={accountHolder}
                       onChange={(event) => setAccountHolder(event.target.value)}
                       maxLength={100}
@@ -392,7 +392,7 @@ export default function WalletPage() {
                     <label className="mb-1 block font-label-md text-label-md text-on-surface-variant">
                       Ảnh mã QR ngân hàng (không bắt buộc)
                     </label>
-                    <input
+                    <input aria-label="Ảnh mã QR ngân hàng"
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       onChange={(event) => {

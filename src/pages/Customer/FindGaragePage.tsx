@@ -65,7 +65,7 @@ export default function FindGaragePage({ onBookingClick }: FindGaragePageProps) 
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
             search
           </span>
-          <input
+          <input aria-label="Tìm garage, khu vực..."
             className="w-full rounded-full border border-outline-variant bg-surface-container-low py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
             placeholder="Tìm garage, khu vực..."
             type="text"

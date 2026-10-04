@@ -223,7 +223,7 @@ export default function ReceptionAppointmentsPage({
             <div className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="relative flex-1">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
-                <input
+                <input aria-label="Tìm khách, biển số, mã booking..."
                   placeholder="Tìm khách, biển số, mã booking..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}

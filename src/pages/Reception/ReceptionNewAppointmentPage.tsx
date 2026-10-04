@@ -275,7 +275,7 @@ export default function ReceptionNewAppointmentPage({
                       </h2>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <Field label="Khách hàng">
-                          <select
+                          <select aria-label="Khách hàng"
                             value={customerId}
                             onChange={(e) => {
                               setCustomerId(e.target.value);
@@ -290,7 +290,7 @@ export default function ReceptionNewAppointmentPage({
                           </select>
                         </Field>
                         <Field label="Xe">
-                          <select
+                          <select aria-label="Xe của khách"
                             value={vehicleId}
                             onChange={(e) => setVehicleId(e.target.value)}
                             disabled={!customerId}
@@ -314,7 +314,7 @@ export default function ReceptionNewAppointmentPage({
                       </h2>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <Field label="Loại dịch vụ">
-                          <select
+                          <select aria-label="Dịch vụ"
                             value={serviceId}
                             onChange={(e) => setServiceId(e.target.value)}
                             className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary"
@@ -328,7 +328,7 @@ export default function ReceptionNewAppointmentPage({
                           </select>
                         </Field>
                         <Field label="Khung giờ">
-                          <select
+                          <select aria-label="Khung giờ"
                             value={scheduleId}
                             onChange={(e) => setScheduleId(e.target.value)}
                             className="w-full h-11 rounded-lg border border-outline-variant bg-surface-container-low px-4 text-sm outline-none focus:border-primary"
@@ -343,7 +343,7 @@ export default function ReceptionNewAppointmentPage({
                         </Field>
                       </div>
                       <Field label="Ghi chú">
-                        <textarea
+                        <textarea aria-label="Ghi chú tình trạng xe, yêu cầu đặc biệt của khách..."
                           rows={4}
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}

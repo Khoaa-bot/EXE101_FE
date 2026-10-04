@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
+import { useDialogA11y } from "../../hooks/useDialogA11y";
 import {
   completeWithdrawal,
   getAdminWithdrawals,
@@ -48,6 +49,10 @@ export default function SuperAdminWithdrawalsTab({ notify, onChanged }: Props) {
   const [rejectReason, setRejectReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
   const [busy, setBusy] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(selected !== null, dialogRef, () => {
+    if (!busy) setSelected(null);
+  });
 
   const requestKey = `${status}|${requesterType}|${reloadToken}`;
   const isLoading = loadedKey !== requestKey;
@@ -206,6 +211,7 @@ export default function SuperAdminWithdrawalsTab({ notify, onChanged }: Props) {
 
       {selected && (
         <div
+          ref={dialogRef}
           className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
           role="dialog"
           aria-modal="true"

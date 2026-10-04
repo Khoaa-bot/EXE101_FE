@@ -119,13 +119,13 @@ export default function SuperAdminAppointmentsTab({ customer, onClearCustomer }:
       )}
 
       <form onSubmit={applyFilters} className="flex flex-wrap items-end gap-3">
-        <input
+        <input aria-label="Tên, SĐT, biển số..."
           value={draft.q}
           onChange={(e) => setDraft((f) => ({ ...f, q: e.target.value }))}
           placeholder="Tên, SĐT, biển số..."
           className={`w-56 ${inputClass}`}
         />
-        <select
+        <select aria-label="Lọc theo trạng thái"
           value={draft.status}
           onChange={(e) => setDraft((f) => ({ ...f, status: e.target.value }))}
           className={inputClass}
@@ -137,7 +137,7 @@ export default function SuperAdminAppointmentsTab({ customer, onClearCustomer }:
             </option>
           ))}
         </select>
-        <select
+        <select aria-label="Lọc theo garage"
           value={draft.garageId}
           onChange={(e) => setDraft((f) => ({ ...f, garageId: e.target.value }))}
           className={inputClass}

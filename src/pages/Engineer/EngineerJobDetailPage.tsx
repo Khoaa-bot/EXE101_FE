@@ -375,7 +375,7 @@ export default function EngineerJobDetailPage({
                                     : "opacity-70"
                                 }`}
                               >
-                                <input
+                                <input aria-label={step.stepName}
                                   type="checkbox"
                                   checked={step.isCompleted}
                                   disabled={
@@ -487,10 +487,10 @@ export default function EngineerJobDetailPage({
                     {status === "in_progress" && (
                       <>
                         <div>
-                          <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                          <label htmlFor="pages-engineer-engineerjobdetailpage-field-1" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                             Ghi chú kỹ thuật
                           </label>
-                          <textarea
+                          <textarea id="pages-engineer-engineerjobdetailpage-field-1"
                             rows={3}
                             value={engineerNotes}
                             onChange={(e) => setEngineerNotes(e.target.value)}
@@ -500,10 +500,10 @@ export default function EngineerJobDetailPage({
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                          <label htmlFor="pages-engineer-engineerjobdetailpage-field-2" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                             Vật tư/linh kiện đã dùng
                           </label>
-                          <textarea
+                          <textarea id="pages-engineer-engineerjobdetailpage-field-2"
                             rows={2}
                             value={partsUsed}
                             onChange={(e) => setPartsUsed(e.target.value)}

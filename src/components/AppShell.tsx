@@ -201,7 +201,7 @@ export default function AppShell({
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
                 search
               </span>
-              <input
+              <input aria-label="Tìm kiếm dịch vụ..."
                 className="w-64 rounded-full border border-outline-variant bg-surface-container-low py-2 pl-10 pr-4 font-body-md text-body-md outline-none transition-all focus:ring-2 focus:ring-primary"
                 placeholder="Tìm kiếm dịch vụ..."
                 type="text"

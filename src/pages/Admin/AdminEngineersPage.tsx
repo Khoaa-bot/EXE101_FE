@@ -421,10 +421,10 @@ export default function AdminEngineersPage({
               </div>
               <form onSubmit={submitNewEngineer} className="space-y-4">
                 <div>
-                  <label className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
+                  <label htmlFor="pages-admin-adminengineerspage-field-1" className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
                     Tên tài khoản / Họ tên *
                   </label>
-                  <input
+                  <input id="pages-admin-adminengineerspage-field-1"
                     type="text"
                     required
                     value={form.username}
@@ -437,10 +437,10 @@ export default function AdminEngineersPage({
                 </div>
 
                 <div>
-                  <label className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
+                  <label htmlFor="pages-admin-adminengineerspage-field-2" className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
                     Email *
                   </label>
-                  <input
+                  <input id="pages-admin-adminengineerspage-field-2"
                     type="email"
                     required
                     value={form.email}
@@ -453,10 +453,10 @@ export default function AdminEngineersPage({
                 </div>
 
                 <div>
-                  <label className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
+                  <label htmlFor="pages-admin-adminengineerspage-field-3" className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
                     Số điện thoại *
                   </label>
-                  <input
+                  <input id="pages-admin-adminengineerspage-field-3"
                     type="tel"
                     required
                     value={form.phone}
@@ -469,10 +469,10 @@ export default function AdminEngineersPage({
                 </div>
 
                 <div>
-                  <label className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
+                  <label htmlFor="pages-admin-adminengineerspage-field-4" className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
                     Ngày sinh (DOB) *
                   </label>
-                  <input
+                  <input id="pages-admin-adminengineerspage-field-4"
                     type="date"
                     required
                     value={form.dob}
@@ -497,10 +497,10 @@ export default function AdminEngineersPage({
                 </div>
 
                 <div>
-                  <label className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
+                  <label htmlFor="pages-admin-adminengineerspage-field-5" className="mb-1 block font-label-md text-body-sm text-on-surface-variant">
                     Vai trò / Chức vụ *
                   </label>
-                  <select
+                  <select id="pages-admin-adminengineerspage-field-5"
                     value={form.role}
                     onChange={(e) =>
                       setForm({ ...form, role: e.target.value })
@@ -520,7 +520,7 @@ export default function AdminEngineersPage({
                     Mật khẩu *
                   </label>
                   <div className="relative">
-                    <input
+                    <input aria-label="••••••••"
                       type={showPw ? "text" : "password"}
                       required
                       value={form.password}

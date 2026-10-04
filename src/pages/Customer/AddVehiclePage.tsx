@@ -311,7 +311,7 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
                       Tên thương hiệu
                     </label>
                     <div className="relative">
-                      <select
+                      <select aria-label="Tên thương hiệu"
                         className="w-full appearance-none rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                         value={brand}
                         onChange={(event) => handleBrandChange(event.target.value)}
@@ -346,7 +346,7 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
                       Năm sản xuất
                     </label>
                     <div className="relative">
-                      <select
+                      <select aria-label="Năm sản xuất"
                         className="w-full appearance-none rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                         value={year}
                         onChange={(event) => setYear(event.target.value)}
@@ -367,7 +367,7 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
                       Màu sắc
                     </label>
                     <div className="relative">
-                      <select
+                      <select aria-label="Màu sắc"
                         className="w-full appearance-none rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                         value={color}
                         onChange={(event) => setColor(event.target.value)}
@@ -385,7 +385,7 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
                       </span>
                     </div>
                     {color === OTHER_COLOR && (
-                      <input
+                      <input aria-label="Màu sắc khác"
                         className="w-full rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                         type="text"
                         value={customColor}
@@ -550,10 +550,10 @@ function TextField({
 }) {
   return (
     <div className="space-y-2">
-      <label className="px-1 font-label-md text-label-md text-on-surface-variant">
+      <label htmlFor="pages-customer-addvehiclepage-field-1" className="px-1 font-label-md text-label-md text-on-surface-variant">
         {label}
       </label>
-      <input
+      <input id="pages-customer-addvehiclepage-field-1"
         className="w-full rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
         placeholder={placeholder}
         type={type}

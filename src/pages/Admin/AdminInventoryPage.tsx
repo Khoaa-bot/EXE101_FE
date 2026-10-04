@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useDialogA11y } from "../../hooks/useDialogA11y";
 import {
   getAdminParts,
   createAdminPart,
@@ -67,6 +68,10 @@ export default function AdminInventoryPage({
   const [restockPart, setRestockPart] = useState<InventoryPart | null>(null);
   const [restockAmount, setRestockAmount] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  const restockRef = useRef<HTMLDivElement>(null);
+  const addRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(restockPart !== null, restockRef, () => setRestockPart(null));
+  useDialogA11y(addOpen, addRef, () => setAddOpen(false));
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -538,7 +543,13 @@ export default function AdminInventoryPage({
 
       {/* Restock Modal */}
       {restockPart && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div
+          ref={restockRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Nhập thêm linh kiện"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
           <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
             <h3 className="font-headline-md text-lg font-bold">
               Nhập thêm linh kiện
@@ -549,10 +560,10 @@ export default function AdminInventoryPage({
             </p>
 
             <div className="mt-4 space-y-2">
-              <label className="block text-xs font-semibold text-on-surface-variant">
+              <label htmlFor="pages-admin-admininventorypage-field-1" className="block text-xs font-semibold text-on-surface-variant">
                 Số lượng nhập thêm *
               </label>
-              <input
+              <input id="pages-admin-admininventorypage-field-1"
                 type="number"
                 min={1}
                 value={restockAmount}
@@ -585,7 +596,13 @@ export default function AdminInventoryPage({
 
       {/* Add New Part Modal */}
       {addOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div
+          ref={addRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Thêm linh kiện mới"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
           <div className="w-full max-w-[36rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
             <h3 className="font-headline-md text-lg font-bold">
               Thêm linh kiện mới
@@ -596,10 +613,10 @@ export default function AdminInventoryPage({
 
             <div className="mt-4 space-y-4">
               <div>
-                <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                <label htmlFor="pages-admin-admininventorypage-field-2" className="block mb-1 text-xs font-semibold text-on-surface-variant">
                   Tên linh kiện *
                 </label>
-                <input
+                <input id="pages-admin-admininventorypage-field-2"
                   type="text"
                   value={newPart.name}
                   onChange={(e) =>
@@ -612,10 +629,10 @@ export default function AdminInventoryPage({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                  <label htmlFor="pages-admin-admininventorypage-field-7" className="block mb-1 text-xs font-semibold text-on-surface-variant">
                     Danh mục
                   </label>
-                  <select
+                  <select id="pages-admin-admininventorypage-field-7"
                     value={newPart.category}
                     onChange={(e) =>
                       setNewPart({ ...newPart, category: e.target.value })
@@ -630,10 +647,10 @@ export default function AdminInventoryPage({
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                  <label htmlFor="pages-admin-admininventorypage-field-3" className="block mb-1 text-xs font-semibold text-on-surface-variant">
                     Vị trí trong kho *
                   </label>
-                  <input
+                  <input id="pages-admin-admininventorypage-field-3"
                     type="text"
                     value={newPart.location}
                     onChange={(e) =>
@@ -647,10 +664,10 @@ export default function AdminInventoryPage({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                  <label htmlFor="pages-admin-admininventorypage-field-4" className="block mb-1 text-xs font-semibold text-on-surface-variant">
                     Số lượng tồn *
                   </label>
-                  <input
+                  <input id="pages-admin-admininventorypage-field-4"
                     type="number"
                     min={0}
                     value={newPart.stock}
@@ -663,10 +680,10 @@ export default function AdminInventoryPage({
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                  <label htmlFor="pages-admin-admininventorypage-field-5" className="block mb-1 text-xs font-semibold text-on-surface-variant">
                     Sức chứa tối đa *
                   </label>
-                  <input
+                  <input id="pages-admin-admininventorypage-field-5"
                     type="number"
                     min={1}
                     value={newPart.capacity}
@@ -680,10 +697,10 @@ export default function AdminInventoryPage({
               </div>
 
               <div>
-                <label className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                <label htmlFor="pages-admin-admininventorypage-field-6" className="block mb-1 text-xs font-semibold text-on-surface-variant">
                   Đơn giá *
                 </label>
-                <input
+                <input id="pages-admin-admininventorypage-field-6"
                   type="text"
                   value={newPart.price}
                   onChange={(e) =>

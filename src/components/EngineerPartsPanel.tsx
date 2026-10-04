@@ -122,7 +122,7 @@ export default function EngineerPartsPanel({
             void add();
           }}
         >
-          <select
+          <select aria-label="Chọn linh kiện"
             value={partId}
             onChange={(event) => setPartId(event.target.value)}
             className="flex-1 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"

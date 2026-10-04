@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useDialogA11y } from "../../hooks/useDialogA11y";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCount";
 import {
@@ -97,6 +98,11 @@ export default function Home({
   const [topUpAmount, setTopUpAmount] = useState("100000");
   const [isTopUpSubmitting, setIsTopUpSubmitting] = useState(false);
   const [topUpError, setTopUpError] = useState<string | null>(null);
+  const topUpRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(isTopUpOpen, topUpRef, () => {
+    setIsTopUpOpen(false);
+    setTopUpError(null);
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -258,7 +264,7 @@ export default function Home({
       <main className="min-h-screen bg-surface md:ml-60">
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-outline-variant bg-surface px-margin-mobile md:px-xl">
           <div className="flex items-center gap-3">
-            <button
+            <button aria-label="Mở menu"
               className="-ml-2 rounded-full p-2 text-on-surface-variant transition-colors active:bg-surface-container md:hidden"
               type="button"
               onClick={() => {
@@ -278,7 +284,7 @@ export default function Home({
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
                 search
               </span>
-              <input
+              <input aria-label="Tìm kiếm dịch vụ..."
                 className="w-64 rounded-full border border-outline-variant bg-surface-container-low py-2 pl-10 pr-4 font-body-md text-body-md outline-none transition-all focus:ring-2 focus:ring-primary"
                 placeholder="Tìm kiếm dịch vụ..."
                 type="text"
@@ -598,7 +604,7 @@ export default function Home({
         </button>
       </nav>
 
-      <button
+      <button aria-label="Đặt lịch mới"
         className="fixed bottom-24 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg transition-transform active:scale-90 md:hidden"
         type="button"
         onClick={onBookingClick}
@@ -607,13 +613,19 @@ export default function Home({
       </button>
 
       {isTopUpOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div
+          ref={topUpRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Nạp tiền vào ví Servio Pay"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
           <div className="w-full max-w-[26rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-lg shadow-xl">
             <div className="flex items-center justify-between">
               <h3 className="font-headline-md text-headline-md">
                 Nạp tiền vào ví Servio Pay
               </h3>
-              <button
+              <button aria-label="Đóng"
                 type="button"
                 onClick={() => {
                   setIsTopUpOpen(false);
@@ -629,10 +641,10 @@ export default function Home({
             </p>
 
             <div className="mt-lg space-y-sm">
-              <label className="block font-label-md text-label-md text-on-surface-variant">
+              <label htmlFor="pages-customer-homepage-field-1" className="block font-label-md text-label-md text-on-surface-variant">
                 Số tiền (VNĐ)
               </label>
-              <input
+              <input id="pages-customer-homepage-field-1"
                 type="number"
                 min={10000}
                 step={10000}

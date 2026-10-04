@@ -230,7 +230,7 @@ export default function TrackingPage({
             Servio
           </span>
         </div>
-        <button
+        <button aria-label="Thông báo"
           className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-surface-container"
           type="button"
           onClick={onNotificationsClick}

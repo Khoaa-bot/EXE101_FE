@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useDialogA11y } from "../hooks/useDialogA11y";
 import { getStoredAuthSession } from "../services/api";
 import { useUnreadNotificationCount } from "../hooks/useUnreadNotificationCount";
 
@@ -58,9 +59,13 @@ export default function AppSidebar({
     };
   }, [isOpen]);
 
+  const drawerRef = useRef<HTMLElement>(null);
+  useDialogA11y(isOpen, drawerRef, onClose);
+
   return (
     <>
       <div
+        aria-hidden="true"
         onClick={onClose}
         className={`fixed inset-0 z-[60] bg-black/50 transition-opacity duration-300 ${
           isOpen
@@ -70,6 +75,11 @@ export default function AppSidebar({
       />
 
       <aside
+        ref={drawerRef}
+        role="dialog"
+        aria-modal={isOpen}
+        aria-label="Menu điều hướng"
+        inert={!isOpen}
         className="fixed left-0 top-0 z-[70] flex h-full w-[280px] flex-col bg-surface-container-lowest shadow-2xl transition-transform duration-300 ease-in-out"
         style={{ transform: isOpen ? "translateX(0)" : "translateX(-100%)" }}
       >

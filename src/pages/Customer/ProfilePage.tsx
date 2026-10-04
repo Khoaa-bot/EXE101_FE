@@ -282,7 +282,7 @@ export default function ProfilePage({
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">
               search
             </span>
-            <input
+            <input aria-label="Tìm kiếm dịch vụ, trạm sạc..."
               className="w-full rounded-full border-none bg-surface-container-low py-2 pl-12 pr-4 font-body-md text-body-md transition-colors focus:bg-white focus:outline-none"
               placeholder="Tìm kiếm dịch vụ, trạm sạc..."
               type="text"
@@ -294,12 +294,12 @@ export default function ProfilePage({
         </div>
 
         <div className="flex items-center gap-4">
-          <button className="rounded-full p-2 transition-colors hover:bg-surface-container-high">
+          <button aria-label="Trợ giúp" className="rounded-full p-2 transition-colors hover:bg-surface-container-high">
             <span className="material-symbols-outlined text-on-surface-variant">
               help
             </span>
           </button>
-          <button className="hidden rounded-full p-2 transition-colors hover:bg-surface-container-high md:block">
+          <button aria-label="Ứng dụng" className="hidden rounded-full p-2 transition-colors hover:bg-surface-container-high md:block">
             <span className="material-symbols-outlined text-on-surface-variant">
               apps
             </span>
@@ -355,7 +355,7 @@ export default function ProfilePage({
                       <span className="material-symbols-outlined text-[20px]">
                         {isUploadingAvatar ? "hourglass_empty" : "photo_camera"}
                       </span>
-                      <input
+                      <input aria-label="Tải ảnh đại diện"
                         className="sr-only"
                         type="file"
                         accept="image/*"
@@ -366,7 +366,7 @@ export default function ProfilePage({
                   </div>
                   <label className="mt-4 cursor-pointer font-label-md text-label-md text-primary hover:underline">
                     {isUploadingAvatar ? "Đang tải ảnh lên..." : "Thay đổi ảnh đại diện"}
-                    <input
+                    <input aria-label="Tải ảnh đại diện"
                       className="sr-only"
                       type="file"
                       accept="image/*"

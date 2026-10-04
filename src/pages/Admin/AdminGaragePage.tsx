@@ -225,10 +225,10 @@ export default function AdminGaragePage({
               )}
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                <label htmlFor="pages-admin-admingaragepage-field-1" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                   Tên garage *
                 </label>
-                <input
+                <input id="pages-admin-admingaragepage-field-1"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
@@ -236,10 +236,10 @@ export default function AdminGaragePage({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                <label htmlFor="pages-admin-admingaragepage-field-2" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                   Địa chỉ *
                 </label>
-                <input
+                <input id="pages-admin-admingaragepage-field-2"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
@@ -247,10 +247,10 @@ export default function AdminGaragePage({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                <label htmlFor="pages-admin-admingaragepage-field-3" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                   Số điện thoại
                 </label>
-                <input
+                <input id="pages-admin-admingaragepage-field-3"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
@@ -282,7 +282,7 @@ export default function AdminGaragePage({
                   />
                 </label>
 
-                <input
+                <input aria-label="Hoặc dán đường dẫn ảnh (URL)..."
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
                   placeholder="Hoặc dán đường dẫn ảnh (URL)..."
@@ -291,10 +291,10 @@ export default function AdminGaragePage({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                <label htmlFor="pages-admin-admingaragepage-field-4" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                   Mô tả garage
                 </label>
-                <textarea
+                <textarea id="pages-admin-admingaragepage-field-4"
                   rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}

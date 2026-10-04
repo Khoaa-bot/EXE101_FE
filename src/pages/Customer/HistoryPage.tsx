@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useDialogA11y } from "../../hooks/useDialogA11y";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCount";
 import {
@@ -73,6 +74,8 @@ export default function HistoryPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reviewingRecord, setReviewingRecord] = useState<AppointmentDto | null>(null);
+  const reviewRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(reviewingRecord !== null, reviewRef, () => setReviewingRecord(null));
   const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
@@ -270,7 +273,7 @@ export default function HistoryPage({
           </div>
 
           <div className="flex items-center gap-md">
-            <button
+            <button aria-label="Thông báo"
               className="rounded-full p-2 transition-colors hover:bg-surface-container-high"
               type="button"
               onClick={onNotificationsClick}
@@ -608,13 +611,19 @@ export default function HistoryPage({
       </nav>
 
       {reviewingRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div
+          ref={reviewRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Đánh giá dịch vụ"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
           <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-lg shadow-xl">
             <div className="flex items-center justify-between">
               <h3 className="font-headline-md text-headline-md">
                 Đánh giá dịch vụ
               </h3>
-              <button
+              <button aria-label="Đóng"
                 type="button"
                 onClick={() => setReviewingRecord(null)}
                 className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container"
@@ -652,10 +661,10 @@ export default function HistoryPage({
             </div>
 
             <div className="mt-lg space-y-sm">
-              <label className="block font-label-md text-label-md text-on-surface-variant">
+              <label htmlFor="pages-customer-historypage-field-1" className="block font-label-md text-label-md text-on-surface-variant">
                 Nhận xét (không bắt buộc)
               </label>
-              <textarea
+              <textarea id="pages-customer-historypage-field-1"
                 rows={3}
                 value={reviewComment}
                 onChange={(e) => setReviewComment(e.target.value)}

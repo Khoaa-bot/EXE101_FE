@@ -203,7 +203,7 @@ export default function NotificationsPage({
           </nav>
 
           <div className="flex items-center gap-sm">
-            <button className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container">
+            <button aria-label="Tìm kiếm" className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container">
               <span className="material-symbols-outlined">search</span>
             </button>
             <button

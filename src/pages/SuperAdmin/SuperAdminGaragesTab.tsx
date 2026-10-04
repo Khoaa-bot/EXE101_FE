@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useDialogA11y } from "../../hooks/useDialogA11y";
 import {
   createGarage,
   createGarageOwner,
@@ -32,6 +33,10 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
   const [isCreatingGarage, setIsCreatingGarage] = useState(false);
 
   const [ownerOpen, setOwnerOpen] = useState(false);
+  const garageRef = useRef<HTMLDivElement>(null);
+  const ownerRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(garageOpen, garageRef, () => setGarageOpen(false));
+  useDialogA11y(ownerOpen, ownerRef, () => setOwnerOpen(false));
   const [ownerForm, setOwnerForm] = useState(EMPTY_OWNER_FORM);
   const [isCreatingOwner, setIsCreatingOwner] = useState(false);
 
@@ -321,29 +326,35 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
       )}
 
       {garageOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div
+          ref={garageRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tạo garage mới"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
           <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
             <h3 className="font-headline-md text-lg font-bold">Tạo garage mới</h3>
             <div className="mt-4 space-y-3">
               <div>
-                <label className={labelClass}>Tên garage *</label>
-                <input
+                <label htmlFor="pages-superadmin-superadmingaragestab-field-1" className={labelClass}>Tên garage *</label>
+                <input id="pages-superadmin-superadmingaragestab-field-1"
                   value={garageForm.name}
                   onChange={(e) => setGarageForm((f) => ({ ...f, name: e.target.value }))}
                   className={inputClass}
                 />
               </div>
               <div>
-                <label className={labelClass}>Địa chỉ *</label>
-                <input
+                <label htmlFor="pages-superadmin-superadmingaragestab-field-2" className={labelClass}>Địa chỉ *</label>
+                <input id="pages-superadmin-superadmingaragestab-field-2"
                   value={garageForm.address}
                   onChange={(e) => setGarageForm((f) => ({ ...f, address: e.target.value }))}
                   className={inputClass}
                 />
               </div>
               <div>
-                <label className={labelClass}>Số điện thoại</label>
-                <input
+                <label htmlFor="pages-superadmin-superadmingaragestab-field-3" className={labelClass}>Số điện thoại</label>
+                <input id="pages-superadmin-superadmingaragestab-field-3"
                   value={garageForm.phone}
                   onChange={(e) => setGarageForm((f) => ({ ...f, phone: e.target.value }))}
                   className={inputClass}
@@ -372,21 +383,27 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
       )}
 
       {ownerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div
+          ref={ownerRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tạo Admin Garage mới"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
           <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
             <h3 className="font-headline-md text-lg font-bold">Tạo Admin Garage mới</h3>
             <div className="mt-4 space-y-3">
               <div>
-                <label className={labelClass}>Username *</label>
-                <input
+                <label htmlFor="pages-superadmin-superadmingaragestab-field-4" className={labelClass}>Username *</label>
+                <input id="pages-superadmin-superadmingaragestab-field-4"
                   value={ownerForm.username}
                   onChange={(e) => setOwnerForm((f) => ({ ...f, username: e.target.value }))}
                   className={inputClass}
                 />
               </div>
               <div>
-                <label className={labelClass}>Password *</label>
-                <input
+                <label htmlFor="pages-superadmin-superadmingaragestab-field-5" className={labelClass}>Password *</label>
+                <input id="pages-superadmin-superadmingaragestab-field-5"
                   type="password"
                   value={ownerForm.password}
                   onChange={(e) => setOwnerForm((f) => ({ ...f, password: e.target.value }))}
@@ -394,8 +411,8 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
                 />
               </div>
               <div>
-                <label className={labelClass}>Họ tên</label>
-                <input
+                <label htmlFor="pages-superadmin-superadmingaragestab-field-6" className={labelClass}>Họ tên</label>
+                <input id="pages-superadmin-superadmingaragestab-field-6"
                   value={ownerForm.fullName}
                   onChange={(e) => setOwnerForm((f) => ({ ...f, fullName: e.target.value }))}
                   className={inputClass}
@@ -403,16 +420,16 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelClass}>Email</label>
-                  <input
+                  <label htmlFor="pages-superadmin-superadmingaragestab-field-7" className={labelClass}>Email</label>
+                  <input id="pages-superadmin-superadmingaragestab-field-7"
                     value={ownerForm.email}
                     onChange={(e) => setOwnerForm((f) => ({ ...f, email: e.target.value }))}
                     className={inputClass}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>SĐT</label>
-                  <input
+                  <label htmlFor="pages-superadmin-superadmingaragestab-field-8" className={labelClass}>SĐT</label>
+                  <input id="pages-superadmin-superadmingaragestab-field-8"
                     value={ownerForm.phone}
                     onChange={(e) => setOwnerForm((f) => ({ ...f, phone: e.target.value }))}
                     className={inputClass}
@@ -420,8 +437,8 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
                 </div>
               </div>
               <div>
-                <label className={labelClass}>Garage *</label>
-                <select
+                <label htmlFor="pages-superadmin-superadmingaragestab-field-9" className={labelClass}>Garage *</label>
+                <select id="pages-superadmin-superadmingaragestab-field-9"
                   value={ownerForm.garageId}
                   onChange={(e) => setOwnerForm((f) => ({ ...f, garageId: e.target.value }))}
                   className={inputClass}

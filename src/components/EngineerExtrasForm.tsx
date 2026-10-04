@@ -63,10 +63,10 @@ export default function EngineerExtrasForm({
       }}
     >
       <div>
-        <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+        <label htmlFor="components-engineerextrasform-field-1" className="mb-1 block text-xs font-semibold text-on-surface-variant">
           Hạng mục phát sinh
         </label>
-        <select
+        <select id="components-engineerextrasform-field-1"
           value={choice}
           onChange={(event) => setChoice(event.target.value)}
           className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
@@ -83,14 +83,14 @@ export default function EngineerExtrasForm({
 
       {isCustom && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <input
+          <input aria-label="Tên hạng mục"
             value={name}
             onChange={(event) => setName(event.target.value)}
             maxLength={150}
             placeholder="Tên hạng mục"
             className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           />
-          <input
+          <input aria-label="Giá (đ)"
             value={price}
             onChange={(event) => setPrice(event.target.value)}
             inputMode="numeric"
@@ -100,7 +100,7 @@ export default function EngineerExtrasForm({
         </div>
       )}
 
-      <textarea
+      <textarea aria-label="Lý do cần làm thêm (khách sẽ đọc phần này)..."
         rows={2}
         value={reason}
         onChange={(event) => setReason(event.target.value)}

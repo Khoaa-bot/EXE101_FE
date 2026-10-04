@@ -232,7 +232,7 @@ export default function AppointmentChat({
             void send();
           }}
         >
-          <input
+          <input aria-label="Nhập tin nhắn..."
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             maxLength={MAX_LENGTH}

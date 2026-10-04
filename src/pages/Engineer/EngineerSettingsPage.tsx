@@ -200,10 +200,10 @@ export default function EngineerSettingsPage({
 
                 <form onSubmit={handleSaveProfile} className="space-y-4">
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                    <label htmlFor="pages-engineer-engineersettingspage-field-1" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                       Họ và tên *
                     </label>
-                    <input
+                    <input id="pages-engineer-engineersettingspage-field-1"
                       type="text"
                       required
                       value={fullNameInput}
@@ -213,10 +213,10 @@ export default function EngineerSettingsPage({
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                    <label htmlFor="pages-engineer-engineersettingspage-field-2" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                       Email liên hệ
                     </label>
-                    <input
+                    <input id="pages-engineer-engineersettingspage-field-2"
                       type="email"
                       readOnly
                       value={profile.email}
@@ -225,10 +225,10 @@ export default function EngineerSettingsPage({
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                    <label htmlFor="pages-engineer-engineersettingspage-field-3" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                       Số điện thoại
                     </label>
-                    <input
+                    <input id="pages-engineer-engineersettingspage-field-3"
                       type="text"
                       readOnly
                       value={profile.phone ?? "—"}

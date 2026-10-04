@@ -274,7 +274,7 @@ export default function BookingPage({
         </nav>
 
         <div className="flex items-center gap-4">
-          <button
+          <button aria-label="Thông báo"
             className="rounded-full p-2 transition-colors hover:bg-surface-container"
             type="button"
             onClick={onNotificationsClick}
@@ -432,10 +432,10 @@ export default function BookingPage({
                   )}
 
                   <div className="space-y-sm pt-4">
-                    <label className="px-1 font-label-md text-label-md text-on-surface-variant">
+                    <label htmlFor="pages-customer-bookingpage-field-1" className="px-1 font-label-md text-label-md text-on-surface-variant">
                       Ghi chú thêm (Tình trạng xe, yêu cầu đặc biệt)
                     </label>
-                    <textarea
+                    <textarea id="pages-customer-bookingpage-field-1"
                       className="w-full resize-none rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary"
                       placeholder="Ví dụ: Xe có tiếng kêu lạ ở phía sau khi phanh..."
                       rows={4}
@@ -601,7 +601,7 @@ function SelectField({
         {label}
       </label>
       <div className="relative">
-        <select
+        <select aria-label={label}
           className="w-full appearance-none rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
           value={value}
           onChange={(event) => onChange(event.target.value)}
