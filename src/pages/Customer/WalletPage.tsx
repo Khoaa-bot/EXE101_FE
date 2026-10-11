@@ -11,7 +11,8 @@ import {
   type WithdrawalEligibility,
   type WithdrawalRequestItem,
 } from "../../services/api";
-import { formatVnd } from "../../utils/format";
+import { formatDateTime, formatVnd } from "../../utils/format";
+import WalletHistory from "./WalletHistory";
 
 const TOP_UP_MIN = 10000;
 const WITHDRAW_MIN = 50000;
@@ -19,35 +20,11 @@ const WITHDRAW_MAX = 50000000;
 const QR_MAX_BYTES = 5 * 1024 * 1024;
 const QUICK_AMOUNTS = [50000, 100000, 200000, 500000];
 
-// Loại giao dịch -> nhãn, icon và chiều tiền (+ vào ví, - ra khỏi ví).
-const TRANSACTION_META: Record<string, { label: string; icon: string; sign: 1 | -1 }> = {
-  TOPUP: { label: "Nạp tiền", icon: "add_card", sign: 1 },
-  PAYMENT: { label: "Thanh toán dịch vụ", icon: "shopping_bag", sign: -1 },
-  RECEIVE_PAYMENT: { label: "Nhận thanh toán", icon: "payments", sign: 1 },
-  COMMISSION: { label: "Hoa hồng", icon: "percent", sign: 1 },
-  COMMISSION_DEBIT: { label: "Trừ hoa hồng tiền mặt", icon: "percent", sign: -1 },
-  REFUND: { label: "Hoàn tiền", icon: "undo", sign: 1 },
-  WITHDRAW: { label: "Rút tiền", icon: "account_balance", sign: -1 },
-  WITHDRAW_REFUND: { label: "Hoàn tiền rút", icon: "undo", sign: 1 },
-};
-
 const WITHDRAWAL_STATUS = {
   PENDING: { label: "Chờ xử lý", cls: "bg-tertiary-container/20 text-tertiary" },
   COMPLETED: { label: "Đã chuyển", cls: "bg-primary-container/15 text-primary" },
   REJECTED: { label: "Bị từ chối", cls: "bg-error-container/20 text-error" },
 } as const;
-
-function formatDateTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function maskAccount(accountNumber: string) {
   return accountNumber.length > 4 ? `****${accountNumber.slice(-4)}` : accountNumber;
@@ -488,51 +465,7 @@ export default function WalletPage() {
               </section>
             )}
 
-            <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg">
-              <h2 className="mb-md font-headline-md text-headline-md">Lịch sử giao dịch</h2>
-              {history.length === 0 ? (
-                <p className="text-sm text-on-surface-variant">Chưa có giao dịch nào.</p>
-              ) : (
-                <ul className="divide-y divide-outline-variant">
-                  {history.map((item) => {
-                    const meta = TRANSACTION_META[item.type] ?? {
-                      label: item.type,
-                      icon: "receipt_long",
-                      sign: 1 as const,
-                    };
-                    return (
-                      <li key={item.id} className="flex items-center justify-between gap-3 py-3">
-                        <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined rounded-full bg-surface-container p-2 text-on-surface-variant">
-                            {meta.icon}
-                          </span>
-                          <div>
-                            <p className="font-semibold">{meta.label}</p>
-                            {item.description && (
-                              <p className="text-xs text-on-surface-variant">{item.description}</p>
-                            )}
-                            <p className="text-xs text-on-surface-variant">
-                              {formatDateTime(item.createdAt)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={`font-bold ${meta.sign > 0 ? "text-tertiary" : "text-error"}`}>
-                            {meta.sign > 0 ? "+" : "−"}
-                            {formatVnd(item.amount)}
-                          </p>
-                          {item.balanceAfter !== null && (
-                            <p className="text-xs text-on-surface-variant">
-                              Số dư: {formatVnd(item.balanceAfter)}
-                            </p>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
+            <WalletHistory history={history} />
           </>
         )}
       </div>
