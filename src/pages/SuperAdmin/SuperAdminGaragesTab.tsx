@@ -10,6 +10,7 @@ import {
   type SuperAdminGarage,
 } from "../../services/api";
 
+import CommissionDialog from "./CommissionDialog";
 import ReasonConfirmDialog from "./ReasonConfirmDialog";
 import RowActionMenu from "./RowActionMenu";
 import { FilterChip, StatusChips } from "./SuperAdminChips";
@@ -113,6 +114,7 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [pending, setPending] = useState<Pending | null>(null);
+  const [commissionFor, setCommissionFor] = useState<SuperAdminGarage | null>(null);
 
   const [garageOpen, setGarageOpen] = useState(false);
   const [garageForm, setGarageForm] = useState(EMPTY_GARAGE_FORM);
@@ -210,24 +212,17 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
     else runHidden(pending.garage, reason);
   };
 
-  const editCommission = (garage: SuperAdminGarage) => {
-    const current = Math.round(garage.effectiveCommissionRate * 1000) / 10;
-    const input = window.prompt(
-      `Hoa hồng nền tảng thu của "${garage.name}" (%, từ 0 đến 50). Để trống để dùng mức mặc định. Áp dụng cho các lịch bàn giao từ bây giờ.`,
-      String(current),
-    );
-    if (input === null) return;
-    const trimmed = input.trim();
-    const percent = trimmed === "" ? null : Number(trimmed.replace(",", "."));
-    if (percent !== null && (!Number.isFinite(percent) || percent < 0 || percent > 50)) {
-      notify("Hoa hồng phải là số từ 0 đến 50.", "error");
-      return;
-    }
+  // Mức mặc định = mức hiệu lực của một garage chưa có mức riêng (không có thì dùng 10%).
+  const defaultGarage = garages.find((g) => g.commissionRate === null);
+  const defaultCommissionPercent = defaultGarage ? Math.round(defaultGarage.effectiveCommissionRate * 1000) / 10 : 10;
+
+  const saveCommission = (garage: SuperAdminGarage, percent: number | null) => {
     setBusyId(garage.id);
     setGarageCommission(garage.id, percent)
       .then((updated) => {
         applyUpdate(updated);
         notify(`Hoa hồng của ${garage.name} là ${Math.round(updated.effectiveCommissionRate * 1000) / 10}%.`);
+        setCommissionFor(null);
       })
       .catch((err) => notify(err instanceof Error ? err.message : "Không cập nhật được hoa hồng.", "error"))
       .finally(() => setBusyId(null));
@@ -437,7 +432,7 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
                           {
                             label: "Sửa hoa hồng",
                             icon: "percent",
-                            onSelect: () => editCommission(g),
+                            onSelect: () => setCommissionFor(g),
                           },
                           {
                             label: g.status === "blocked" ? "Mở chặn garage" : "Chặn garage",
@@ -630,6 +625,17 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
           busy={busyId === pending.garage.id}
           onCancel={() => setPending(null)}
           onConfirm={confirmPending}
+        />
+      )}
+      {commissionFor && (
+        <CommissionDialog
+          garageName={commissionFor.name}
+          currentPercent={Math.round(commissionFor.effectiveCommissionRate * 1000) / 10}
+          defaultPercent={defaultCommissionPercent}
+          usingDefault={commissionFor.commissionRate === null}
+          busy={busyId === commissionFor.id}
+          onCancel={() => setCommissionFor(null)}
+          onSave={(percent) => saveCommission(commissionFor, percent)}
         />
       )}
     </div>
