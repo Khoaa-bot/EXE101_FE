@@ -614,6 +614,7 @@ function App() {
           onNotificationsClick={shellProps.onNotificationsClick}
           onTrackingClick={shellProps.onTrackingClick}
           onProfileClick={shellProps.onProfileClick}
+          onWalletClick={shellProps.onWalletClick}
           garageId={selectedGarageId}
           serviceId={selectedServiceId}
         />
