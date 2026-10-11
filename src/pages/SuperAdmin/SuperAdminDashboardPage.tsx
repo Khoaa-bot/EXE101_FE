@@ -3,12 +3,19 @@ import { getPendingWithdrawalCount, type SuperAdminUser } from "../../services/a
 import SuperAdminAppointmentsTab from "./SuperAdminAppointmentsTab";
 import SuperAdminCustomersTab from "./SuperAdminCustomersTab";
 import SuperAdminGaragesTab from "./SuperAdminGaragesTab";
+import SuperAdminOverviewTab from "./SuperAdminOverviewTab";
 import SuperAdminWalletTab from "./SuperAdminWalletTab";
 import SuperAdminWithdrawalsTab from "./SuperAdminWithdrawalsTab";
 
-type TabKey = "customers" | "garages" | "appointments" | "withdrawals" | "wallet";
+type TabKey = "overview" | "customers" | "garages" | "appointments" | "withdrawals" | "wallet";
 
 const TABS: { key: TabKey; icon: string; label: string; description: string }[] = [
+  {
+    key: "overview",
+    icon: "space_dashboard",
+    label: "Tổng quan",
+    description: "Tình hình nền tảng hôm nay và những việc cần bạn xử lý.",
+  },
   {
     key: "customers",
     icon: "groups",
@@ -62,7 +69,7 @@ type SuperAdminDashboardPageProps = {
 };
 
 export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboardPageProps) {
-  const [tab, setTab] = useState<TabKey>("customers");
+  const [tab, setTab] = useState<TabKey>("overview");
   const [appointmentCustomer, setAppointmentCustomer] = useState<{ id: number; name: string } | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [pendingWithdrawals, setPendingWithdrawals] = useState(0);
@@ -168,6 +175,7 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
           </div>
 
           <div className="mt-6">
+            {tab === "overview" && <SuperAdminOverviewTab onNavigate={setTab} />}
             {tab === "customers" && (
               <SuperAdminCustomersTab notify={notify} onViewAppointments={viewAppointmentsOf} />
             )}
