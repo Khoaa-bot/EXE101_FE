@@ -9,6 +9,7 @@ import {
   type SuperAdminUser,
 } from "../../services/api";
 import { formatVnd } from "../../utils/format";
+import OverviewStatsSection from "./OverviewStatsSection";
 
 type OverviewTarget = "customers" | "garages" | "withdrawals";
 
@@ -40,7 +41,7 @@ export default function SuperAdminOverviewTab({ onNavigate }: Props) {
   useEffect(() => {
     let cancelled = false;
     Promise.allSettled([
-      getAllUsers({ role: "customer" }),
+      getAllUsers({ role: "customer", includeHidden: true }),
       getAdminGarages(true),
       getPlatformWallet(),
       getPendingWithdrawalCount(),
@@ -59,7 +60,10 @@ export default function SuperAdminOverviewTab({ onNavigate }: Props) {
     };
   }, []);
 
-  const blockedCustomers = data.customers?.filter((u) => u.status === "blocked").length ?? null;
+  // Danh sách khách lấy cả người đã ẩn để đếm đăng ký mới; các con số quản lý chỉ tính khách chưa ẩn.
+  const visibleCustomers = data.customers?.filter((u) => !u.hidden) ?? null;
+  const blockedCustomers = visibleCustomers?.filter((u) => u.status === "blocked").length ?? null;
+  const garagesWithoutOwner = data.garages?.filter((g) => g.ownerId === null && !g.hidden) ?? null;
   const blockedGarages = data.garages?.filter((g) => g.status === "blocked").length ?? null;
   const hiddenGarages = data.garages?.filter((g) => g.hidden).length ?? null;
   const wallet = data.wallet;
@@ -70,7 +74,7 @@ export default function SuperAdminOverviewTab({ onNavigate }: Props) {
       icon: "groups",
       tone: "bg-primary-fixed text-on-primary-fixed-variant",
       label: "Khách hàng",
-      value: formatCount(data.customers?.length ?? null),
+      value: formatCount(visibleCustomers?.length ?? null),
       hint: blockedCustomers === null ? "" : `${blockedCustomers} đang bị chặn`,
     },
     {
@@ -115,6 +119,17 @@ export default function SuperAdminOverviewTab({ onNavigate }: Props) {
       title: `${data.pendingCount} yêu cầu chuyển tiền đang chờ`,
       text: "Chuyển khoản thủ công rồi bấm xác nhận",
       action: "Xử lý",
+    });
+  }
+  if (garagesWithoutOwner && garagesWithoutOwner.length > 0) {
+    const extra = garagesWithoutOwner.length - 1;
+    todos.push({
+      key: "garages",
+      icon: "person_off",
+      tone: "bg-[#fff1cc] text-[#6b4200]",
+      title: `${garagesWithoutOwner.length} garage chưa có Admin Garage`,
+      text: `${garagesWithoutOwner[0].name}${extra > 0 ? ` và ${extra} garage khác` : ""} cần được gán Admin để vận hành`,
+      action: "Gán Admin",
     });
   }
   if (blockedGarages && blockedGarages > 0) {
@@ -173,6 +188,8 @@ export default function SuperAdminOverviewTab({ onNavigate }: Props) {
           </article>
         ))}
       </section>
+
+      <OverviewStatsSection customerCreatedAt={data.customers ? data.customers.map((u) => u.createdAt) : null} />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         <section className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5">

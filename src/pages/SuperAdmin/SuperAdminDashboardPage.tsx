@@ -181,9 +181,13 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
             )}
             {tab === "garages" && <SuperAdminGaragesTab notify={notify} />}
             {tab === "withdrawals" && (
-              <SuperAdminWithdrawalsTab notify={notify} onChanged={refreshPending} />
+              <SuperAdminWithdrawalsTab
+                notify={notify}
+                onChanged={refreshPending}
+                pendingCount={pendingWithdrawals}
+              />
             )}
-            {tab === "wallet" && <SuperAdminWalletTab />}
+            {tab === "wallet" && <SuperAdminWalletTab onNavigate={setTab} />}
             {tab === "appointments" && (
               <SuperAdminAppointmentsTab
                 key={appointmentCustomer?.id ?? "all"}
