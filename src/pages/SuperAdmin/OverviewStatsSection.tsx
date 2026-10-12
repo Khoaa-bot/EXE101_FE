@@ -1,30 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  getAdminAppointments,
-  getWalletHistory,
-  type AdminAppointment,
-} from "../../services/api";
+import { getAdminPeriodStats, type AdminPeriodStats } from "../../services/api";
 import { formatVnd } from "../../utils/format";
 import {
-  addDays,
-  bucketAmounts,
-  bucketCounts,
   formatShortVnd,
   getPeriodRanges,
-  outcomeOf,
   parseDateTime,
-  parseLocalDate,
   percentChange,
-  toIsoDate,
   type AppointmentOutcome,
   type Period,
-  type PeriodRanges,
 } from "./overviewStats";
 import { BarChart, DeltaChip, StatCard, Status } from "./StatsWidgets";
 import YearStats from "./YearStats";
-
-const PAGE_SIZE = 100;
-const MAX_PAGES = 10;
 
 type View = Period | "year";
 
@@ -46,165 +32,55 @@ const OUTCOMES: Array<{
   { key: "noShow", label: "Không đến", color: "#ba1a1a" },
 ];
 
-type AppointmentState = {
-  key: Period;
-  items: AdminAppointment[];
-  truncated: boolean;
-  failed: boolean;
-};
-
-// Lọc lịch hẹn của backend theo ngày hẹn (atDate), mỗi trang tối đa 100, nên tải lần lượt nhiều trang.
-async function loadAppointments(ranges: PeriodRanges) {
-  const fromDate = toIsoDate(ranges.compareStart);
-  const toDate = toIsoDate(addDays(ranges.end, -1));
-  const items: AdminAppointment[] = [];
-  let total = 0;
-  for (let page = 0; page < MAX_PAGES; page += 1) {
-    const result = await getAdminAppointments({
-      fromDate,
-      toDate,
-      page,
-      size: PAGE_SIZE,
-    });
-    total = result.total;
-    items.push(...result.items);
-    if (items.length >= total || result.items.length === 0) break;
-  }
-  return { items, truncated: items.length < total };
-}
+type StatsState = { key: Period; data: AdminPeriodStats | null; failed: boolean };
 
 // Thống kê đăng ký mới, lịch hẹn và doanh thu (hoa hồng nền tảng) theo hôm nay / tuần này / tháng này.
-export default function OverviewStatsSection({
-  customerCreatedAt,
-}: {
-  customerCreatedAt: string[] | null;
-}) {
+// Số liệu do backend gom sẵn theo giờ Việt Nam; giao diện chỉ vẽ.
+export default function OverviewStatsSection() {
   const [period, setPeriod] = useState<Period>("week");
   // "Năm" có giao diện riêng; period giữ kỳ ngắn gần nhất để không tải lại dữ liệu khi quay lại.
   const [view, setView] = useState<View>("week");
-  const [now] = useState(() => new Date());
-  const ranges = useMemo(() => getPeriodRanges(period, now), [period, now]);
-
-  const [commissions, setCommissions] = useState<Array<{
-    date: Date | null;
-    amount: number;
-  }> | null>(null);
-  const [commissionsFailed, setCommissionsFailed] = useState(false);
-  const [appointmentState, setAppointmentState] =
-    useState<AppointmentState | null>(null);
+  const [browserNow] = useState(() => new Date());
+  const [state, setState] = useState<StatsState | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    getWalletHistory()
-      .then((rows) => {
-        if (cancelled) return;
-        setCommissions(
-          rows
-            .filter((row) => row.type === "COMMISSION")
-            .map((row) => ({
-              date: parseDateTime(row.createdAt),
-              amount: row.amount,
-            })),
-        );
+    getAdminPeriodStats(period)
+      .then((data) => {
+        if (!cancelled) setState({ key: period, data, failed: false });
       })
       .catch(() => {
-        if (!cancelled) setCommissionsFailed(true);
+        if (!cancelled) setState({ key: period, data: null, failed: true });
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [period]);
 
-  useEffect(() => {
-    let cancelled = false;
-    loadAppointments(ranges)
-      .then((result) => {
-        if (!cancelled)
-          setAppointmentState({ key: period, ...result, failed: false });
-      })
-      .catch(() => {
-        if (!cancelled)
-          setAppointmentState({
-            key: period,
-            items: [],
-            truncated: false,
-            failed: true,
-          });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [ranges, period]);
+  const loading = state?.key !== period;
+  const failed = !loading && state?.failed === true;
+  const stats = loading ? null : (state?.data ?? null);
+  const serverNowText = stats?.serverNow ?? null;
 
-  const registrations = useMemo(
-    () =>
-      customerCreatedAt
-        ? bucketCounts(customerCreatedAt.map(parseDateTime), ranges)
-        : null,
-    [customerCreatedAt, ranges],
-  );
-  const revenue = useMemo(
-    () => (commissions ? bucketAmounts(commissions, ranges) : null),
-    [commissions, ranges],
+  // Nhãn kỳ (ngày, tuần, tháng) tính theo giờ của server khi đã có, nếu chưa thì theo giờ trình duyệt.
+  const ranges = useMemo(
+    () => getPeriodRanges(period, parseDateTime(serverNowText) ?? browserNow),
+    [period, serverNowText, browserNow],
   );
 
-  const appointmentsLoading = appointmentState?.key !== period;
-  const appointmentsFailed =
-    !appointmentsLoading && appointmentState?.failed === true;
-  const datedAppointments = useMemo(() => {
-    if (appointmentsLoading || !appointmentState || appointmentState.failed)
-      return [];
-    return appointmentState.items
-      .map((item) => ({ item, date: parseLocalDate(item.scheduleDate) }))
-      .filter(
-        (entry): entry is { item: AdminAppointment; date: Date } =>
-          entry.date !== null,
-      );
-  }, [appointmentState, appointmentsLoading]);
-
-  const appointments = useMemo(
-    () =>
-      appointmentsLoading || appointmentsFailed
-        ? null
-        : bucketCounts(
-            datedAppointments.map((entry) => entry.date),
-            ranges,
-          ),
-    [appointmentsLoading, appointmentsFailed, datedAppointments, ranges],
-  );
-
-  const inCurrent = useMemo(
-    () =>
-      datedAppointments.filter(
-        (entry) => entry.date >= ranges.start && entry.date < ranges.elapsedEnd,
-      ),
-    [datedAppointments, ranges],
-  );
-  const outcomeCounts = useMemo(() => {
-    const counts: Record<AppointmentOutcome, number> = {
-      done: 0,
-      active: 0,
-      cancelled: 0,
-      noShow: 0,
-    };
-    for (const entry of inCurrent) counts[outcomeOf(entry.item.status)] += 1;
-    return counts;
-  }, [inCurrent]);
-  const outcomeTotal = inCurrent.length;
+  const outcomeCounts = stats?.outcomes ?? { done: 0, active: 0, cancelled: 0, noShow: 0 };
+  const outcomeTotal =
+    outcomeCounts.done + outcomeCounts.active + outcomeCounts.cancelled + outcomeCounts.noShow;
   const percentOf = (value: number) =>
     outcomeTotal === 0 ? 0 : Math.round((value / outcomeTotal) * 100);
 
   // Hôm nay: lịch hẹn nhóm theo khung giờ hẹn thay vì theo giờ.
-  const timeFrameBars = useMemo(() => {
-    if (period !== "day") return null;
-    const groups = new Map<string, number>();
-    for (const entry of inCurrent) {
-      const label = entry.item.timeFrame || "Không rõ";
-      groups.set(label, (groups.get(label) ?? 0) + 1);
-    }
-    const labels = [...groups.keys()].sort();
-    return { labels, values: labels.map((label) => groups.get(label) ?? 0) };
-  }, [period, inCurrent]);
+  const timeFrameBars = stats?.timeFrames
+    ? {
+        labels: stats.timeFrames.map((frame) => frame.label),
+        values: stats.timeFrames.map((frame) => frame.count),
+      }
+    : null;
 
   const sparseLabel = (index: number) =>
     period === "day"
@@ -251,11 +127,7 @@ export default function OverviewStatsSection({
       </div>
 
       {view === "year" ? (
-        <YearStats
-          customerCreatedAt={customerCreatedAt}
-          commissions={commissions}
-          commissionsFailed={commissionsFailed}
-        />
+        <YearStats />
       ) : (
         <>
           <div className="grid gap-4 lg:grid-cols-3">
@@ -265,38 +137,34 @@ export default function OverviewStatsSection({
               title="Người dùng đăng ký mới"
               subtitle={ranges.currentLabel}
             >
-              {registrations ? (
+              {stats ? (
                 <>
                   <div className="flex flex-wrap items-baseline gap-2.5">
                     <b className="text-[32px] font-extrabold tracking-tight">
-                      {formatCount(registrations.total)}
+                      {formatCount(stats.registrations.total)}
                     </b>
                     <DeltaChip
                       delta={percentChange(
-                        registrations.total,
-                        registrations.previousTotal,
+                        stats.registrations.total,
+                        stats.registrations.previousTotal,
                       )}
                       compareLabel={ranges.compareLabel}
-                      previousText={formatCount(registrations.previousTotal)}
+                      previousText={formatCount(stats.registrations.previousTotal)}
                     />
                   </div>
                   <BarChart
-                    values={registrations.buckets}
+                    values={stats.registrations.buckets}
                     labels={ranges.bucketLabels}
                     barColor="#7fa9e6"
                     highlightColor="#0059bb"
-                    ariaLabel={`Đăng ký mới ${ranges.periodWord}: tổng ${registrations.total}`}
+                    ariaLabel={`Đăng ký mới ${ranges.periodWord}: tổng ${stats.registrations.total}`}
                     formatValue={showValues ? formatCount : undefined}
                     futureFrom={futureFrom}
                     showLabel={showLabel}
                   />
                 </>
               ) : (
-                <Status>
-                  {customerCreatedAt === null
-                    ? "Không tải được số người đăng ký."
-                    : "Đang tải..."}
-                </Status>
+                <Status>{failed ? "Không tải được số người đăng ký." : "Đang tải..."}</Status>
               )}
             </StatCard>
 
@@ -310,21 +178,21 @@ export default function OverviewStatsSection({
                   : `Có ngày hẹn từ đầu ${period === "week" ? "tuần" : "tháng"} đến hết hôm nay`
               }
             >
-              {appointmentsFailed ? (
+              {failed ? (
                 <Status>Không tải được lịch hẹn.</Status>
-              ) : appointments ? (
+              ) : stats ? (
                 <>
                   <div className="flex flex-wrap items-baseline gap-2.5">
                     <b className="text-[32px] font-extrabold tracking-tight">
-                      {formatCount(appointments.total)}
+                      {formatCount(stats.appointments.total)}
                     </b>
                     <DeltaChip
                       delta={percentChange(
-                        appointments.total,
-                        appointments.previousTotal,
+                        stats.appointments.total,
+                        stats.appointments.previousTotal,
                       )}
                       compareLabel={ranges.compareLabel}
-                      previousText={formatCount(appointments.previousTotal)}
+                      previousText={formatCount(stats.appointments.previousTotal)}
                     />
                   </div>
                   {period === "day" ? (
@@ -334,7 +202,7 @@ export default function OverviewStatsSection({
                         labels={timeFrameBars.labels}
                         barColor="#8fd09a"
                         highlightColor="#008730"
-                        ariaLabel={`Lịch hẹn hôm nay theo khung giờ: tổng ${appointments.total}`}
+                        ariaLabel={`Lịch hẹn hôm nay theo khung giờ: tổng ${stats.appointments.total}`}
                         formatValue={formatCount}
                       />
                     ) : (
@@ -342,11 +210,11 @@ export default function OverviewStatsSection({
                     )
                   ) : (
                     <BarChart
-                      values={appointments.buckets}
+                      values={stats.appointments.buckets}
                       labels={ranges.bucketLabels}
                       barColor="#8fd09a"
                       highlightColor="#008730"
-                      ariaLabel={`Lịch hẹn ${ranges.periodWord} theo ngày hẹn: tổng ${appointments.total}`}
+                      ariaLabel={`Lịch hẹn ${ranges.periodWord} theo ngày hẹn: tổng ${stats.appointments.total}`}
                       formatValue={showValues ? formatCount : undefined}
                       futureFrom={futureFrom}
                       showLabel={showLabel}
@@ -364,38 +232,31 @@ export default function OverviewStatsSection({
               title="Doanh thu nền tảng"
               subtitle={`Hoa hồng ghi vào ví ${ranges.periodWord}`}
             >
-              {revenue ? (
+              {stats ? (
                 <>
                   <div className="flex flex-wrap items-baseline gap-2.5">
                     <b className="text-[32px] font-extrabold tracking-tight">
-                      {formatVnd(revenue.total)}
+                      {formatVnd(stats.revenue.total)}
                     </b>
                     <DeltaChip
-                      delta={percentChange(
-                        revenue.total,
-                        revenue.previousTotal,
-                      )}
+                      delta={percentChange(stats.revenue.total, stats.revenue.previousTotal)}
                       compareLabel={ranges.compareLabel}
-                      previousText={formatVnd(revenue.previousTotal)}
+                      previousText={formatVnd(stats.revenue.previousTotal)}
                     />
                   </div>
                   <BarChart
-                    values={revenue.buckets}
+                    values={stats.revenue.buckets}
                     labels={ranges.bucketLabels}
                     barColor="#b9a8ec"
                     highlightColor="#6a4fd1"
-                    ariaLabel={`Doanh thu ${ranges.periodWord}: tổng ${formatVnd(revenue.total)}`}
+                    ariaLabel={`Doanh thu ${ranges.periodWord}: tổng ${formatVnd(stats.revenue.total)}`}
                     formatValue={showValues ? formatShortVnd : undefined}
                     futureFrom={futureFrom}
                     showLabel={showLabel}
                   />
                 </>
               ) : (
-                <Status>
-                  {commissionsFailed
-                    ? "Không tải được doanh thu."
-                    : "Đang tải..."}
-                </Status>
+                <Status>{failed ? "Không tải được doanh thu." : "Đang tải..."}</Status>
               )}
             </StatCard>
           </div>
@@ -407,9 +268,9 @@ export default function OverviewStatsSection({
                   Kết quả lịch hẹn {ranges.periodWord}
                 </h3>
                 <p className="text-xs text-on-surface-variant">
-                  {appointmentsLoading
+                  {loading
                     ? "Đang tải..."
-                    : appointmentsFailed
+                    : failed
                       ? "Không tải được lịch hẹn."
                       : `Chia theo tình trạng của ${formatCount(outcomeTotal)} lịch hẹn`}
                 </p>
@@ -467,18 +328,12 @@ export default function OverviewStatsSection({
                 </ul>
               </>
             ) : (
-              !appointmentsLoading &&
-              !appointmentsFailed && (
+              !loading &&
+              !failed && (
                 <p className="text-sm text-on-surface-variant">
                   Chưa có lịch hẹn trong kỳ này.
                 </p>
               )
-            )}
-            {appointmentState?.truncated && (
-              <p className="text-xs text-on-surface-variant">
-                Chỉ thống kê {formatCount(PAGE_SIZE * MAX_PAGES)} lịch hẹn đầu
-                tiên trong khoảng này.
-              </p>
             )}
           </article>
         </>

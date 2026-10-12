@@ -18,20 +18,6 @@ function formatDayMonth(date: Date) {
   return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function toIsoDate(date: Date) {
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-}
-
-// "2026-10-04" -> ngày địa phương (tránh lệch múi giờ khi parse chuỗi chỉ có ngày).
-export function parseLocalDate(value: string | null | undefined): Date | null {
-  if (!value) return null;
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  if (!match) return null;
-  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-}
-
 export function parseDateTime(value: string | null | undefined): Date | null {
   if (!value) return null;
   const date = new Date(value);
@@ -117,63 +103,6 @@ export function getPeriodRanges(period: Period, now: Date): PeriodRanges {
   };
 }
 
-function bucketIndex(date: Date, ranges: PeriodRanges) {
-  if (ranges.period === "day") return date.getHours();
-  if (ranges.period === "week") {
-    return Math.round((startOfDay(date).getTime() - ranges.start.getTime()) / DAY_MS);
-  }
-  return date.getDate() - 1;
-}
-
-export type BucketResult = {
-  buckets: number[];
-  total: number;
-  previousTotal: number;
-};
-
-// Cộng dồn `weight` của từng mục vào đúng ô (giờ / ngày) của kỳ hiện tại và vào tổng kỳ trước.
-function accumulate<T>(
-  items: T[],
-  ranges: PeriodRanges,
-  getDate: (item: T) => Date | null,
-  getWeight: (item: T) => number,
-): BucketResult {
-  const buckets = new Array<number>(ranges.bucketCount).fill(0);
-  let total = 0;
-  let previousTotal = 0;
-  for (const item of items) {
-    const date = getDate(item);
-    if (!date) continue;
-    const weight = getWeight(item);
-    if (date >= ranges.start && date < ranges.elapsedEnd) {
-      const index = bucketIndex(date, ranges);
-      if (index >= 0 && index < buckets.length) {
-        buckets[index] += weight;
-        total += weight;
-      }
-    } else if (date >= ranges.compareStart && date < ranges.compareEnd) {
-      previousTotal += weight;
-    }
-  }
-  return { buckets, total, previousTotal };
-}
-
-export function bucketCounts(dates: Array<Date | null>, ranges: PeriodRanges): BucketResult {
-  return accumulate(dates, ranges, (date) => date, () => 1);
-}
-
-export function bucketAmounts(
-  entries: Array<{ date: Date | null; amount: number }>,
-  ranges: PeriodRanges,
-): BucketResult {
-  return accumulate(
-    entries,
-    ranges,
-    (entry) => entry.date,
-    (entry) => (Number.isFinite(entry.amount) ? entry.amount : 0),
-  );
-}
-
 export type Delta = {
   direction: "up" | "down" | "flat" | "new";
   percent: number | null;
@@ -189,20 +118,6 @@ export function percentChange(current: number, previous: number): Delta {
 }
 
 export type AppointmentOutcome = "done" | "active" | "cancelled" | "noShow";
-
-export function outcomeOf(status: string | null | undefined): AppointmentOutcome {
-  switch ((status ?? "").toLowerCase()) {
-    case "completed":
-    case "successful":
-      return "done";
-    case "cancelled":
-      return "cancelled";
-    case "no_show":
-      return "noShow";
-    default:
-      return "active"; // chờ xử lý, đã xác nhận, đang thực hiện và các trạng thái khác
-  }
-}
 
 export function formatShortVnd(value: number) {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, "")}tr`;

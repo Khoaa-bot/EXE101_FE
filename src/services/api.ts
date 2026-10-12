@@ -1638,6 +1638,66 @@ export function getPlatformWallet() {
   return apiRequest<PlatformWallet>("/admin/platform-wallet");
 }
 
+export type AdminOverview = {
+  customerCount: number;
+  blockedCustomerCount: number;
+  hiddenCustomerCount: number;
+  garageCount: number;
+  blockedGarageCount: number;
+  hiddenGarageCount: number;
+  garagesWithoutOwner: Array<{ id: number; name: string }>;
+  pendingWithdrawalCount: number;
+  pendingWithdrawalAmount: number;
+  wallet: PlatformWallet;
+};
+
+// GET /api/admin/overview — số liệu KPI trang Tổng quan trong một lần gọi (Super Admin).
+export function getAdminOverview() {
+  return apiRequest<AdminOverview>("/admin/overview");
+}
+
+export type StatsSeries = {
+  buckets: number[]; // giờ (day) hoặc ngày (week, month) của kỳ hiện tại
+  total: number;
+  previousTotal: number; // kỳ trước cùng độ dài
+};
+
+export type AdminPeriodStats = {
+  period: "day" | "week" | "month";
+  serverNow: string; // giờ hiện tại theo múi giờ Asia/Ho_Chi_Minh
+  registrations: StatsSeries;
+  appointments: StatsSeries;
+  revenue: StatsSeries;
+  outcomes: { done: number; active: number; cancelled: number; noShow: number };
+  timeFrames: Array<{ label: string; count: number }> | null; // chỉ có khi period = day
+};
+
+// GET /api/admin/stats/period — thống kê hôm nay / tuần này / tháng này, tính ở server.
+export function getAdminPeriodStats(period: "day" | "week" | "month") {
+  return apiRequest<AdminPeriodStats>("/admin/stats/period", { query: { period } });
+}
+
+export type AdminYearMonthRow = {
+  registrations: number;
+  appointments: number;
+  done: number;
+  lost: number; // hủy + không đến
+  revenue: number;
+};
+
+export type AdminYearStats = {
+  year: number;
+  firstYear: number;
+  cutoffMonth: number; // 0-11, mốc cắt "cùng kỳ"
+  cutoffDay: number;
+  years: Array<{ year: number; months: AdminYearMonthRow[] }>; // tăng dần, năm cuối là `year`
+};
+
+// GET /api/admin/stats/yearly — 12 tháng của một năm và các năm trước để so sánh.
+export function getAdminYearStats(year: number) {
+  return apiRequest<AdminYearStats>("/admin/stats/yearly", { query: { year } });
+}
+
 // GET /api/payment/wallet-summary — số dư và tổng nạp/chi/nhận.
 export function getWalletSummary() {
   return apiRequest<WalletSummary>("/payment/wallet-summary");

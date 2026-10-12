@@ -1,22 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAdminAppointments } from "../../services/api";
+import { getAdminYearStats, type AdminYearStats } from "../../services/api";
 import { formatVnd } from "../../utils/format";
 import { BarChart, DeltaChip, StatCard, Status } from "./StatsWidgets";
-import { formatShortVnd, parseDateTime, parseLocalDate, percentChange, toIsoDate } from "./overviewStats";
-import {
-  cutoffFor,
-  emptyRow,
-  firstDataYear,
-  monthRows,
-  sumRows,
-  yearRange,
-  type DatedAmount,
-  type MonthRow,
-  type YearAppointment,
-} from "./yearBuckets";
+import { formatShortVnd, percentChange } from "./overviewStats";
+import { cutoffFor, emptyRow, sumRows, type MonthRow } from "./yearBuckets";
 
-const PAGE_SIZE = 100;
-const MAX_PAGES = 30;
 const COMPARE_YEARS = 3;
 const MONTH_LABELS = Array.from({ length: 12 }, (_, i) => `T${i + 1}`);
 
@@ -28,52 +16,38 @@ const METRICS: Array<{ key: Metric; label: string; colors: string[] }> = [
   { key: "revenue", label: "Doanh thu", colors: ["#c9ccd6", "#b9a8ec", "#6a4fd1"] },
 ];
 
-type AppointmentState = { key: number; items: YearAppointment[]; truncated: boolean; failed: boolean };
-
-// Lịch hẹn của backend lọc theo ngày hẹn và tối đa 100/trang, nên tải lần lượt nhiều trang.
-async function loadYearAppointments(fromYear: number, toYear: number) {
-  const fromDate = toIsoDate(yearRange(fromYear).start);
-  const toDate = toIsoDate(yearRange(toYear).end);
-  const items: YearAppointment[] = [];
-  let total = 0;
-  let loaded = 0;
-  for (let page = 0; page < MAX_PAGES; page += 1) {
-    const result = await getAdminAppointments({ fromDate, toDate, page, size: PAGE_SIZE });
-    total = result.total;
-    loaded += result.items.length;
-    for (const item of result.items) {
-      const date = parseLocalDate(item.scheduleDate);
-      if (date) items.push({ date, status: item.status });
-    }
-    if (loaded >= total || result.items.length === 0) break;
-  }
-  return { items, truncated: loaded < total };
-}
+type YearState = { year: number; data: AdminYearStats | null; failed: boolean };
 
 const formatCount = (value: number) => value.toLocaleString("vi-VN");
 
-type Props = {
-  customerCreatedAt: string[] | null;
-  commissions: DatedAmount[] | null;
-  commissionsFailed: boolean;
-};
-
-// Thống kê theo năm: 12 tháng, so với cùng kỳ năm trước và so sánh nhiều năm.
-export default function YearStats({ customerCreatedAt, commissions, commissionsFailed }: Props) {
+// Thống kê theo năm: 12 tháng, so với cùng kỳ năm trước và so sánh nhiều năm. Số liệu do backend gom sẵn.
+export default function YearStats() {
   const [now] = useState(() => new Date());
   const nowYear = now.getFullYear();
   const [year, setYear] = useState(nowYear);
   const [metric, setMetric] = useState<Metric>("appointments");
-  const [appointmentState, setAppointmentState] = useState<AppointmentState | null>(null);
+  const [state, setState] = useState<YearState | null>(null);
 
-  const registrations = useMemo(
-    () => (customerCreatedAt ? customerCreatedAt.map(parseDateTime) : null),
-    [customerCreatedAt],
-  );
-  const minYear = useMemo(
-    () => firstDataYear({ registrations: registrations ?? [], commissions: commissions ?? [] }, now),
-    [registrations, commissions, now],
-  );
+  useEffect(() => {
+    let cancelled = false;
+    getAdminYearStats(year)
+      .then((data) => {
+        if (!cancelled) setState({ year, data, failed: false });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ year, data: null, failed: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [year]);
+
+  const loading = state?.year !== year;
+  const failed = !loading && state?.failed === true;
+  const data = loading ? null : (state?.data ?? null);
+  // Giữ năm đầu tiên đã biết khi đang chuyển năm để nút "Năm trước" không nhảy trạng thái.
+  const minYear = state?.data?.firstYear ?? nowYear;
+
   const compareFrom = Math.max(minYear, year - (COMPARE_YEARS - 1));
   const years = useMemo(() => {
     const list: number[] = [];
@@ -81,38 +55,13 @@ export default function YearStats({ customerCreatedAt, commissions, commissionsF
     return list;
   }, [compareFrom, year]);
 
-  // Tải thêm một năm trước để so sánh "cùng kỳ năm trước" cho năm đầu của danh sách.
-  const loadFrom = Math.min(compareFrom, year - 1);
-  useEffect(() => {
-    let cancelled = false;
-    loadYearAppointments(loadFrom, year)
-      .then((result) => {
-        if (!cancelled) setAppointmentState({ key: year, ...result, failed: false });
-      })
-      .catch(() => {
-        if (!cancelled) setAppointmentState({ key: year, items: [], truncated: false, failed: true });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [loadFrom, year]);
-
-  const appointmentsLoading = appointmentState?.key !== year;
-  const appointmentsFailed = !appointmentsLoading && appointmentState?.failed === true;
-  const ready = registrations !== null && commissions !== null && !appointmentsLoading && !appointmentsFailed;
-
-  const cutoff = useMemo(() => cutoffFor(year, now), [year, now]);
   const rowsByYear = useMemo(() => {
-    const data = {
-      registrations: registrations ?? [],
-      commissions: commissions ?? [],
-      appointments: appointmentsLoading || appointmentsFailed ? [] : (appointmentState?.items ?? []),
-    };
     const map = new Map<number, MonthRow[]>();
-    for (let y = loadFrom; y <= year; y += 1) map.set(y, monthRows(data, y, cutoff));
+    for (const entry of data?.years ?? []) map.set(entry.year, entry.months);
     return map;
-  }, [registrations, commissions, appointmentState, appointmentsLoading, appointmentsFailed, loadFrom, year, cutoff]);
+  }, [data]);
 
+  const cutoff = data ? { month: data.cutoffMonth, day: data.cutoffDay } : cutoffFor(year, now);
   const currentRows = rowsByYear.get(year) ?? Array.from({ length: 12 }, emptyRow);
   const previousRows = rowsByYear.get(year - 1);
   const total = sumRows(currentRows);
@@ -130,6 +79,8 @@ export default function YearStats({ customerCreatedAt, commissions, commissionsF
     1,
     ...years.flatMap((y) => chartMonths.map((m) => rowsByYear.get(y)?.[m]?.[metric] ?? 0)),
   );
+
+  const loadingText = failed ? "Không tải được số liệu theo năm." : "Đang tải...";
 
   return (
     <div className="space-y-4">
@@ -170,7 +121,7 @@ export default function YearStats({ customerCreatedAt, commissions, commissionsF
           title="Người dùng đăng ký mới"
           subtitle={periodText}
         >
-          {registrations ? (
+          {data ? (
             <>
               <div className="flex flex-wrap items-baseline gap-2.5">
                 <b className="text-[32px] font-extrabold tracking-tight">{formatCount(total.registrations)}</b>
@@ -191,7 +142,7 @@ export default function YearStats({ customerCreatedAt, commissions, commissionsF
               />
             </>
           ) : (
-            <Status>{customerCreatedAt === null ? "Không tải được số người đăng ký." : "Đang tải..."}</Status>
+            <Status>{loadingText}</Status>
           )}
         </StatCard>
 
@@ -201,11 +152,7 @@ export default function YearStats({ customerCreatedAt, commissions, commissionsF
           title="Lịch hẹn"
           subtitle={`Có ngày hẹn trong ${periodText.toLowerCase()}`}
         >
-          {appointmentsFailed ? (
-            <Status>Không tải được lịch hẹn.</Status>
-          ) : appointmentsLoading ? (
-            <Status>Đang tải...</Status>
-          ) : (
+          {data ? (
             <>
               <div className="flex flex-wrap items-baseline gap-2.5">
                 <b className="text-[32px] font-extrabold tracking-tight">{formatCount(total.appointments)}</b>
@@ -225,6 +172,8 @@ export default function YearStats({ customerCreatedAt, commissions, commissionsF
                 futureFrom={futureFrom}
               />
             </>
+          ) : (
+            <Status>{loadingText}</Status>
           )}
         </StatCard>
 
@@ -234,7 +183,7 @@ export default function YearStats({ customerCreatedAt, commissions, commissionsF
           title="Doanh thu nền tảng"
           subtitle={`Hoa hồng ghi vào ví ${periodText.toLowerCase()}`}
         >
-          {commissions ? (
+          {data ? (
             <>
               <div className="flex flex-wrap items-baseline gap-2.5">
                 <b className="text-[32px] font-extrabold tracking-tight">{formatVnd(total.revenue)}</b>
@@ -255,7 +204,7 @@ export default function YearStats({ customerCreatedAt, commissions, commissionsF
               />
             </>
           ) : (
-            <Status>{commissionsFailed ? "Không tải được doanh thu." : "Đang tải..."}</Status>
+            <Status>{loadingText}</Status>
           )}
         </StatCard>
       </div>
@@ -266,7 +215,7 @@ export default function YearStats({ customerCreatedAt, commissions, commissionsF
             <h3 className="text-base font-extrabold">Chi tiết theo tháng · {year}</h3>
             <p className="text-xs text-on-surface-variant">Tổng hợp 12 tháng; tháng đang diễn ra được tô nền xanh.</p>
           </div>
-          {ready && total.appointments > 0 && (
+          {data && total.appointments > 0 && (
             <div className="flex flex-wrap gap-2">
               <span className="rounded-full bg-[#d9f7dd] px-2.5 py-1 text-xs font-bold text-[#00531a]">
                 Tỷ lệ hoàn thành {percentOf(total.done, total.appointments)}%
@@ -360,7 +309,7 @@ export default function YearStats({ customerCreatedAt, commissions, commissionsF
           </div>
         </div>
 
-        {ready ? (
+        {data ? (
           <>
             <ul className="flex flex-wrap gap-4 text-xs font-semibold text-on-surface-variant">
               {years.map((y, index) => (
@@ -445,12 +394,7 @@ export default function YearStats({ customerCreatedAt, commissions, commissionsF
             </div>
           </>
         ) : (
-          <Status>{appointmentsFailed ? "Không tải được lịch hẹn." : "Đang tải..."}</Status>
-        )}
-        {appointmentState?.truncated && (
-          <p className="text-xs text-on-surface-variant">
-            Chỉ thống kê {formatCount(PAGE_SIZE * MAX_PAGES)} lịch hẹn đầu tiên trong khoảng này.
-          </p>
+          <Status>{loadingText}</Status>
         )}
       </article>
     </div>

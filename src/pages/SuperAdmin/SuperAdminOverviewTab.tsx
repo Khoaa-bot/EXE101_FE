@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  getAdminGarages,
-  getAllUsers,
-  getPendingWithdrawalCount,
-  getPlatformWallet,
-  type PlatformWallet,
-  type SuperAdminGarage,
-  type SuperAdminUser,
-} from "../../services/api";
+import { getAdminOverview, type AdminOverview } from "../../services/api";
 import { formatVnd } from "../../utils/format";
 import OverviewStatsSection from "./OverviewStatsSection";
 
@@ -17,71 +9,50 @@ type Props = {
   onNavigate: (tab: OverviewTarget) => void;
 };
 
-type OverviewData = {
-  customers: SuperAdminUser[] | null;
-  garages: SuperAdminGarage[] | null;
-  wallet: PlatformWallet | null;
-  pendingCount: number | null;
-};
-
-const EMPTY: OverviewData = { customers: null, garages: null, wallet: null, pendingCount: null };
-
-function settled<T>(result: PromiseSettledResult<T>): T | null {
-  return result.status === "fulfilled" ? result.value : null;
-}
-
 function formatCount(count: number | null) {
   return count === null ? "—" : count.toLocaleString("vi-VN");
 }
 
 export default function SuperAdminOverviewTab({ onNavigate }: Props) {
-  const [data, setData] = useState<OverviewData>(EMPTY);
+  const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.allSettled([
-      getAllUsers({ role: "customer", includeHidden: true }),
-      getAdminGarages(true),
-      getPlatformWallet(),
-      getPendingWithdrawalCount(),
-    ]).then(([customers, garages, wallet, pending]) => {
-      if (cancelled) return;
-      setData({
-        customers: settled(customers),
-        garages: settled(garages),
-        wallet: settled(wallet),
-        pendingCount: settled(pending),
+    getAdminOverview()
+      .then((result) => {
+        if (!cancelled) setOverview(result);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
       });
-      setLoaded(true);
-    });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Danh sách khách lấy cả người đã ẩn để đếm đăng ký mới; các con số quản lý chỉ tính khách chưa ẩn.
-  const visibleCustomers = data.customers?.filter((u) => !u.hidden) ?? null;
-  const blockedCustomers = visibleCustomers?.filter((u) => u.status === "blocked").length ?? null;
-  const garagesWithoutOwner = data.garages?.filter((g) => g.ownerId === null && !g.hidden) ?? null;
-  const blockedGarages = data.garages?.filter((g) => g.status === "blocked").length ?? null;
-  const hiddenGarages = data.garages?.filter((g) => g.hidden).length ?? null;
-  const wallet = data.wallet;
-  const hasFailure = Object.values(data).some((value) => value === null);
+  const blockedCustomers = overview?.blockedCustomerCount ?? null;
+  const garagesWithoutOwner = overview?.garagesWithoutOwner ?? null;
+  const blockedGarages = overview?.blockedGarageCount ?? null;
+  const hiddenGarages = overview?.hiddenGarageCount ?? null;
+  const wallet = overview?.wallet ?? null;
+  const pendingCount = overview ? overview.pendingWithdrawalCount : null;
+  const hasFailure = loaded && overview === null;
 
   const kpis: { icon: string; tone: string; label: string; value: string; hint: string }[] = [
     {
       icon: "groups",
       tone: "bg-primary-fixed text-on-primary-fixed-variant",
       label: "Khách hàng",
-      value: formatCount(visibleCustomers?.length ?? null),
+      value: formatCount(overview?.customerCount ?? null),
       hint: blockedCustomers === null ? "" : `${blockedCustomers} đang bị chặn`,
     },
     {
       icon: "storefront",
       tone: "bg-[#d9f7dd] text-on-tertiary-fixed-variant",
       label: "Garage",
-      value: formatCount(data.garages?.length ?? null),
+      value: formatCount(overview?.garageCount ?? null),
       hint:
         blockedGarages === null || hiddenGarages === null
           ? ""
@@ -91,8 +62,8 @@ export default function SuperAdminOverviewTab({ onNavigate }: Props) {
       icon: "payments",
       tone: "bg-[#ffe4d6] text-[#7a2e00]",
       label: "Yêu cầu chuyển tiền chờ",
-      value: formatCount(data.pendingCount),
-      hint: wallet ? `Tổng ${formatVnd(wallet.pendingWithdrawals)}` : "",
+      value: formatCount(pendingCount),
+      hint: overview ? `Tổng ${formatVnd(overview.pendingWithdrawalAmount)}` : "",
     },
     {
       icon: "account_balance",
@@ -111,12 +82,12 @@ export default function SuperAdminOverviewTab({ onNavigate }: Props) {
     text: string;
     action: string;
   }[] = [];
-  if (data.pendingCount && data.pendingCount > 0) {
+  if (pendingCount && pendingCount > 0) {
     todos.push({
       key: "withdrawals",
       icon: "payments",
       tone: "bg-[#ffe4d6] text-[#7a2e00]",
-      title: `${data.pendingCount} yêu cầu chuyển tiền đang chờ`,
+      title: `${pendingCount} yêu cầu chuyển tiền đang chờ`,
       text: "Chuyển khoản thủ công rồi bấm xác nhận",
       action: "Xử lý",
     });
@@ -189,7 +160,7 @@ export default function SuperAdminOverviewTab({ onNavigate }: Props) {
         ))}
       </section>
 
-      <OverviewStatsSection customerCreatedAt={data.customers ? data.customers.map((u) => u.createdAt) : null} />
+      <OverviewStatsSection />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         <section className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5">
