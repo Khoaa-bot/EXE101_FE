@@ -463,8 +463,9 @@ function App() {
   }
 
   if (routePath === "/admin/wallet") {
-    return <AdminWalletPage onDashboardClick={() => navigate("/admin")} onLogout={shellProps.onLogout} />;
+    return <AdminWalletPage {...adminProps} />;
   }
+
 
   if (routePath === "/super-admin") {
     return <SuperAdminDashboardPage onLogout={shellProps.onLogout} />;

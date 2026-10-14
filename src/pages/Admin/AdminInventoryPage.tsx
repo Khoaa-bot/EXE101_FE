@@ -7,6 +7,7 @@ import {
   restockAdminPart,
   type AdminPart,
 } from "../../services/api";
+import AdminShell, { StatusPill, type AdminNavProps } from "./AdminShell";
 
 export type InventoryPart = {
   id: string;
@@ -19,7 +20,7 @@ export type InventoryPart = {
   price: string;
 };
 
-function mapApiPart(p: AdminPart): InventoryPart {
+export function mapApiPart(p: AdminPart): InventoryPart {
   return {
     id: String(p.id),
     sku: p.sku,
@@ -32,37 +33,9 @@ function mapApiPart(p: AdminPart): InventoryPart {
   };
 }
 
-const navItems = [
-  ["dashboard", "Dashboard"],
-  ["engineering", "Nhân viên"],
-  ["groups", "Khách hàng"],
-  ["inventory_2", "Kho linh kiện"],
-  ["payments", "Bảng giá"],
-  ["storefront", "Thông tin garage"],
-  ["account_balance_wallet", "Ví garage"],
-];
+export type AdminInventoryPageProps = AdminNavProps;
 
-type AdminInventoryPageProps = {
-  onDashboardClick?: () => void;
-  onEngineersClick?: () => void;
-  onCustomersClick?: () => void;
-  onInventoryClick?: () => void;
-  onPricingClick?: () => void;
-  onGarageClick?: () => void;
-  onWalletClick?: () => void;
-  onLogout?: () => void;
-};
-
-export default function AdminInventoryPage({
-  onDashboardClick,
-  onEngineersClick,
-  onCustomersClick,
-  onInventoryClick,
-  onPricingClick,
-  onGarageClick,
-  onWalletClick,
-  onLogout,
-}: AdminInventoryPageProps) {
+export default function AdminInventoryPage(props: AdminInventoryPageProps) {
   const [list, setList] = useState<InventoryPart[]>([]);
   const [query, setQuery] = useState("");
   const [restockPart, setRestockPart] = useState<InventoryPart | null>(null);
@@ -77,6 +50,22 @@ export default function AdminInventoryPage({
   const [submitting, setSubmitting] = useState(false);
   const [garageName, setGarageName] = useState("");
   const [restocking, setRestocking] = useState(false);
+
+  const emptyPart = {
+    name: "",
+    category: "Phụ tùng",
+    location: "",
+    stock: "",
+    capacity: "",
+    price: "",
+    status: "in-stock",
+  };
+  const [newPart, setNewPart] = useState(emptyPart);
+
+  const showNotice = (message: string) => {
+    setNotice(message);
+    window.setTimeout(() => setNotice(""), 3000);
+  };
 
   useEffect(() => {
     getMyProfile()
@@ -94,26 +83,14 @@ export default function AdminInventoryPage({
         setLoading(false);
       })
       .catch((err) => {
-        setNotice(err instanceof Error ? err.message : "Không thể tải danh sách linh kiện");
+        setNotice(
+          err instanceof Error
+            ? err.message
+            : "Không thể tải danh sách linh kiện",
+        );
         setLoading(false);
       });
   }, []);
-
-  const emptyPart = {
-    name: "",
-    category: "Phụ tùng",
-    location: "",
-    stock: "",
-    capacity: "",
-    price: "",
-    status: "in-stock",
-  };
-  const [newPart, setNewPart] = useState(emptyPart);
-
-  const showNotice = (message: string) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(""), 3000);
-  };
 
   const stats = useMemo(() => {
     const totalItems = list.length;
@@ -155,11 +132,13 @@ export default function AdminInventoryPage({
       setList((prev) =>
         prev.map((p) => (p.id === restockPart.id ? mapApiPart(updated) : p)),
       );
-      showNotice(`Đã nhập thêm ${amountNum} units cho ${restockPart.name}`);
+      showNotice(`Đã nhập thêm ${amountNum} đơn vị cho ${restockPart.name}`);
       setRestockPart(null);
       setRestockAmount("");
     } catch (err) {
-      showNotice(err instanceof Error ? err.message : "Nhập kho không thành công.");
+      showNotice(
+        err instanceof Error ? err.message : "Nhập kho không thành công.",
+      );
     } finally {
       setRestocking(false);
     }
@@ -192,10 +171,6 @@ export default function AdminInventoryPage({
 
     try {
       setSubmitting(true);
-      // Backend tự gán garage của admin đang đăng nhập — không truyền
-      // garageId (trước đây gửi nhầm session.id, tức ID người dùng, thay vì
-      // ID garage; giá trị này bị backend bỏ qua nên không gây sai dữ liệu,
-      // nhưng vẫn dọn cho đúng ý nghĩa).
       const created = await createAdminPart({
         partName: newPart.name.trim(),
         category: newPart.category,
@@ -212,334 +187,188 @@ export default function AdminInventoryPage({
       setNewPart(emptyPart);
       setAddOpen(false);
     } catch (err) {
-      showNotice(err instanceof Error ? err.message : "Không thể thêm linh kiện");
+      showNotice(
+        err instanceof Error ? err.message : "Không thể thêm linh kiện",
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
-      {/* Sidebar Navigation */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-outline-variant bg-surface-container-lowest p-lg md:flex">
-        <div className="mb-xl">
-          <div className="flex items-center gap-2 text-primary">
-            <span className="material-symbols-outlined text-3xl">
-              electric_car
-            </span>
-            <span className="font-headline-lg text-headline-lg font-bold">
-              Servio
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-on-surface-variant">
-            Quản trị garage
-          </p>
-        </div>
-        <nav className="space-y-1">
-          {navItems.map(([icon, label]) => {
-            const isCurrent = label === "Kho linh kiện";
-            return (
-              <button
-                key={label}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left font-body-md text-body-md transition-colors active:scale-[0.98] ${
-                  isCurrent
-                    ? "bg-primary-container/15 font-semibold text-primary"
-                    : "text-on-surface-variant hover:bg-surface-container-low"
-                }`}
-                type="button"
-                onClick={() => {
-                  if (label === "Dashboard") onDashboardClick?.();
-                  else if (label === "Nhân viên") onEngineersClick?.();
-                  else if (label === "Khách hàng") onCustomersClick?.();
-                  else if (label === "Kho linh kiện") onInventoryClick?.();
-                  else if (label === "Bảng giá") onPricingClick?.();
-                  else if (label === "Thông tin garage") onGarageClick?.();
-                  else if (label === "Ví garage") onWalletClick?.();
-                }}
-              >
-                <span className="material-symbols-outlined">{icon}</span>
-                {label}
-              </button>
-            );
-          })}
-        </nav>
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
-            type="button"
-          >
-            <span className="material-symbols-outlined">logout</span>
-            Đăng xuất
-          </button>
-        )}
-      </aside>
+    <AdminShell
+      activeTab="inventory"
+      title="Kho linh kiện &amp; Phụ tùng"
+      description="Quản lý tồn kho linh kiện, vật tư và thiết bị thay thế tại garage."
+      garageName={garageName}
+      notice={notice}
+      maxWidthClass="max-w-7xl"
+      headerAction={
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition hover:opacity-90 active:scale-[0.98]"
+        >
+          <span className="material-symbols-outlined text-lg">add_box</span>
+          Thêm linh kiện mới
+        </button>
+      }
+      {...props}
+    >
+      {/* Top Stats Cards */}
+      <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <InventoryMetric
+          icon="inventory_2"
+          tone="bg-primary-fixed text-on-primary-fixed-variant"
+          label="Mã linh kiện"
+          value={String(stats.totalItems)}
+          hint="Tổng số danh mục phụ tùng"
+        />
+        <InventoryMetric
+          icon="warehouse"
+          tone="bg-[#d9f7dd] text-[#00531a]"
+          label="Tổng lượng tồn"
+          value={String(stats.totalStock)}
+          hint="Số đơn vị tồn trong kho"
+        />
+        <InventoryMetric
+          icon="warning"
+          tone="bg-[#ffe4d6] text-[#7a2e00]"
+          label="Sắp hết hàng"
+          value={String(stats.low)}
+          hint="Dưới 60% sức chứa tối đa"
+        />
+        <InventoryMetric
+          icon="check_circle"
+          tone="bg-[#fff1cc] text-[#6b4200]"
+          label="Đủ định mức"
+          value={String(stats.healthy)}
+          hint="Tồn kho đạt định mức ổn định"
+        />
+      </section>
 
-      {/* Main Content Area */}
-      <main className="min-h-[100dvh] md:ml-60">
-        {/* Header Bar */}
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-outline-variant bg-surface/95 px-margin-mobile backdrop-blur md:px-margin-desktop">
-          <button
-            className="rounded-full p-2 text-on-surface-variant md:hidden"
-            type="button"
-            aria-label="Mở menu"
-          >
-            <span className="material-symbols-outlined">menu</span>
-          </button>
-          <label className="relative hidden w-full max-w-[28rem] md:block">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-              search
-            </span>
-            <input
-              className="w-full rounded-full border border-outline-variant bg-surface-container-low px-4 py-2 pl-10 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-              placeholder="Tìm kiếm linh kiện, SKU, vị trí..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </label>
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container"
-              type="button"
-              aria-label="Thông báo"
-            >
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
-            <div className="ml-2 flex items-center gap-2 border-l border-outline-variant pl-3">
-              <div className="hidden text-right sm:block">
-                <p className="font-label-md text-label-md">Quản trị viên</p>
-                <p className="text-[11px] text-on-surface-variant">
-                  {garageName}
-                </p>
-              </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
-                A
-              </div>
-            </div>
-          </div>
-        </header>
+      {/* Search and Action Bar */}
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <input
+          aria-label="Tìm kiếm linh kiện..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Tìm theo tên, mã SKU, vị trí, danh mục..."
+          className="min-h-11 w-80 max-w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+        />
+        <span className="ml-auto text-xs text-on-surface-variant">
+          {loading
+            ? "Đang tải kho linh kiện..."
+            : `Hiển thị ${visibleList.length} / ${list.length} linh kiện`}
+        </span>
+      </div>
 
-        {/* Page Content */}
-        <div className="mx-auto max-w-[1440px] p-margin-mobile md:p-margin-desktop">
-          {/* Header Section */}
-          <section className="mb-xl flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="font-headline-lg text-headline-lg font-bold">
-                Quản lý kho linh kiện
-              </h1>
-              <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
-                Theo dõi tồn kho, cảnh báo linh kiện sắp hết và nhập thêm khi cần.
-              </p>
-            </div>
-            <button
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98]"
-              type="button"
-              onClick={() => setAddOpen(true)}
-            >
-              <span className="material-symbols-outlined text-lg">
-                add_box
-              </span>
-              Thêm linh kiện
-            </button>
-          </section>
+      {/* Inventory Table */}
+      <div className="overflow-hidden rounded-2xl border border-outline-variant/50 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[840px] text-left text-sm">
+            <thead className="bg-surface-container-low text-[11px] uppercase tracking-wider text-on-surface-variant">
+              <tr>
+                <th className="px-5 py-3 font-bold">Mã SKU</th>
+                <th className="px-5 py-3 font-bold">Tên linh kiện</th>
+                <th className="px-5 py-3 font-bold">Danh mục</th>
+                <th className="px-5 py-3 font-bold">Vị trí</th>
+                <th className="px-5 py-3 font-bold">Tồn kho / Sức chứa</th>
+                <th className="px-5 py-3 font-bold">Đơn giá</th>
+                <th className="px-5 py-3 text-right font-bold">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-outline-variant/50">
+              {visibleList.map((item) => {
+                const ratio = item.capacity > 0 ? item.stock / item.capacity : 0;
+                const isLow = ratio < 0.6;
+                const isCritical = ratio < 0.25;
 
-          {/* Stats Cards */}
-          <section className="mb-xl grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
-              <div className="flex items-center justify-between">
-                <p className="font-label-md text-xs font-semibold text-outline">
-                  TỔNG DANH MỤC
-                </p>
-                <span className="material-symbols-outlined rounded-lg bg-primary-container/10 p-2 text-primary">
-                  inventory_2
-                </span>
-              </div>
-              <p className="mt-2 font-headline-lg text-2xl font-bold">
-                {stats.totalItems}
-              </p>
-            </article>
-
-            <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
-              <div className="flex items-center justify-between">
-                <p className="font-label-md text-xs font-semibold text-outline">
-                  TỔNG TỒN KHO
-                </p>
-                <span className="material-symbols-outlined rounded-lg bg-tertiary-container/10 p-2 text-tertiary">
-                  trending_up
-                </span>
-              </div>
-              <p className="mt-2 font-headline-lg text-2xl font-bold text-tertiary">
-                {stats.totalStock}
-              </p>
-            </article>
-
-            <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
-              <div className="flex items-center justify-between">
-                <p className="font-label-md text-xs font-semibold text-outline">
-                  CẦN NHẬP THÊM
-                </p>
-                <span className="material-symbols-outlined rounded-lg bg-error-container p-2 text-on-error-container">
-                  warning
-                </span>
-              </div>
-              <p className="mt-2 font-headline-lg text-2xl font-bold text-error">
-                {stats.low}
-              </p>
-            </article>
-
-            <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
-              <div className="flex items-center justify-between">
-                <p className="font-label-md text-xs font-semibold text-outline">
-                  ĐỦ TỒN KHO
-                </p>
-                <span className="material-symbols-outlined rounded-lg bg-tertiary-container/10 p-2 text-tertiary">
-                  check_circle
-                </span>
-              </div>
-              <p className="mt-2 font-headline-lg text-2xl font-bold text-tertiary">
-                {stats.healthy}
-              </p>
-            </article>
-          </section>
-
-          {/* Inventory Table */}
-          <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
-            <div className="flex items-center justify-between border-b border-outline-variant p-lg">
-              <h2 className="font-headline-md text-headline-md">
-                Danh mục kho linh kiện
-              </h2>
-              <span className="text-xs text-outline">
-                Hiển thị {visibleList.length} trên {list.length} linh kiện
-              </span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px] text-left text-body-sm">
-                <thead className="bg-surface-container-low text-xs text-outline">
-                  <tr>
-                    <th className="px-5 py-3 font-semibold">Tên linh kiện</th>
-                    <th className="px-5 py-3 font-semibold">Danh mục</th>
-                    <th className="px-5 py-3 font-semibold">SKU</th>
-                    <th className="px-5 py-3 font-semibold">Vị trí</th>
-                    <th className="px-5 py-3 font-semibold w-56">
-                      Số lượng tồn
-                    </th>
-                    <th className="px-5 py-3 font-semibold">Đơn giá</th>
-                    <th className="px-5 py-3 font-semibold">Trạng thái</th>
-                    <th className="px-5 py-3 font-semibold text-right">
-                      Thao tác
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleList.map((item) => {
-                    const ratio = item.stock / item.capacity;
-                    const healthy = ratio >= 0.6;
-
-                    return (
-                      <tr
-                        key={item.id}
-                        className="border-t border-outline-variant transition-colors hover:bg-surface-container-low"
-                      >
-                        <td className="px-5 py-4 font-semibold">
-                          {item.name}
-                        </td>
-                        <td className="px-5 py-4 text-on-surface-variant">
-                          {item.category}
-                        </td>
-                        <td className="px-5 py-4 font-medium text-primary font-mono text-xs">
-                          {item.sku}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="rounded-md bg-surface-container-high px-2 py-1 text-xs font-medium">
-                            {item.location}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <span
-                              className={`w-14 text-xs font-semibold font-mono ${
-                                healthy ? "" : "text-error"
-                              }`}
-                            >
-                              {item.stock} / {item.capacity}
-                            </span>
-                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-container-high">
-                              <div
-                                className={`h-full rounded-full ${
-                                  healthy ? "bg-tertiary" : "bg-error"
-                                }`}
-                                style={{
-                                  width: `${Math.max(ratio * 100, 5)}%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 font-semibold text-on-surface font-mono">
-                          {item.price}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                              healthy
-                                ? "bg-tertiary-container/15 text-tertiary"
-                                : "bg-error-container text-on-error-container"
+                return (
+                  <tr
+                    key={item.id}
+                    className="transition-colors hover:bg-surface-container-low"
+                  >
+                    <td className="px-5 py-3.5 font-mono text-xs font-semibold text-primary">
+                      {item.sku}
+                    </td>
+                    <td className="px-5 py-3.5 font-semibold text-on-surface">
+                      {item.name}
+                    </td>
+                    <td className="px-5 py-3.5 text-xs text-on-surface-variant">
+                      {item.category}
+                    </td>
+                    <td className="px-5 py-3.5 text-xs text-on-surface-variant">
+                      <span className="inline-flex items-center gap-1 rounded-md bg-surface-container px-2 py-0.5">
+                        <span className="material-symbols-outlined text-[13px]">location_on</span>
+                        {item.location}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-2 w-24 overflow-hidden rounded-full bg-surface-container-high">
+                          <div
+                            className={`h-full rounded-full ${
+                              isCritical
+                                ? "bg-error"
+                                : isLow
+                                  ? "bg-[#c47f00]"
+                                  : "bg-[#00872d]"
                             }`}
-                          >
-                            {healthy ? "Còn hàng" : "Cần nhập"}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => openRestockModal(item)}
-                            className={`inline-flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-semibold transition ${
-                              healthy
-                                ? "border border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary"
-                                : "bg-primary text-on-primary hover:opacity-90"
-                            }`}
-                          >
-                            <span className="material-symbols-outlined text-base">
-                              autorenew
-                            </span>
-                            Nhập thêm
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-
-                  {loading && (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-5 py-8 text-center text-on-surface-variant"
-                      >
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="material-symbols-outlined animate-spin text-primary">sync</span>
-                          <span>Đang tải danh mục linh kiện...</span>
+                            style={{
+                              width: `${Math.min(Math.round(ratio * 100), 100)}%`,
+                            }}
+                          />
                         </div>
-                      </td>
-                    </tr>
-                  )}
-
-                  {!loading && visibleList.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-5 py-8 text-center text-on-surface-variant"
+                        <span className="text-xs font-semibold text-on-surface">
+                          {item.stock} / {item.capacity}
+                        </span>
+                        {isLow && (
+                          <StatusPill tone={isCritical ? "error" : "warning"}>
+                            {isCritical ? "Rất thấp" : "Sắp hết"}
+                          </StatusPill>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 text-xs font-semibold text-on-surface">
+                      {item.price}
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      <button
+                        type="button"
+                        onClick={() => openRestockModal(item)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-primary/50 bg-primary-fixed/20 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-on-primary"
                       >
-                        Không tìm thấy linh kiện phù hợp.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                        <span className="material-symbols-outlined text-base">add</span>
+                        Nhập kho
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {loading && (
+                <tr>
+                  <td colSpan={7} className="px-5 py-8 text-center text-sm text-on-surface-variant">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="material-symbols-outlined animate-spin text-primary">sync</span>
+                      <span>Đang tải kho linh kiện...</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {!loading && visibleList.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-5 py-8 text-center text-sm text-on-surface-variant">
+                    Không tìm thấy linh kiện nào phù hợp với tìm kiếm.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </main>
+      </div>
 
       {/* Restock Modal */}
       {restockPart && (
@@ -548,36 +377,43 @@ export default function AdminInventoryPage({
           role="dialog"
           aria-modal="true"
           aria-label="Nhập thêm linh kiện"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-[fade-in_0.15s_ease-out]"
         >
-          <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
-            <h3 className="font-headline-md text-lg font-bold">
-              Nhập thêm linh kiện
-            </h3>
-            <p className="mt-1 text-xs text-on-surface-variant">
-              {restockPart.name} · Tồn hiện tại: {restockPart.stock} /{" "}
-              {restockPart.capacity}
+          <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant/50 bg-surface-container-lowest p-6 shadow-[0_18px_40px_-12px_rgba(25,28,29,0.4)]">
+            <div className="flex items-center gap-3 border-b border-outline-variant/40 pb-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#d9f7dd] text-[#00531a]">
+                <span className="material-symbols-outlined">add_business</span>
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-on-surface">Nhập thêm linh kiện</h3>
+                <p className="text-xs text-on-surface-variant">{restockPart.name}</p>
+              </div>
+            </div>
+
+            <p className="mt-4 text-xs text-on-surface-variant">
+              Tồn hiện tại: <strong className="text-on-surface">{restockPart.stock}</strong> / Sức chứa: <strong className="text-on-surface">{restockPart.capacity}</strong>
             </p>
 
-            <div className="mt-4 space-y-2">
-              <label htmlFor="pages-admin-admininventorypage-field-1" className="block text-xs font-semibold text-on-surface-variant">
+            <div className="mt-3 space-y-2">
+              <label htmlFor="restock-amount-input" className="block text-xs font-semibold text-on-surface-variant">
                 Số lượng nhập thêm *
               </label>
-              <input id="pages-admin-admininventorypage-field-1"
+              <input
+                id="restock-amount-input"
                 type="number"
                 min={1}
                 value={restockAmount}
                 onChange={(e) => setRestockAmount(e.target.value)}
-                className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="mt-6 flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setRestockPart(null)}
                 disabled={restocking}
-                className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold hover:bg-surface-container-low disabled:opacity-50"
+                className="rounded-xl border border-outline-variant px-4 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container-low transition-colors disabled:opacity-50"
               >
                 Hủy
               </button>
@@ -585,7 +421,7 @@ export default function AdminInventoryPage({
                 type="button"
                 onClick={() => void confirmRestock()}
                 disabled={restocking}
-                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90 disabled:opacity-50"
+                className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {restocking ? "Đang nhập..." : "Xác nhận nhập kho"}
               </button>
@@ -601,43 +437,46 @@ export default function AdminInventoryPage({
           role="dialog"
           aria-modal="true"
           aria-label="Thêm linh kiện mới"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-[fade-in_0.15s_ease-out]"
         >
-          <div className="w-full max-w-[36rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
-            <h3 className="font-headline-md text-lg font-bold">
-              Thêm linh kiện mới
-            </h3>
-            <p className="mt-1 text-xs text-on-surface-variant">
-              Điền thông tin chi tiết để thêm linh kiện vào danh mục kho.
-            </p>
-
-            <div className="mt-4 space-y-4">
+          <div className="w-full max-w-[34rem] rounded-2xl border border-outline-variant/50 bg-surface-container-lowest p-6 shadow-[0_18px_40px_-12px_rgba(25,28,29,0.4)]">
+            <div className="flex items-center gap-3 border-b border-outline-variant/40 pb-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary">
+                <span className="material-symbols-outlined">add_box</span>
+              </span>
               <div>
-                <label htmlFor="pages-admin-admininventorypage-field-2" className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                <h3 className="text-base font-bold text-on-surface">Thêm linh kiện mới</h3>
+                <p className="text-xs text-on-surface-variant">
+                  Điền thông tin chi tiết vào danh mục kho phụ tùng
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3.5">
+              <div>
+                <label htmlFor="new-part-name" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                   Tên linh kiện *
                 </label>
-                <input id="pages-admin-admininventorypage-field-2"
+                <input
+                  id="new-part-name"
                   type="text"
                   value={newPart.name}
-                  onChange={(e) =>
-                    setNewPart({ ...newPart, name: e.target.value })
-                  }
-                  placeholder="Ví dụ: Lọc dầu động cơ"
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  onChange={(e) => setNewPart({ ...newPart, name: e.target.value })}
+                  placeholder="Ví dụ: Lọc dầu động cơ VinFast VF8"
+                  className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3.5">
                 <div>
-                  <label htmlFor="pages-admin-admininventorypage-field-7" className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                  <label htmlFor="new-part-category" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                     Danh mục
                   </label>
-                  <select id="pages-admin-admininventorypage-field-7"
+                  <select
+                    id="new-part-category"
                     value={newPart.category}
-                    onChange={(e) =>
-                      setNewPart({ ...newPart, category: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    onChange={(e) => setNewPart({ ...newPart, category: e.target.value })}
+                    className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   >
                     <option value="Phụ tùng">Phụ tùng</option>
                     <option value="Linh kiện điện">Linh kiện điện</option>
@@ -647,76 +486,72 @@ export default function AdminInventoryPage({
                 </div>
 
                 <div>
-                  <label htmlFor="pages-admin-admininventorypage-field-3" className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                  <label htmlFor="new-part-location" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                     Vị trí trong kho *
                   </label>
-                  <input id="pages-admin-admininventorypage-field-3"
+                  <input
+                    id="new-part-location"
                     type="text"
                     value={newPart.location}
-                    onChange={(e) =>
-                      setNewPart({ ...newPart, location: e.target.value })
-                    }
+                    onChange={(e) => setNewPart({ ...newPart, location: e.target.value })}
                     placeholder="Ví dụ: Kệ A1-R4"
-                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3.5">
                 <div>
-                  <label htmlFor="pages-admin-admininventorypage-field-4" className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                  <label htmlFor="new-part-stock" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                     Số lượng tồn *
                   </label>
-                  <input id="pages-admin-admininventorypage-field-4"
+                  <input
+                    id="new-part-stock"
                     type="number"
                     min={0}
                     value={newPart.stock}
-                    onChange={(e) =>
-                      setNewPart({ ...newPart, stock: e.target.value })
-                    }
+                    onChange={(e) => setNewPart({ ...newPart, stock: e.target.value })}
                     placeholder="10"
-                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="pages-admin-admininventorypage-field-5" className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                  <label htmlFor="new-part-capacity" className="mb-1 block text-xs font-semibold text-on-surface-variant">
                     Sức chứa tối đa *
                   </label>
-                  <input id="pages-admin-admininventorypage-field-5"
+                  <input
+                    id="new-part-capacity"
                     type="number"
                     min={1}
                     value={newPart.capacity}
-                    onChange={(e) =>
-                      setNewPart({ ...newPart, capacity: e.target.value })
-                    }
+                    onChange={(e) => setNewPart({ ...newPart, capacity: e.target.value })}
                     placeholder="50"
-                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="pages-admin-admininventorypage-field-6" className="block mb-1 text-xs font-semibold text-on-surface-variant">
-                  Đơn giá *
+                <label htmlFor="new-part-price" className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                  Đơn giá (VNĐ) *
                 </label>
-                <input id="pages-admin-admininventorypage-field-6"
+                <input
+                  id="new-part-price"
                   type="text"
                   value={newPart.price}
-                  onChange={(e) =>
-                    setNewPart({ ...newPart, price: e.target.value })
-                  }
-                  placeholder="Ví dụ: 850.000đ"
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  onChange={(e) => setNewPart({ ...newPart, price: e.target.value })}
+                  placeholder="Ví dụ: 850.000"
+                  className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="mt-6 flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setAddOpen(false)}
-                className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold hover:bg-surface-container-low"
+                className="rounded-xl border border-outline-variant px-4 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container-low transition-colors"
               >
                 Hủy
               </button>
@@ -724,7 +559,7 @@ export default function AdminInventoryPage({
                 type="button"
                 onClick={confirmAddPart}
                 disabled={submitting}
-                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90 disabled:opacity-50"
+                className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {submitting ? "Đang thêm..." : "Thêm vào kho"}
               </button>
@@ -732,16 +567,36 @@ export default function AdminInventoryPage({
           </div>
         </div>
       )}
+    </AdminShell>
+  );
+}
 
-      {/* Notice Toast */}
-      {notice && (
-        <div
-          className="fixed bottom-5 right-5 z-50 rounded-lg bg-inverse-surface px-4 py-3 text-body-sm text-inverse-on-surface shadow-lg"
-          role="status"
-        >
-          {notice}
-        </div>
-      )}
-    </div>
+function InventoryMetric({
+  icon,
+  tone,
+  label,
+  value,
+  hint,
+}: {
+  icon: string;
+  tone: string;
+  label: string;
+  value: string;
+  hint: string;
+}) {
+  return (
+    <article className="flex items-center gap-3.5 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-4 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+      <span
+        aria-hidden="true"
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] ${tone}`}
+      >
+        <span className="material-symbols-outlined">{icon}</span>
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs text-on-surface-variant">{label}</p>
+        <p className="text-xl font-extrabold text-on-surface">{value}</p>
+        <p className="truncate text-[11px] text-on-surface-variant">{hint}</p>
+      </div>
+    </article>
   );
 }
