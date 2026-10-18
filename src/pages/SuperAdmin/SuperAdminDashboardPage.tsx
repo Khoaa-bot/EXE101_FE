@@ -5,10 +5,11 @@ import SuperAdminAppointmentsTab from "./SuperAdminAppointmentsTab";
 import SuperAdminCustomersTab from "./SuperAdminCustomersTab";
 import SuperAdminGaragesTab from "./SuperAdminGaragesTab";
 import SuperAdminOverviewTab from "./SuperAdminOverviewTab";
+import SuperAdminReviewsTab from "./SuperAdminReviewsTab";
 import SuperAdminWalletTab from "./SuperAdminWalletTab";
 import SuperAdminWithdrawalsTab from "./SuperAdminWithdrawalsTab";
 
-type TabKey = "overview" | "customers" | "garages" | "appointments" | "withdrawals" | "wallet";
+type TabKey = "overview" | "customers" | "garages" | "appointments" | "reviews" | "withdrawals" | "wallet";
 
 const TABS: { key: TabKey; icon: string; label: string; description: string }[] = [
   {
@@ -34,6 +35,12 @@ const TABS: { key: TabKey; icon: string; label: string; description: string }[] 
     icon: "event_note",
     label: "Lịch sử đặt lịch",
     description: "Toàn bộ lịch hẹn của khách trên mọi garage (chỉ xem).",
+  },
+  {
+    key: "reviews",
+    icon: "reviews",
+    label: "Đánh giá",
+    description: "Xem đánh giá của khách trên mọi garage, ẩn đánh giá không phù hợp. Không xóa được đánh giá.",
   },
   {
     key: "withdrawals",
@@ -121,6 +128,7 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
               <SuperAdminCustomersTab notify={notify} onViewAppointments={viewAppointmentsOf} />
             )}
             {tab === "garages" && <SuperAdminGaragesTab notify={notify} />}
+            {tab === "reviews" && <SuperAdminReviewsTab notify={notify} />}
             {tab === "withdrawals" && (
               <SuperAdminWithdrawalsTab
                 notify={notify}

@@ -8,6 +8,7 @@ import AdminEngineersPage from "./pages/Admin/AdminEngineersPage";
 import AdminInventoryPage from "./pages/Admin/AdminInventoryPage";
 import AdminPricingPage from "./pages/Admin/AdminPricingPage";
 import AdminGaragePage from "./pages/Admin/AdminGaragePage";
+import AdminReviewsPage from "./pages/Admin/AdminReviewsPage";
 import SuperAdminDashboardPage from "./pages/SuperAdmin/SuperAdminDashboardPage";
 import AdminCustomerDetailPage, {
   type Customer,
@@ -65,6 +66,7 @@ const appRoutes = new Set([
   "/admin/pricing",
   "/admin/garage",
   "/admin/wallet",
+  "/admin/reviews",
   "/super-admin",
   "/engineer",
   "/engineer/schedule",
@@ -111,7 +113,7 @@ const roleRoutes: Record<string, Set<string>> = {
   // "garage_owner" = admin của 1 garage (trước đây gọi là "admin" bên
   // backend, đã đổi tên). "admin" giờ là Super Admin toàn hệ thống.
   GARAGE_OWNER: new Set([
-    "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing", "/admin/garage", "/admin/wallet",
+    "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing", "/admin/garage", "/admin/wallet", "/admin/reviews",
   ]),
   ADMIN: new Set(["/super-admin"]),
   ENGINEER: new Set([
@@ -394,6 +396,7 @@ function App() {
     onPricingClick: () => navigate("/admin/pricing"),
     onGarageClick: () => navigate("/admin/garage"),
     onWalletClick: () => navigate("/admin/wallet"),
+    onReviewsClick: () => navigate("/admin/reviews"),
     onCustomerDetailClick: (customer: Customer) => {
       setSelectedCustomer(customer);
       navigate(`/admin/customers/${customer.id}`);
@@ -464,6 +467,10 @@ function App() {
 
   if (routePath === "/admin/wallet") {
     return <AdminWalletPage {...adminProps} />;
+  }
+
+  if (routePath === "/admin/reviews") {
+    return <AdminReviewsPage {...adminProps} />;
   }
 
 

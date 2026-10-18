@@ -5,6 +5,7 @@ import {
   type Garage,
   type MaintenanceService,
 } from "../../services/api";
+import GarageReviewsSection from "./GarageReviewsSection";
 
 type GarageDetailPageProps = {
   garageId: number | string | null;
@@ -103,10 +104,11 @@ export default function GarageDetailPage({
               <div className="text-white">
                 <h1 className="text-2xl font-bold md:text-3xl">{garage.name}</h1>
                 <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-300">
-                  {garage.rating !== undefined && (
+                  {garage.rating != null && (
                     <div className="flex items-center gap-1 font-medium text-orange-400">
                       <span className="material-symbols-outlined text-[16px]">star</span>
-                      {garage.rating}
+                      {garage.rating.toLocaleString("vi-VN", { minimumFractionDigits: 1 })}
+                      <span className="font-normal text-gray-300">({garage.reviewCount ?? 0} đánh giá)</span>
                     </div>
                   )}
                   <div className="flex items-center gap-1">
@@ -197,10 +199,11 @@ export default function GarageDetailPage({
                 </div>
               </div>
 
-              <div className="rounded-xl border border-outline-variant bg-white p-5 shadow-sm text-sm text-on-surface-variant">
-                Tính năng xem đánh giá của garage đang được phát triển.
-              </div>
             </div>
+          </div>
+
+          <div className="mt-6">
+            <GarageReviewsSection garageId={garage.id} />
           </div>
         </>
       )}

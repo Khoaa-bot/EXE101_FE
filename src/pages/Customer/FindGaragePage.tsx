@@ -141,12 +141,13 @@ export default function FindGaragePage({ onBookingClick }: FindGaragePageProps) 
                         {garage.address}
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-on-surface-variant">
-                        {garage.rating !== undefined && (
+                        {garage.rating != null && (
                           <div className="flex items-center gap-1 font-medium text-orange-500">
                             <span className="material-symbols-outlined text-[16px]">
                               star
                             </span>
-                            {garage.rating}
+                            {garage.rating.toLocaleString("vi-VN", { minimumFractionDigits: 1 })}
+                            <span className="font-normal text-on-surface-variant">({garage.reviewCount ?? 0})</span>
                           </div>
                         )}
                         {garage.phone && (
