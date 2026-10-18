@@ -1,5 +1,4 @@
-import { useEffect, useState, useRef } from "react";
-import { useDialogA11y } from "../../hooks/useDialogA11y";
+import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCount";
 import {
@@ -7,8 +6,6 @@ import {
   getMyFleet,
   getMyNotifications,
   getStoredAuthSession,
-  getWalletBalance,
-  requestWalletTopUp,
   type AppNotification,
   type AppointmentDto,
   type Vehicle,
@@ -22,11 +19,6 @@ type QuickAction = {
 
 const carImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCXT-EcsMzdfkWSSGRpWcyki5d3M7wpEASIP51A4WtZRLiE8J7zxrt3ZnVk0P1ssoZAlw2Bw3lJ25_cN3dIlR2IYzxGVdsEuD0jSldo-A_7tYPHx_-5oryhGAmyDBMKO9oyBvXhM1UOs8Cbt_gfapUbSgRti030ygiu_arYPiSLvG--7I64YJuxjF2wRtTThk0RNjRJ15i2fiJ9EtS_b_2ze-RzbvRCd6l_hRTI86rK9CO2wtmDwsx9UaCLfqUJ8xkj9_AlQ-7BkQtG";
-
-function formatCurrency(value: number | null | undefined) {
-  if (value === null || value === undefined) return "0đ";
-  return `${value.toLocaleString("vi-VN")}đ`;
-}
 
 function statusLabel(status: string) {
   switch (status.toLowerCase()) {
@@ -73,7 +65,6 @@ type HomeProps = {
   onNotificationsClick: () => void;
   onProfileClick: () => void;
   onTrackingClick: () => void;
-  onWalletClick?: () => void;
 };
 
 export default function Home({
@@ -82,7 +73,6 @@ export default function Home({
   onNotificationsClick,
   onProfileClick,
   onTrackingClick,
-  onWalletClick,
 }: HomeProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const username = getStoredAuthSession()?.username || "bạn";
@@ -92,30 +82,19 @@ export default function Home({
   const [isLoading, setIsLoading] = useState(true);
   const [activeAppointment, setActiveAppointment] = useState<AppointmentDto | null>(null);
   const [activeVehicle, setActiveVehicle] = useState<Vehicle | null>(null);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
-  const [topUpAmount, setTopUpAmount] = useState("100000");
-  const [isTopUpSubmitting, setIsTopUpSubmitting] = useState(false);
-  const [topUpError, setTopUpError] = useState<string | null>(null);
-  const topUpRef = useRef<HTMLDivElement>(null);
-  useDialogA11y(isTopUpOpen, topUpRef, () => {
-    setIsTopUpOpen(false);
-    setTopUpError(null);
-  });
 
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([getActiveAppointments(), getMyFleet(), getWalletBalance(), getMyNotifications()])
-      .then(([appointments, fleet, balance, myNotifications]) => {
+    Promise.all([getActiveAppointments(), getMyFleet(), getMyNotifications()])
+      .then(([appointments, fleet, myNotifications]) => {
         if (cancelled) return;
         const appointment = appointments[0] ?? null;
         setActiveAppointment(appointment);
         setActiveVehicle(
           appointment ? fleet.find((v) => v.id === appointment.vehicleId) ?? null : null,
         );
-        setWalletBalance(balance);
         setNotifications(myNotifications.slice(0, 3));
       })
       .catch(() => {
@@ -130,26 +109,6 @@ export default function Home({
       cancelled = true;
     };
   }, []);
-
-  const submitTopUp = () => {
-    const amount = Number(topUpAmount);
-    if (!amount || amount < 10000) {
-      setTopUpError("Số tiền nạp tối thiểu là 10.000đ.");
-      return;
-    }
-    setTopUpError(null);
-    setIsTopUpSubmitting(true);
-    requestWalletTopUp(amount)
-      .then((res) => {
-        window.location.href = res.paymentUrl;
-      })
-      .catch((err) => {
-        setTopUpError(
-          err instanceof Error ? err.message : "Không tạo được link nạp tiền.",
-        );
-        setIsTopUpSubmitting(false);
-      });
-  };
 
   const handleClickFeedback = () => {
     if (window.navigator.vibrate) {
@@ -427,41 +386,6 @@ export default function Home({
                 </div>
               </button>
 
-              <div className="flex flex-col justify-between rounded-xl border border-outline-variant bg-surface-container-lowest p-lg shadow-sm transition-all hover:border-primary">
-                <div className="mb-md flex items-center justify-between">
-                  <span className="font-label-md text-label-md text-outline">
-                    Số dư Servio Pay
-                  </span>
-                  <span className="material-symbols-outlined text-primary">
-                    account_balance_wallet
-                  </span>
-                </div>
-                <div>
-                  <p className="font-display-lg text-display-lg text-on-surface">
-                    {walletBalance === null ? "..." : formatCurrency(walletBalance)}
-                  </p>
-                </div>
-                <div className="mt-md flex flex-wrap gap-sm">
-                  <button
-                    type="button"
-                    onClick={() => setIsTopUpOpen(true)}
-                    className="inline-flex items-center gap-xs self-start rounded-lg bg-primary px-md py-sm font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-95"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">add</span>
-                    Nạp tiền
-                  </button>
-                  {onWalletClick && (
-                    <button
-                      type="button"
-                      onClick={onWalletClick}
-                      className="inline-flex items-center gap-xs self-start rounded-lg border border-primary px-md py-sm font-label-md text-label-md text-primary transition hover:bg-primary-container/10 active:scale-95"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
-                      Xem ví &amp; rút tiền
-                    </button>
-                  )}
-                </div>
-              </div>
             </aside>
           </div>
 
@@ -612,75 +536,6 @@ export default function Home({
         <span className="material-symbols-outlined text-3xl">add</span>
       </button>
 
-      {isTopUpOpen && (
-        <div
-          ref={topUpRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Nạp tiền vào ví Servio Pay"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-        >
-          <div className="w-full max-w-[26rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-lg shadow-xl">
-            <div className="flex items-center justify-between">
-              <h3 className="font-headline-md text-headline-md">
-                Nạp tiền vào ví Servio Pay
-              </h3>
-              <button aria-label="Đóng"
-                type="button"
-                onClick={() => {
-                  setIsTopUpOpen(false);
-                  setTopUpError(null);
-                }}
-                className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            <p className="mt-1 font-body-sm text-body-sm text-on-surface-variant">
-              Bạn sẽ được chuyển sang cổng thanh toán PayOS (VietQR) để hoàn tất giao dịch.
-            </p>
-
-            <div className="mt-lg space-y-sm">
-              <label htmlFor="pages-customer-homepage-field-1" className="block font-label-md text-label-md text-on-surface-variant">
-                Số tiền (VNĐ)
-              </label>
-              <input id="pages-customer-homepage-field-1"
-                type="number"
-                min={10000}
-                step={10000}
-                value={topUpAmount}
-                onChange={(e) => setTopUpAmount(e.target.value)}
-                className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 font-body-md text-body-md outline-none focus:border-primary focus:ring-2 focus:ring-primary"
-              />
-              <div className="flex flex-wrap gap-2">
-                {[50000, 100000, 200000, 500000].map((amount) => (
-                  <button
-                    key={amount}
-                    type="button"
-                    onClick={() => setTopUpAmount(String(amount))}
-                    className="rounded-lg border border-outline-variant px-3 py-1.5 text-xs font-semibold hover:border-primary hover:text-primary"
-                  >
-                    {formatCurrency(amount)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {topUpError && (
-              <p className="mt-3 font-body-sm text-body-sm text-error">{topUpError}</p>
-            )}
-
-            <button
-              type="button"
-              onClick={submitTopUp}
-              disabled={isTopUpSubmitting}
-              className="mt-lg w-full rounded-lg bg-primary py-3 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
-            >
-              {isTopUpSubmitting ? "Đang chuyển đến PayOS..." : "Tiếp tục thanh toán"}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

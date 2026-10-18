@@ -33,7 +33,6 @@ import TrackingPage from "./pages/Customer/TrackingPage";
 import FindGaragePage from "./pages/Customer/FindGaragePage";
 import GarageDetailPage from "./pages/Customer/GarageDetailPage";
 import PaymentResultPage from "./pages/Customer/PaymentResultPage";
-import WalletPage from "./pages/Customer/WalletPage";
 import AdminWalletPage from "./pages/Admin/AdminWalletPage";
 import ReceptionDashboardPage from "./pages/Reception/ReceptionDashboardPage";
 import ReceptionSchedulePage from "./pages/Reception/ReceptionSchedulePage";
@@ -58,7 +57,6 @@ const appRoutes = new Set([
   "/find-garage",
   "/garage-detail",
   "/payment-result",
-  "/wallet",
   "/admin",
   "/admin/customers",
   "/admin/engineers",
@@ -126,7 +124,7 @@ const roleRoutes: Record<string, Set<string>> = {
   ]),
   CUSTOMER: new Set([
     "/home", "/history", "/notifications", "/tracking", "/profile",
-    "/add-vehicle", "/booking", "/find-garage", "/garage-detail", "/payment-result", "/wallet",
+    "/add-vehicle", "/booking", "/find-garage", "/garage-detail", "/payment-result",
   ]),
 };
 
@@ -379,7 +377,6 @@ function App() {
     onNotificationsClick: () => navigate("/notifications"),
     onProfileClick: () => navigate("/profile"),
     onTrackingClick: () => navigate("/tracking"),
-    onWalletClick: () => navigate("/wallet"),
     onLogout: () => {
       localStorage.removeItem("auth_session");
       setIsAuthenticated(false);
@@ -622,7 +619,6 @@ function App() {
           onNotificationsClick={shellProps.onNotificationsClick}
           onTrackingClick={shellProps.onTrackingClick}
           onProfileClick={shellProps.onProfileClick}
-          onWalletClick={shellProps.onWalletClick}
           garageId={selectedGarageId}
           serviceId={selectedServiceId}
         />
@@ -664,16 +660,7 @@ function App() {
       <PaymentResultPage
         onHomeClick={() => navigate("/home", true)}
         onTrackingClick={() => navigate("/tracking", true)}
-        onWalletClick={() => navigate("/wallet", true)}
       />
-    );
-  }
-
-  if (routePath === "/wallet") {
-    return (
-      <AppShell active="wallet" title="Ví Servio" {...shellProps}>
-        <WalletPage />
-      </AppShell>
     );
   }
 
@@ -693,7 +680,6 @@ function App() {
         onNotificationsClick={shellProps.onNotificationsClick}
         onTrackingClick={shellProps.onTrackingClick}
         onProfileClick={shellProps.onProfileClick}
-        onWalletClick={() => navigate("/wallet")}
       />
     </AppShell>
   );

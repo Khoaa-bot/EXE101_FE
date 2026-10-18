@@ -28,10 +28,14 @@ const filters = [
   { value: "no_show", label: "Không đến" },
 ];
 
+// Lễ tân bàn giao xe sẽ chuyển lịch từ completed sang successful; cả hai đều là đã hoàn thành.
+function isDone(status: string) {
+  return ["completed", "successful", "successed"].includes(status.toLowerCase());
+}
+
 function statusLabel(status: string) {
+  if (isDone(status)) return "Hoàn thành";
   switch (status.toLowerCase()) {
-    case "completed":
-      return "Hoàn thành";
     case "cancelled":
       return "Đã huỷ";
     case "no_show":
@@ -50,14 +54,14 @@ function statusLabel(status: string) {
 function statusTone(status: string) {
   const s = status.toLowerCase();
   if (s === "cancelled" || s === "no_show") return "bg-error-container/30 text-on-error-container";
-  if (s === "completed") return "bg-secondary-container/30 text-on-secondary-container";
+  if (isDone(s)) return "bg-secondary-container/30 text-on-secondary-container";
   return "bg-primary-container/20 text-primary";
 }
 
 function statusIcon(status: string) {
   const s = status.toLowerCase();
   if (s === "cancelled" || s === "no_show") return "cancel";
-  if (s === "completed") return "task_alt";
+  if (isDone(s)) return "task_alt";
   return "build";
 }
 
@@ -205,10 +209,12 @@ export default function HistoryPage({
   const visibleRecords =
     activeFilter === "all"
       ? appointments
-      : appointments.filter((record) => record.status.toLowerCase() === activeFilter);
+      : appointments.filter((record) =>
+          activeFilter === "completed" ? isDone(record.status) : record.status.toLowerCase() === activeFilter,
+        );
 
   const totalCost = appointments
-    .filter((record) => record.status.toLowerCase() === "completed")
+    .filter((record) => isDone(record.status))
     .reduce((sum, record) => sum + (record.servicePrice || 0), 0);
 
   return (
@@ -483,7 +489,7 @@ export default function HistoryPage({
                                 Đã thanh toán
                               </span>
                             )}
-                            {record.status.toLowerCase() === "completed" &&
+                            {isDone(record.status) &&
                               (record.reviewId ? (
                                 <span className="font-label-sm text-label-sm text-tertiary">
                                   Đã đánh giá
@@ -577,7 +583,7 @@ export default function HistoryPage({
                         </span>
                       </div>
                     )}
-                    {record.status.toLowerCase() === "completed" && (
+                    {isDone(record.status) && (
                       <div className="mt-md">
                         {record.reviewId ? (
                           <ReviewBlock record={record} onEdit={() => openReview(record)} />

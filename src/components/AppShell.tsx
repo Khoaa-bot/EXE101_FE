@@ -12,7 +12,6 @@ export type AppShellProps = {
   onProfileClick: () => void;
   onTrackingClick: () => void;
   onFindGarageClick?: () => void;
-  onWalletClick?: () => void;
   onBookingClick?: () => void;
   onAddVehicleClick?: () => void;
   onLogout?: () => void;
@@ -35,7 +34,6 @@ const navItems: Array<{
     section: "notifications",
     hasNotification: true,
   },
-  { label: "Ví Servio", icon: "account_balance_wallet", section: "wallet" },
   { label: "Cá nhân", icon: "person", section: "profile" },
 ];
 
@@ -49,7 +47,6 @@ export default function AppShell({
   onProfileClick,
   onTrackingClick,
   onFindGarageClick,
-  onWalletClick,
   onBookingClick,
   onAddVehicleClick,
   onLogout,
@@ -75,7 +72,6 @@ export default function AppShell({
     if (section === "history") onHistoryClick();
     if (section === "notifications") onNotificationsClick();
     if (section === "tracking") onTrackingClick();
-    if (section === "wallet") onWalletClick?.();
     if (section === "profile") onProfileClick();
   };
 
