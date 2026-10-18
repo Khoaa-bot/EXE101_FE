@@ -298,6 +298,24 @@ export type UpdateVehiclePayload = {
   odometer?: number;
 };
 
+// Trạng thái nhắc bảo dưỡng của một xe cho một dịch vụ (MaintenanceStatusDto
+// bên backend). kmRemaining / daysRemaining âm = đã quá hạn; null = dịch vụ này
+// không theo dõi mốc đó.
+export type MaintenanceStage = "OK" | "SOON" | "OVERDUE";
+
+export type MaintenanceStatus = {
+  vehicleId: number;
+  serviceId: number;
+  serviceName: string;
+  stage: MaintenanceStage;
+  lastServiceKm: number | null;
+  lastServiceDate: string;
+  nextDueKm: number | null;
+  nextDueDate: string | null;
+  kmRemaining: number | null;
+  daysRemaining: number | null;
+};
+
 type VehicleRequestOptions = {
   method?: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
@@ -361,6 +379,12 @@ export function deleteVehicle(vehicleId: number | string) {
 // GET /api/vehicles/my-fleet — danh sách xe của khách hàng đang đăng nhập.
 export function getMyFleet() {
   return vehicleRequest<Vehicle[]>("/my-fleet");
+}
+
+// GET /api/vehicles/my-fleet/maintenance-status — hạn bảo dưỡng của mọi xe của
+// khách đang đăng nhập (chỉ gồm các dịch vụ đã từng làm ít nhất một lần).
+export function getFleetMaintenanceStatus() {
+  return vehicleRequest<MaintenanceStatus[]>("/my-fleet/maintenance-status");
 }
 
 // GET /api/vehicles/{id} — chi tiết một xe.
@@ -645,6 +669,7 @@ export type EngineerCompletePayload = {
   notes?: string;
   engineerNotes?: string;
   partsUsed?: string;
+  odometerAtService?: number;
 };
 
 export type AppointmentStep = {

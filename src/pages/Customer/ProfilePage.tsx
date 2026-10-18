@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import { MaintenanceBadge, MaintenancePanel } from "../../components/MaintenancePanel";
 import {
   deleteVehicle,
   getAppointmentHistory,
+  getFleetMaintenanceStatus,
   getMyFleet,
   getMyProfile,
   updateMyProfile,
@@ -10,12 +12,15 @@ import {
   uploadMyAvatar,
   uploadVehicleImage,
   type AppointmentDto,
+  type MaintenanceStatus,
   type UserProfile,
   type Vehicle,
 } from "../../services/api";
+import { MAX_ODOMETER_KM, worstStage } from "../../utils/maintenance";
 
 type ProfilePageProps = {
   onAddVehicleClick: () => void;
+  onBookingClick: () => void;
   onHomeClick: () => void;
   onHistoryClick: () => void;
   onTrackingClick: () => void;
@@ -29,6 +34,7 @@ const topAvatarImage =
 
 export default function ProfilePage({
   onAddVehicleClick,
+  onBookingClick,
   onHomeClick,
   onHistoryClick,
   onTrackingClick,
@@ -42,6 +48,7 @@ export default function ProfilePage({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [uploadingImageId, setUploadingImageId] = useState<number | null>(null);
+  const [maintenance, setMaintenance] = useState<MaintenanceStatus[]>([]);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -74,6 +81,20 @@ export default function ProfilePage({
       .finally(() => setIsLoadingVehicles(false));
   };
 
+  const loadMaintenance = () => {
+    getFleetMaintenanceStatus()
+      .then(setMaintenance)
+      .catch(() => {
+        // Nhắc bảo dưỡng chỉ là thông tin bổ sung — lỗi thì bỏ qua, danh sách xe vẫn dùng được.
+      });
+  };
+
+  const stageByVehicle = vehicles.map((vehicle) =>
+    worstStage(maintenance.filter((item) => item.vehicleId === vehicle.id)),
+  );
+  const overdueCount = stageByVehicle.filter((stage) => stage === "OVERDUE").length;
+  const soonCount = stageByVehicle.filter((stage) => stage === "SOON").length;
+
   const loadProfile = () => {
     setIsLoadingProfile(true);
     setProfileError("");
@@ -94,6 +115,7 @@ export default function ProfilePage({
 
   useEffect(() => {
     loadVehicles();
+    loadMaintenance();
     loadProfile();
     getAppointmentHistory()
       .then((history) => setRecentActivity(history.slice(0, 4)))
@@ -192,6 +214,22 @@ export default function ProfilePage({
       );
     } finally {
       setIsSavingEdit(false);
+    }
+  };
+
+  const handleQuickOdometer = async (vehicleId: number, odometer: number) => {
+    setVehiclesError("");
+    try {
+      const updated = await updateVehicle(vehicleId, { odometer });
+      setVehicles((current) =>
+        current.map((vehicle) => (vehicle.id === vehicleId ? updated : vehicle)),
+      );
+      loadMaintenance();
+      return null;
+    } catch (requestError) {
+      return requestError instanceof Error
+        ? requestError.message
+        : "Cập nhật số km không thành công.";
     }
   };
 
@@ -445,6 +483,26 @@ export default function ProfilePage({
                     <p className="font-body-md text-body-md text-secondary">
                       Danh sách các xe VinFast đang quản lý
                     </p>
+                    {(overdueCount > 0 || soonCount > 0) && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {overdueCount > 0 && (
+                          <span className="flex items-center gap-1 rounded-lg bg-error-container px-3 py-1.5 font-label-md text-label-md text-on-error-container">
+                            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+                              warning
+                            </span>
+                            {overdueCount} xe quá hạn
+                          </span>
+                        )}
+                        {soonCount > 0 && (
+                          <span className="flex items-center gap-1 rounded-lg bg-[#ffe9c7] px-3 py-1.5 font-label-md text-label-md text-[#6b4000]">
+                            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+                              schedule
+                            </span>
+                            {soonCount} xe sắp đến hạn
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <button
                     className="flex items-center justify-center gap-2 rounded-lg bg-primary-container px-4 py-2 font-label-md text-label-md text-on-primary-container transition-all hover:brightness-110 active:scale-95"
@@ -484,6 +542,9 @@ export default function ProfilePage({
                       onSaveEdit={(payload) => handleSaveEdit(vehicle.id, payload)}
                       isUploadingImage={uploadingImageId === vehicle.id}
                       onUploadImage={(file) => handleUploadImage(vehicle.id, file)}
+                      maintenance={maintenance.filter((item) => item.vehicleId === vehicle.id)}
+                      onBook={onBookingClick}
+                      onUpdateOdometer={(odometer) => handleQuickOdometer(vehicle.id, odometer)}
                     />
                   ))}
                 </div>
@@ -602,6 +663,9 @@ function VehicleCard({
   onSaveEdit,
   isUploadingImage,
   onUploadImage,
+  maintenance,
+  onBook,
+  onUpdateOdometer,
 }: {
   vehicle: Vehicle;
   isDeleting: boolean;
@@ -618,6 +682,10 @@ function VehicleCard({
   }) => void;
   isUploadingImage: boolean;
   onUploadImage: (file: File) => void;
+  maintenance: MaintenanceStatus[];
+  onBook: () => void;
+  // Trả về thông báo lỗi, hoặc null nếu lưu thành công.
+  onUpdateOdometer: (odometer: number) => Promise<string | null>;
 }) {
   const MIN_VEHICLE_YEAR = 2010;
   const currentYear = new Date().getFullYear();
@@ -631,6 +699,29 @@ function VehicleCard({
   const [editOdometer, setEditOdometer] = useState(
     vehicle.odometer != null ? String(vehicle.odometer) : "",
   );
+
+  const [isKmOpen, setIsKmOpen] = useState(false);
+  const [kmInput, setKmInput] = useState("");
+  const [kmError, setKmError] = useState("");
+  const [isSavingKm, setIsSavingKm] = useState(false);
+
+  const handleSubmitKm = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const odometer = Number(kmInput);
+    if (kmInput.trim() === "" || !Number.isInteger(odometer) || odometer < 0 || odometer > MAX_ODOMETER_KM) {
+      setKmError(`Số km phải là số nguyên từ 0 đến ${MAX_ODOMETER_KM.toLocaleString("vi-VN")}.`);
+      return;
+    }
+    setIsSavingKm(true);
+    setKmError("");
+    const error = await onUpdateOdometer(odometer);
+    setIsSavingKm(false);
+    if (error) {
+      setKmError(error);
+    } else {
+      setIsKmOpen(false);
+    }
+  };
 
   const handleImageInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -783,9 +874,12 @@ function VehicleCard({
           <h4 className="font-headline-md text-headline-md text-on-surface">
             {vehicle.model}
           </h4>
-          <span className="rounded bg-secondary-container px-2 py-0.5 font-label-md text-label-md uppercase text-on-secondary-container">
-            {vehicle.licensePlate || "Chưa có biển số"}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded bg-secondary-container px-2 py-0.5 font-label-md text-label-md uppercase text-on-secondary-container">
+              {vehicle.licensePlate || "Chưa có biển số"}
+            </span>
+            {maintenance.length > 0 && <MaintenanceBadge stage={worstStage(maintenance)} />}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -826,6 +920,74 @@ function VehicleCard({
           <span className="material-symbols-outlined text-sm">pin</span>
           VIN: {vehicle.vin}
         </span>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        <MaintenancePanel items={maintenance} />
+
+        {isKmOpen ? (
+          <form onSubmit={handleSubmitKm} className="space-y-2">
+            <div className="flex items-end gap-2">
+              <label className="flex-1">
+                <span className="mb-1 block font-label-sm text-label-sm text-secondary">
+                  Số km hiện tại
+                </span>
+                <input
+                  className="min-h-11 w-full rounded-lg border border-primary bg-white px-3 font-body-md text-body-md outline-none focus:ring-2 focus:ring-primary/20"
+                  type="number"
+                  min={0}
+                  max={MAX_ODOMETER_KM}
+                  value={kmInput}
+                  onChange={(event) => setKmInput(event.target.value)}
+                  autoFocus
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={isSavingKm}
+                className="min-h-11 rounded-lg bg-primary px-4 font-label-md text-label-md text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSavingKm ? "Đang lưu..." : "Lưu"}
+              </button>
+              <button
+                type="button"
+                disabled={isSavingKm}
+                onClick={() => setIsKmOpen(false)}
+                className="min-h-11 rounded-lg border border-outline-variant px-3 font-label-md text-label-md text-on-surface-variant transition-colors hover:bg-surface-container"
+              >
+                Huỷ
+              </button>
+            </div>
+            {kmError && (
+              <p className="font-label-sm text-label-sm text-error">{kmError}</p>
+            )}
+          </form>
+        ) : (
+          <div className="flex gap-2">
+            {worstStage(maintenance) !== "OK" && (
+              <button
+                type="button"
+                onClick={onBook}
+                className={`min-h-11 flex-1 rounded-lg px-4 font-label-md text-label-md text-white transition-all hover:shadow-lg active:scale-95 ${
+                  worstStage(maintenance) === "OVERDUE" ? "bg-error" : "bg-primary"
+                }`}
+              >
+                Đặt lịch ngay
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setKmInput(vehicle.odometer != null ? String(vehicle.odometer) : "");
+                setKmError("");
+                setIsKmOpen(true);
+              }}
+              className="min-h-11 flex-1 rounded-lg border border-outline-variant bg-white px-4 font-label-md text-label-md text-primary transition-colors hover:bg-surface-container-low"
+            >
+              Cập nhật số km
+            </button>
+          </div>
+        )}
       </div>
     </article>
   );

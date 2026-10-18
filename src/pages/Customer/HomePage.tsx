@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import { MaintenanceAlert } from "../../components/MaintenancePanel";
 import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCount";
 import {
   getActiveAppointments,
+  getFleetMaintenanceStatus,
   getMyFleet,
   getMyNotifications,
   getStoredAuthSession,
   type AppNotification,
   type AppointmentDto,
+  type MaintenanceStatus,
   type Vehicle,
 } from "../../services/api";
+import { sortByUrgency } from "../../utils/maintenance";
 
 type QuickAction = {
   label: string;
@@ -83,19 +87,29 @@ export default function Home({
   const [activeAppointment, setActiveAppointment] = useState<AppointmentDto | null>(null);
   const [activeVehicle, setActiveVehicle] = useState<Vehicle | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [fleet, setFleet] = useState<Vehicle[]>([]);
+  const [maintenance, setMaintenance] = useState<MaintenanceStatus[]>([]);
 
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([getActiveAppointments(), getMyFleet(), getMyNotifications()])
-      .then(([appointments, fleet, myNotifications]) => {
+    Promise.all([
+      getActiveAppointments(),
+      getMyFleet(),
+      getMyNotifications(),
+      // Nhắc bảo dưỡng lỗi thì chỉ ẩn banner, không làm hỏng cả trang chủ.
+      getFleetMaintenanceStatus().catch(() => [] as MaintenanceStatus[]),
+    ])
+      .then(([appointments, myFleet, myNotifications, myMaintenance]) => {
         if (cancelled) return;
         const appointment = appointments[0] ?? null;
         setActiveAppointment(appointment);
         setActiveVehicle(
-          appointment ? fleet.find((v) => v.id === appointment.vehicleId) ?? null : null,
+          appointment ? myFleet.find((v) => v.id === appointment.vehicleId) ?? null : null,
         );
         setNotifications(myNotifications.slice(0, 3));
+        setFleet(myFleet);
+        setMaintenance(myMaintenance);
       })
       .catch(() => {
         // Trang chủ không chặn hiển thị khi 1 phần dữ liệu lỗi — các mục
@@ -136,6 +150,16 @@ export default function Home({
     if (section === "profile") {
       onProfileClick();
     }
+  };
+
+  const maintenanceAlerts = sortByUrgency(
+    maintenance.filter((item) => item.stage !== "OK"),
+  ).slice(0, 3);
+
+  const vehicleLabel = (vehicleId: number) => {
+    const vehicle = fleet.find((v) => v.id === vehicleId);
+    if (!vehicle) return "Xe của bạn";
+    return vehicle.licensePlate ? `${vehicle.model} · ${vehicle.licensePlate}` : vehicle.model;
   };
 
   const quickActions: QuickAction[] = [
@@ -281,6 +305,31 @@ export default function Home({
               Tạo lịch mới
             </button>
           </section>
+
+          {maintenanceAlerts.length > 0 && (
+            <section aria-label="Nhắc bảo dưỡng" className="space-y-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="font-headline-md text-headline-md text-on-surface">
+                  Nhắc bảo dưỡng
+                </h3>
+                <button
+                  type="button"
+                  onClick={onProfileClick}
+                  className="min-h-11 px-2 font-label-md text-label-md text-primary hover:underline"
+                >
+                  Xem tất cả xe
+                </button>
+              </div>
+              {maintenanceAlerts.map((alert) => (
+                <MaintenanceAlert
+                  key={`${alert.vehicleId}-${alert.serviceId}`}
+                  status={alert}
+                  vehicleLabel={vehicleLabel(alert.vehicleId)}
+                  onBook={onBookingClick}
+                />
+              ))}
+            </section>
+          )}
 
           <div className="grid grid-cols-12 gap-lg">
             <section className="col-span-12 flex flex-col gap-lg rounded-xl border border-outline-variant bg-surface-container-lowest p-lg transition-shadow hover:shadow-sm lg:col-span-8 md:flex-row">

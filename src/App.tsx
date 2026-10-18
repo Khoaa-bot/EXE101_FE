@@ -172,6 +172,11 @@ function App() {
   );
   const [selectedGarageId, setSelectedGarageId] = useState<string | null>(null);
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  const openBooking = () => {
+    setSelectedGarageId(null);
+    setSelectedServiceId(null);
+    navigate("/booking");
+  };
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const routePath = getRoutePath(isAuthenticated, pathname, role);
 
@@ -562,6 +567,7 @@ function App() {
     return (
       <AppShell active="notifications" title="Thông báo" {...shellProps}>
         <NotificationsPage
+          onBookingClick={openBooking}
           onHomeClick={shellProps.onHomeClick}
           onHistoryClick={shellProps.onHistoryClick}
           onTrackingClick={shellProps.onTrackingClick}
@@ -594,6 +600,7 @@ function App() {
         <ProfilePage
           onHomeClick={shellProps.onHomeClick}
           onAddVehicleClick={() => navigate("/add-vehicle")}
+          onBookingClick={openBooking}
           onHistoryClick={shellProps.onHistoryClick}
           onTrackingClick={shellProps.onTrackingClick}
           onNotificationsClick={shellProps.onNotificationsClick}

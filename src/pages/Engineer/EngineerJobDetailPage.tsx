@@ -14,6 +14,7 @@ import AppointmentChat from "../../components/AppointmentChat";
 import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
 import EngineerExtrasForm from "../../components/EngineerExtrasForm";
 import EngineerPartsPanel from "../../components/EngineerPartsPanel";
+import { MAX_ODOMETER_KM } from "../../utils/maintenance";
 import { isTerminalStatus, statusBadgeClass, statusLabel } from "./engineerStatus";
 
 const navItems = [
@@ -56,6 +57,7 @@ export default function EngineerJobDetailPage({
 
   const [engineerNotes, setEngineerNotes] = useState("");
   const [partsUsed, setPartsUsed] = useState("");
+  const [odometerAtService, setOdometerAtService] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
   const [togglingStepId, setTogglingStepId] = useState<number | null>(null);
@@ -132,8 +134,21 @@ export default function EngineerJobDetailPage({
 
   const completeJob = () => {
     if (!appointmentId) return;
+    const odometerText = odometerAtService.trim();
+    const odometer = odometerText === "" ? undefined : Number(odometerText);
+    if (
+      odometer !== undefined &&
+      (!Number.isInteger(odometer) || odometer < 0 || odometer > MAX_ODOMETER_KM)
+    ) {
+      showNotice(`Số km phải là số nguyên từ 0 đến ${MAX_ODOMETER_KM.toLocaleString("vi-VN")}.`);
+      return;
+    }
     setIsSaving(true);
-    completeEngineerAppointment(appointmentId, { engineerNotes, partsUsed })
+    completeEngineerAppointment(appointmentId, {
+      engineerNotes,
+      partsUsed,
+      odometerAtService: odometer,
+    })
       .then((updated) => {
         setAppointment(updated);
         showNotice(`Đã hoàn thành công việc #${updated.id}!`);
@@ -508,6 +523,21 @@ export default function EngineerJobDetailPage({
                             value={partsUsed}
                             onChange={(e) => setPartsUsed(e.target.value)}
                             placeholder="Ví dụ: má phanh trước, dầu động cơ 4L..."
+                            className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="pages-engineer-engineerjobdetailpage-field-3" className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                            Số km hiện tại của xe (tuỳ chọn)
+                          </label>
+                          <input id="pages-engineer-engineerjobdetailpage-field-3"
+                            type="number"
+                            min={0}
+                            max={MAX_ODOMETER_KM}
+                            value={odometerAtService}
+                            onChange={(e) => setOdometerAtService(e.target.value)}
+                            placeholder="Ví dụ: 41250 — dùng để tính hạn bảo dưỡng tiếp theo"
                             className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                           />
                         </div>
