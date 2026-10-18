@@ -7,6 +7,7 @@ import {
   getGarages,
   getMyFleet,
   getWalletBalance,
+  requestWalletTopUp,
   type Garage,
   type MaintenanceService,
   type Schedule,
@@ -79,6 +80,8 @@ export default function BookingPage({
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [bookedInfo, setBookedInfo] = useState<{ charged: number; balance: number | null } | null>(null);
+  const [isQrPaymentSubmitting, setIsQrPaymentSubmitting] = useState(false);
+  const [qrPaymentError, setQrPaymentError] = useState<string | null>(null);
 
   const handleNavigate = (section: AppSection) => {
     if (section === "home") onHomeClick();
@@ -234,6 +237,25 @@ export default function BookingPage({
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleQrPayment = async () => {
+    if (!isInsufficient || shortfall <= 0 || isQrPaymentSubmitting) return;
+
+    setIsQrPaymentSubmitting(true);
+    setQrPaymentError(null);
+
+    try {
+      // PayOS hiển thị VietQR tại paymentUrl. Nạp chính xác phần còn thiếu
+      // để khách có thể tiếp tục xác nhận lịch mà không phải tự nhập số tiền.
+      const response = await requestWalletTopUp(shortfall);
+      window.location.assign(response.paymentUrl);
+    } catch (err) {
+      setQrPaymentError(
+        err instanceof Error ? err.message : "Không tạo được mã QR thanh toán. Vui lòng thử lại.",
+      );
+      setIsQrPaymentSubmitting(false);
     }
   };
 
@@ -594,15 +616,31 @@ export default function BookingPage({
                       <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
                         error
                       </span>
-                      Ví không đủ để đặt lịch. Nạp thêm ít nhất {formatCurrency(shortfall)} rồi quay lại.
+                      Ví đang thiếu {formatCurrency(shortfall)}. Quét QR để nạp đúng phần còn thiếu, sau đó quay lại xác nhận đặt lịch.
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => void handleQrPayment()}
+                      disabled={isQrPaymentSubmitting}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <span className="material-symbols-outlined text-[18px]" aria-hidden="true">qr_code_2</span>
+                      {isQrPaymentSubmitting
+                        ? "Đang tạo mã QR..."
+                        : `Thanh toán ${formatCurrency(shortfall)} bằng QR`}
+                    </button>
+                    {qrPaymentError && (
+                      <p role="alert" className="text-xs leading-relaxed text-error">
+                        {qrPaymentError}
+                      </p>
+                    )}
                     {onWalletClick && (
                       <button
                         type="button"
                         onClick={onWalletClick}
-                        className="w-full rounded-lg bg-primary py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90"
+                        className="w-full text-center font-label-md text-label-md text-primary underline decoration-primary/40 underline-offset-4 transition hover:decoration-primary"
                       >
-                        Nạp tiền vào ví
+                        Mở trang ví
                       </button>
                     )}
                   </div>
