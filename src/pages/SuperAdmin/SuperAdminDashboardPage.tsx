@@ -5,10 +5,11 @@ import SuperAdminAppointmentsTab from "./SuperAdminAppointmentsTab";
 import SuperAdminCustomersTab from "./SuperAdminCustomersTab";
 import SuperAdminGaragesTab from "./SuperAdminGaragesTab";
 import SuperAdminOverviewTab from "./SuperAdminOverviewTab";
+import SuperAdminReviewHistoryTab from "./SuperAdminReviewHistoryTab";
 import SuperAdminWalletTab from "./SuperAdminWalletTab";
 import SuperAdminWithdrawalsTab from "./SuperAdminWithdrawalsTab";
 
-type TabKey = "overview" | "customers" | "garages" | "appointments" | "withdrawals" | "wallet";
+type TabKey = "overview" | "customers" | "garages" | "appointments" | "reviews" | "withdrawals" | "wallet";
 
 const TABS: { key: TabKey; icon: string; label: string; description: string }[] = [
   {
@@ -34,6 +35,12 @@ const TABS: { key: TabKey; icon: string; label: string; description: string }[] 
     icon: "event_note",
     label: "Lịch sử đặt lịch",
     description: "Toàn bộ lịch hẹn của khách trên mọi garage (chỉ xem).",
+  },
+  {
+    key: "reviews",
+    icon: "rate_review",
+    label: "Lịch sử đánh giá",
+    description: "Theo dõi phản hồi của khách hàng về dịch vụ tại các garage.",
   },
   {
     key: "withdrawals",
@@ -136,6 +143,7 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
                 onClearCustomer={() => setAppointmentCustomer(null)}
               />
             )}
+            {tab === "reviews" && <SuperAdminReviewHistoryTab />}
     </AdminShell>
   );
 }
