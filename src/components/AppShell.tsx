@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import AppSidebar, { type AppSection } from "./AppSidebar";
+import { useUnreadNotificationCount } from "../hooks/useUnreadNotificationCount";
 import { getStoredAuthSession } from "../services/api";
 
 export type AppShellProps = {
@@ -57,6 +58,26 @@ export default function AppShell({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+  const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
+  const headerMenuRef = useRef<HTMLDivElement>(null);
+  const unreadCount = useUnreadNotificationCount();
+
+  // Đóng menu tài khoản khi bấm ra ngoài hoặc nhấn Esc.
+  useEffect(() => {
+    if (!isHeaderMenuOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!headerMenuRef.current?.contains(event.target as Node)) setIsHeaderMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsHeaderMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isHeaderMenuOpen]);
 
   const handleToggleSidebar = () => {
     if (window.matchMedia("(max-width: 767px)").matches) {
@@ -178,59 +199,132 @@ export default function AppShell({
           isDesktopSidebarOpen ? "md:ml-60" : "md:ml-0"
         }`}
       >
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-outline-variant/60 bg-surface/80 px-margin-mobile backdrop-blur-md md:px-xl">
+        <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between border-b border-outline-variant/60 bg-surface/80 px-margin-mobile backdrop-blur-md md:px-xl">
           <div className="flex items-center gap-3">
             <button
-              className="-ml-2 rounded-full p-2 text-on-surface-variant transition-colors active:bg-surface-container"
+              className="-ml-2 rounded-full p-2 text-on-surface-variant transition-colors active:bg-surface-container md:hidden"
               type="button"
               aria-label="Mở menu"
               onClick={handleToggleSidebar}
             >
-              <span className="material-symbols-outlined text-[28px]">menu</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[28px]">
+                menu
+              </span>
             </button>
-            <h1 className="font-headline-md text-headline-md text-on-surface">
-              {title}
-            </h1>
+            <h1 className="text-xl font-extrabold tracking-tight text-on-surface">{title}</h1>
           </div>
 
-          <div className="flex items-center gap-lg">
-            <div className="relative hidden lg:block">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
+          <div className="flex items-center gap-3">
+            <label className="hidden h-11 w-72 items-center gap-2 rounded-full border border-outline-variant bg-surface-container-lowest px-3.5 text-outline focus-within:ring-2 focus-within:ring-primary lg:flex">
+              <span aria-hidden="true" className="material-symbols-outlined text-xl">
                 search
               </span>
-              <input aria-label="Tìm kiếm dịch vụ..."
-                className="w-64 rounded-full border border-outline-variant bg-surface-container-low py-2 pl-10 pr-4 font-body-md text-body-md outline-none transition-all focus:ring-2 focus:ring-primary"
-                placeholder="Tìm kiếm dịch vụ..."
+              <input
+                aria-label="Tìm kiếm dịch vụ, garage..."
+                className="min-w-0 flex-1 bg-transparent text-sm text-on-surface outline-none"
+                placeholder="Tìm dịch vụ, garage..."
                 type="text"
               />
-            </div>
+            </label>
             {onAddVehicleClick && (
               <button
-                className="hidden rounded-full bg-primary px-5 py-2 font-label-md text-label-md text-on-primary transition-all hover:bg-surface-tint md:block"
+                className="hidden min-h-11 items-center gap-1.5 rounded-2xl border-[1.5px] border-outline-variant bg-surface-container-lowest px-4 text-sm font-bold text-on-primary-fixed-variant transition-all hover:bg-surface-container-low md:inline-flex"
                 type="button"
                 onClick={onAddVehicleClick}
               >
+                <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                  add
+                </span>
                 Thêm xe
               </button>
             )}
             {onBookingClick && (
               <button
-                className="hidden rounded-full bg-primary px-5 py-2 font-label-md text-label-md text-on-primary transition-all hover:bg-surface-tint md:block"
+                className="hidden min-h-11 items-center gap-1.5 rounded-2xl bg-gradient-to-br from-primary to-primary-container px-4 text-sm font-bold text-on-primary shadow-[0_12px_22px_-14px_rgba(0,89,187,0.9)] transition-all active:scale-95 md:inline-flex"
                 type="button"
                 onClick={onBookingClick}
               >
+                <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                  add
+                </span>
                 Đặt lịch
               </button>
             )}
             <button
-              className="relative flex h-11 w-11 items-center justify-center rounded-full bg-surface-container-lowest text-on-surface-variant shadow-md shadow-on-surface/10 hover:bg-surface-container-high"
+              className="relative flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant/60 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high"
               type="button"
-              aria-label="Thông báo"
+              aria-label={unreadCount > 0 ? `Thông báo, ${unreadCount} chưa đọc` : "Thông báo"}
               onClick={onNotificationsClick}
             >
-              <span className="material-symbols-outlined">notifications</span>
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-surface bg-error" />
+              <span aria-hidden="true" className="material-symbols-outlined">
+                notifications
+              </span>
+              {unreadCount > 0 && (
+                <b className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-surface bg-error px-1 text-[11px] text-on-error">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </b>
+              )}
             </button>
+            <div className="relative" ref={headerMenuRef}>
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={isHeaderMenuOpen}
+                onClick={() => setIsHeaderMenuOpen((open) => !open)}
+                className="flex h-11 items-center gap-2 rounded-full border border-outline-variant/60 bg-surface-container-lowest pl-1 pr-2 hover:bg-surface-container-low"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-extrabold text-on-primary-fixed-variant"
+                >
+                  {avatarInitial}
+                </span>
+                <b className="hidden max-w-[7rem] truncate text-[13px] sm:block">{username}</b>
+                <span aria-hidden="true" className="material-symbols-outlined text-outline">
+                  expand_more
+                </span>
+              </button>
+              {isHeaderMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-[3.25rem] z-50 w-56 rounded-[18px] border border-outline-variant/40 bg-surface-container-lowest p-2 shadow-[0_18px_40px_-16px_rgba(25,28,29,0.4)]"
+                >
+                  <button
+                    role="menuitem"
+                    type="button"
+                    className="flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-sm font-semibold hover:bg-surface-container-low"
+                    onClick={() => {
+                      setIsHeaderMenuOpen(false);
+                      onProfileClick();
+                    }}
+                  >
+                    <span aria-hidden="true" className="material-symbols-outlined text-primary">
+                      person
+                    </span>
+                    Hồ sơ của tôi
+                  </button>
+                  {onLogout && (
+                    <>
+                      <div className="mx-1 my-1.5 border-t border-outline-variant/40" />
+                      <button
+                        role="menuitem"
+                        type="button"
+                        className="flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-sm font-semibold text-error hover:bg-error-container/20"
+                        onClick={() => {
+                          setIsHeaderMenuOpen(false);
+                          onLogout();
+                        }}
+                      >
+                        <span aria-hidden="true" className="material-symbols-outlined">
+                          logout
+                        </span>
+                        Đăng xuất
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

@@ -37,22 +37,22 @@ const typeMeta: Record<
   VEHICLE: {
     category: "Xe & Hồ sơ",
     icon: "directions_car",
-    iconClassName: "bg-secondary-container text-on-secondary-container",
+    iconClassName: "bg-primary-fixed text-on-primary-fixed-variant",
   },
   PROFILE: {
     category: "Xe & Hồ sơ",
     icon: "person",
-    iconClassName: "bg-secondary-container text-on-secondary-container",
+    iconClassName: "bg-primary-fixed text-on-primary-fixed-variant",
   },
   APPOINTMENT: {
     category: "Đơn hàng",
     icon: "build",
-    iconClassName: "bg-surface-container text-outline",
+    iconClassName: "bg-[#e6defa] text-[#3b2a7a]",
   },
   PROMOTION: {
     category: "Khuyến mãi",
     icon: "sell",
-    iconClassName: "bg-tertiary-container text-on-tertiary-container",
+    iconClassName: "bg-[#fff1cc] text-[#6b4200]",
   },
   SYSTEM: {
     category: "Hệ thống",
@@ -152,6 +152,17 @@ export default function NotificationsPage({
     activeFilter === "Tất cả"
       ? notifications
       : notifications.filter((item) => typeMeta[item.type]?.category === activeFilter);
+
+  const unreadCount = notifications.filter((item) => !item.isRead).length;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const notificationGroups: Array<{ label: string; rows: AppNotification[] }> = [];
+  for (const label of ["Hôm nay", "Trước đó"]) {
+    const rows = visibleNotifications.filter(
+      (item) => (new Date(item.createdAt).getTime() >= startOfToday.getTime()) === (label === "Hôm nay"),
+    );
+    if (rows.length > 0) notificationGroups.push({ label, rows });
+  }
 
   return (
     <div className="min-h-dvh bg-background font-sans text-on-surface">
@@ -275,55 +286,59 @@ export default function NotificationsPage({
         </aside>
 
         <main className="flex-1 bg-background p-margin-mobile pb-28 md:ml-64 md:p-margin-desktop">
-          <div className="mx-auto max-w-4xl">
-            <section className="mb-lg flex flex-col justify-between gap-md md:flex-row md:items-end">
+          <div className="mx-auto max-w-4xl space-y-5">
+            <section className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
               <div>
-                <h2 className="font-display-lg text-display-lg text-on-surface">
-                  Thông báo
-                </h2>
-                <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
-                  Cập nhật những hoạt động mới nhất về xe, hồ sơ và dịch vụ của bạn.
+                <h2 className="text-3xl font-extrabold tracking-tight text-on-surface">Thông báo</h2>
+                <p className="mt-1 text-[15px] text-on-surface-variant" aria-live="polite">
+                  {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : "Bạn đã đọc hết thông báo"}
                 </p>
               </div>
               <button
-                className="flex items-center gap-1 rounded-lg px-3 py-2 font-label-md text-label-md text-primary transition-colors hover:bg-primary-fixed-dim/20 disabled:opacity-50"
+                className="inline-flex min-h-10 items-center gap-1 rounded-xl border-[1.5px] border-outline-variant px-3.5 text-sm font-bold text-on-primary-fixed-variant transition-colors hover:bg-surface-container-low disabled:opacity-50"
                 type="button"
                 onClick={markAllAsRead}
                 disabled={isLoading || notifications.every((item) => item.isRead)}
               >
-                <span className="material-symbols-outlined text-[18px]">done_all</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                  done_all
+                </span>
                 Đánh dấu đã đọc tất cả
               </button>
             </section>
 
-            <section className="mb-lg flex items-center gap-2 overflow-x-auto border-b border-outline-variant pb-1">
+            <div role="group" aria-label="Lọc thông báo" className="flex gap-2 overflow-x-auto pb-1">
               {filters.map((filter) => (
                 <button
                   key={filter}
-                  className={`whitespace-nowrap px-lg py-3 font-label-md text-label-md transition-colors ${
+                  aria-pressed={activeFilter === filter}
+                  className={`inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13px] font-semibold ${
                     activeFilter === filter
-                      ? "border-b-2 border-primary text-primary"
-                      : "text-on-surface-variant hover:text-primary"
+                      ? "border-primary bg-primary-fixed text-on-primary-fixed-variant"
+                      : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low"
                   }`}
                   type="button"
                   onClick={() => setActiveFilter(filter)}
                 >
                   {filter}
+                  {filter === "Tất cả" && unreadCount > 0 && (
+                    <b className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-error px-1 text-[11px] text-on-error">
+                      {unreadCount}
+                    </b>
+                  )}
                 </button>
               ))}
-            </section>
+            </div>
 
             {isLoading && (
-              <p className="py-xl text-center font-body-md text-body-md text-on-surface-variant">
-                Đang tải thông báo...
-              </p>
+              <p className="py-10 text-center text-on-surface-variant">Đang tải thông báo...</p>
             )}
 
             {!isLoading && loadError && (
-              <div className="rounded-xl border border-error/30 bg-error-container/40 p-lg text-center">
-                <p className="font-body-md text-body-md text-on-error-container">{loadError}</p>
+              <div className="rounded-3xl border border-error/30 bg-error-container/40 p-6 text-center">
+                <p className="text-on-error-container">{loadError}</p>
                 <button
-                  className="mt-md rounded-lg border border-outline-variant px-lg py-2 font-label-md text-label-md text-on-surface-variant transition-colors hover:bg-surface-container"
+                  className="mt-3 min-h-10 rounded-xl border border-outline-variant bg-surface-container-lowest px-5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container"
                   type="button"
                   onClick={loadNotifications}
                 >
@@ -333,20 +348,32 @@ export default function NotificationsPage({
             )}
 
             {!isLoading && !loadError && visibleNotifications.length === 0 && (
-              <p className="py-xl text-center font-body-md text-body-md text-on-surface-variant">
-                Không có thông báo nào.
-              </p>
+              <div className="flex flex-col items-center gap-3 rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-10 text-center">
+                <span aria-hidden="true" className="flex h-[72px] w-[72px] items-center justify-center rounded-3xl bg-surface-container text-outline">
+                  <span className="material-symbols-outlined text-4xl">notifications_off</span>
+                </span>
+                <p className="text-lg font-extrabold">Không có thông báo nào</p>
+              </div>
             )}
 
             {!isLoading && !loadError && visibleNotifications.length > 0 && (
-              <section className="space-y-sm">
-                {visibleNotifications.map((notification) => (
-                  <NotificationCard
-                    key={notification.id}
-                    item={notification}
-                    onRead={() => markOneAsRead(notification.id)}
-                    onBook={onBookingClick}
-                  />
+              <section className="overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+                {notificationGroups.map((group) => (
+                  <div key={group.label}>
+                    <h3 className="bg-surface-container-low px-6 pb-1 pt-2.5 text-[11px] font-bold uppercase tracking-wider text-outline">
+                      {group.label}
+                    </h3>
+                    <div className="divide-y divide-outline-variant/40">
+                      {group.rows.map((notification) => (
+                        <NotificationCard
+                          key={notification.id}
+                          item={notification}
+                          onRead={() => markOneAsRead(notification.id)}
+                          onBook={onBookingClick}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </section>
             )}
@@ -423,17 +450,22 @@ function NotificationCard({
 
   return (
     <article
-      className={`group relative flex cursor-pointer gap-lg rounded-xl border border-outline-variant bg-surface-container-lowest p-lg transition-all hover:bg-surface-container ${accent} ${
-        item.isRead ? "opacity-80" : ""
-      }`}
       onClick={onRead}
+      className={`relative flex w-full cursor-pointer items-start gap-3.5 px-6 py-4 text-left transition-colors hover:bg-surface-container-low/70 ${accent} ${
+        item.isRead ? "" : "bg-primary-fixed/20"
+      }`}
     >
       {!item.isRead && (
-        <div className="absolute right-4 top-4 h-2 w-2 rounded-full bg-primary transition-transform group-hover:scale-110" />
+        <span
+          aria-label="Chưa đọc"
+          role="img"
+          className="absolute left-2.5 top-[30px] h-2 w-2 rounded-full bg-primary"
+        />
       )}
 
-      <div
-        className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${meta.iconClassName}`}
+      <span
+        aria-hidden="true"
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] ${meta.iconClassName}`}
       >
         <span
           className="material-symbols-outlined"
@@ -441,36 +473,34 @@ function NotificationCard({
         >
           {meta.icon}
         </span>
-      </div>
+      </span>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-md">
-          <h3 className="font-label-md text-label-md font-bold text-on-surface">
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center justify-between gap-3">
+          <span className={`text-sm text-on-surface ${item.isRead ? "font-semibold" : "font-extrabold"}`}>
             {item.title}
-          </h3>
-          <span className="shrink-0 font-label-sm text-label-sm text-outline">
-            {formatRelativeTime(item.createdAt)}
           </span>
-        </div>
-        <p className="mt-1 font-body-md text-body-md leading-relaxed text-on-surface-variant">
-          {item.message}
-        </p>
+          <span className="shrink-0 text-xs text-on-surface-variant">{formatRelativeTime(item.createdAt)}</span>
+        </span>
+        <span className="mt-0.5 block text-[13px] leading-relaxed text-on-surface-variant">{item.message}</span>
         {isMaintenance && (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onRead();
-              onBook();
-            }}
-            className={`mt-3 min-h-11 rounded-lg px-lg font-label-md text-label-md text-white transition-all hover:shadow-lg active:scale-95 ${
-              overdue ? "bg-error" : "bg-primary"
-            }`}
-          >
-            Đặt lịch ngay
-          </button>
+          <span className="mt-2 block">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onRead();
+                onBook();
+              }}
+              className={`min-h-10 rounded-xl px-5 text-sm font-bold text-white transition-all active:scale-95 ${
+                overdue ? "bg-error" : "bg-primary"
+              }`}
+            >
+              Đặt lịch ngay
+            </button>
+          </span>
         )}
-      </div>
+      </span>
     </article>
   );
 }

@@ -5,6 +5,12 @@ type FindGaragePageProps = {
   onBookingClick: (garageId: string) => void;
 };
 
+const FALLBACK_PHOTOS = [
+  "/landing/hero-1.jpg",
+  "/landing/hero-2.jpg",
+  "/landing/hero-3.jpg",
+];
+
 export default function FindGaragePage({ onBookingClick }: FindGaragePageProps) {
   const [garages, setGarages] = useState<Garage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,135 +57,135 @@ export default function FindGaragePage({ onBookingClick }: FindGaragePageProps) 
     return list;
   }, [garages, search, sortByRating]);
 
+  const chipClass = (active: boolean) =>
+    `inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold ${
+      active
+        ? "border-primary bg-primary-fixed text-on-primary-fixed-variant"
+        : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low"
+    }`;
+
   return (
-    <div className="mx-auto max-w-7xl p-6 md:p-8">
-      <div className="mb-6">
-        <h2 className="mb-1 text-2xl font-bold text-on-surface">Garage gần bạn</h2>
-        <p className="text-on-surface-variant">
+    <div className="mx-auto max-w-7xl space-y-5 p-6 md:p-8">
+      <div>
+        <h2 className="text-3xl font-extrabold tracking-tight text-on-surface">Tìm garage</h2>
+        <p className="mt-1 text-[15px] text-on-surface-variant">
           Chọn garage bạn muốn bảo dưỡng hoặc sửa chữa xe, rồi đặt lịch ngay.
         </p>
       </div>
 
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center">
-        <div className="relative w-full md:w-80 lg:w-96">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex h-12 w-full items-center gap-2 rounded-2xl border border-outline-variant bg-surface-container-lowest px-3.5 text-outline focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30 md:w-96">
+          <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
             search
           </span>
-          <input aria-label="Tìm garage, khu vực..."
-            className="w-full rounded-full border border-outline-variant bg-surface-container-low py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
-            placeholder="Tìm garage, khu vực..."
+          <input
+            aria-label="Tìm garage, khu vực..."
+            className="min-w-0 flex-1 bg-transparent text-sm text-on-surface outline-none"
+            placeholder="Tên garage hoặc khu vực"
             type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <button
-            onClick={() => setSortByRating(false)}
-            className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
-              !sortByRating
-                ? "bg-primary text-white"
-                : "border border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
-            }`}
-          >
-            Mặc định
+        </label>
+        <div role="group" aria-label="Sắp xếp garage" className="flex gap-2">
+          <button type="button" aria-pressed={!sortByRating} onClick={() => setSortByRating(false)} className={chipClass(!sortByRating)}>
+            Tất cả
           </button>
-          <button
-            onClick={() => setSortByRating(true)}
-            className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
-              sortByRating
-                ? "bg-primary text-white"
-                : "border border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
-            }`}
-          >
+          <button type="button" aria-pressed={sortByRating} onClick={() => setSortByRating(true)} className={chipClass(sortByRating)}>
+            <span aria-hidden="true" className="material-symbols-outlined text-lg">
+              star
+            </span>
             Đánh giá cao
           </button>
         </div>
+        {!isLoading && !error && (
+          <span aria-live="polite" className="ml-auto text-[13px] text-on-surface-variant">
+            {visibleGarages.length} garage
+          </span>
+        )}
       </div>
 
       {isLoading && (
-        <div className="rounded-xl border border-outline-variant bg-white p-8 text-center text-on-surface-variant">
+        <div className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-8 text-center text-on-surface-variant">
           Đang tải danh sách garage...
         </div>
       )}
 
       {!isLoading && error && (
-        <div className="rounded-xl border border-error/30 bg-error-container/10 p-8 text-center text-error">
+        <div className="rounded-3xl border border-error/30 bg-error-container/10 p-8 text-center text-error">
           {error}
         </div>
       )}
 
       {!isLoading && !error && visibleGarages.length === 0 && (
-        <div className="rounded-xl border border-outline-variant bg-white p-8 text-center text-on-surface-variant">
-          Không tìm thấy garage phù hợp.
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-10 text-center">
+          <span
+            aria-hidden="true"
+            className="flex h-[72px] w-[72px] items-center justify-center rounded-3xl bg-surface-container text-outline"
+          >
+            <span className="material-symbols-outlined text-4xl">storefront</span>
+          </span>
+          <p className="text-lg font-extrabold">Không tìm thấy garage phù hợp</p>
+          <p className="text-sm text-on-surface-variant">Thử đổi từ khóa tìm kiếm hoặc xóa bộ lọc.</p>
         </div>
       )}
 
       {!isLoading && !error && visibleGarages.length > 0 && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {visibleGarages.map((garage) => (
-            <div
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {visibleGarages.map((garage, index) => (
+            <article
               key={garage.id}
-              className="flex flex-col justify-between rounded-xl border border-outline-variant bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+              className="flex flex-col overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] transition-transform hover:-translate-y-0.5"
             >
-              <div>
-                <div className="flex items-start justify-between">
-                  <div className="flex gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-primary">
-                      <span className="material-symbols-outlined text-2xl">
-                        build
+              <div className="relative h-[150px] bg-primary-fixed">
+                <img
+                  src={garage.imageUrl || FALLBACK_PHOTOS[index % FALLBACK_PHOTOS.length]}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="flex flex-1 flex-col gap-2.5 p-[18px]">
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-[17px] font-extrabold">{garage.name}</h3>
+                  {garage.rating != null && (
+                    <b className="flex shrink-0 items-center gap-0.5 text-sm text-[#6b4200]">
+                      <span aria-hidden="true" className="material-symbols-outlined text-lg text-[#c47f00]">
+                        star
                       </span>
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-on-surface">
-                        {garage.name}
-                      </h3>
-                      <div className="mt-1 flex items-center gap-1 text-sm text-on-surface-variant">
-                        <span className="material-symbols-outlined text-[16px]">
-                          location_on
-                        </span>
-                        {garage.address}
-                      </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-on-surface-variant">
-                        {garage.rating != null && (
-                          <div className="flex items-center gap-1 font-medium text-orange-500">
-                            <span className="material-symbols-outlined text-[16px]">
-                              star
-                            </span>
-                            {garage.rating.toLocaleString("vi-VN", { minimumFractionDigits: 1 })}
-                            <span className="font-normal text-on-surface-variant">({garage.reviewCount ?? 0})</span>
-                          </div>
-                        )}
-                        {garage.phone && (
-                          <div className="flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[16px]">
-                              call
-                            </span>
-                            {garage.phone}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                      {garage.rating.toLocaleString("vi-VN", { minimumFractionDigits: 1 })}
+                      <span className="font-normal text-on-surface-variant">({garage.reviewCount ?? 0})</span>
+                    </b>
+                  )}
                 </div>
-
-                {garage.description && (
-                  <p className="mt-4 text-sm text-on-surface-variant">
-                    {garage.description}
+                <p className="flex items-start gap-1.5 text-[13px] text-on-surface-variant">
+                  <span aria-hidden="true" className="material-symbols-outlined text-lg">
+                    location_on
+                  </span>
+                  {garage.address}
+                </p>
+                {garage.phone && (
+                  <p className="flex items-center gap-1.5 text-[13px] text-on-surface-variant">
+                    <span aria-hidden="true" className="material-symbols-outlined text-lg">
+                      call
+                    </span>
+                    {garage.phone}
                   </p>
                 )}
+                {garage.description && (
+                  <p className="line-clamp-2 text-[13px] text-on-surface-variant">{garage.description}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onBookingClick(String(garage.id))}
+                  className="mt-auto flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container text-sm font-bold text-on-primary shadow-[0_12px_22px_-14px_rgba(0,89,187,0.9)] transition-all active:scale-[0.98]"
+                >
+                  Chọn garage này
+                  <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                    arrow_forward
+                  </span>
+                </button>
               </div>
-
-              <button
-                onClick={() => onBookingClick(String(garage.id))}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-              >
-                Chọn garage này
-                <span className="material-symbols-outlined text-[18px]">
-                  arrow_forward
-                </span>
-              </button>
-            </div>
+            </article>
           ))}
         </div>
       )}

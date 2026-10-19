@@ -240,25 +240,32 @@ export default function TrackingPage({
       </header>
 
       <main className="min-h-screen pb-24 pt-16 md:ml-[240px] md:pt-0">
-        <div className="mx-auto max-w-[1200px] space-y-lg px-margin-mobile py-lg md:px-margin-desktop">
-          <nav className="hidden items-center gap-sm text-on-surface-variant md:flex">
-            <span className="font-label-sm text-label-sm">Bảng điều khiển</span>
-            <span className="material-symbols-outlined text-[16px]">
-              chevron_right
-            </span>
-            <span className="font-label-sm text-label-sm text-primary">
-              Theo dõi phương tiện
-            </span>
-          </nav>
+        <div className="mx-auto max-w-[1200px] space-y-5 px-margin-mobile py-6 md:px-margin-desktop">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight">Theo dõi xe</h1>
+              {appointment && (
+                <p className="mt-1 text-[15px] text-on-surface-variant">
+                  {appointment.vehicleModel} · Lịch hẹn #{appointment.id}
+                </p>
+              )}
+            </div>
+            {appointment && (
+              <span className="inline-flex items-center gap-2 rounded-full bg-[#e6defa] px-3.5 py-1.5 text-sm font-bold text-[#3b2a7a]">
+                <i aria-hidden="true" className="h-[7px] w-[7px] rounded-full bg-[#6a4fd1]" />
+                {statusTitle(appointment.status)}
+              </span>
+            )}
+          </div>
 
           {isLoading && (
-            <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-xl text-center font-body-md text-body-md text-on-surface-variant">
+            <div className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-8 text-center text-on-surface-variant">
               Đang tải lịch hẹn đang xử lý...
             </div>
           )}
 
           {!isLoading && error && (
-            <div className="rounded-xl border border-error/30 bg-error-container/10 p-xl text-center font-body-md text-body-md text-error">
+            <div className="rounded-3xl border border-error/30 bg-error-container/10 p-8 text-center text-error">
               {error}
             </div>
           )}
@@ -266,9 +273,9 @@ export default function TrackingPage({
           {cancelMessage && (
             <div
               role="status"
-              className={`rounded-xl border p-lg font-body-md text-body-md ${
+              className={`rounded-2xl border p-4 text-sm ${
                 cancelMessage.type === "success"
-                  ? "border-tertiary/30 bg-tertiary-container/20 text-on-surface"
+                  ? "border-tertiary/30 bg-[#d9f7dd] text-[#00531a]"
                   : "border-error/30 bg-error-container/10 text-error"
               }`}
             >
@@ -277,22 +284,30 @@ export default function TrackingPage({
           )}
 
           {!isLoading && !error && !appointment && (
-            <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-xl text-center font-body-md text-body-md text-on-surface-variant">
-              Hiện bạn không có lịch hẹn nào đang được xử lý.
+            <div className="flex flex-col items-center gap-3 rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-10 text-center">
+              <span
+                aria-hidden="true"
+                className="flex h-[72px] w-[72px] items-center justify-center rounded-3xl bg-surface-container text-outline"
+              >
+                <span className="material-symbols-outlined text-4xl">location_off</span>
+              </span>
+              <p className="text-lg font-extrabold">Chưa có xe nào đang được xử lý</p>
+              <p className="text-sm text-on-surface-variant">Khi bạn đặt lịch, tiến độ sửa chữa sẽ hiện ở đây.</p>
             </div>
           )}
 
           {!isLoading && !error && appointments.length > 1 && (
-            <div className="flex flex-wrap gap-sm">
+            <div role="group" aria-label="Chọn lịch hẹn" className="flex flex-wrap gap-2">
               {appointments.map((item) => (
                 <button
                   key={item.id}
                   type="button"
+                  aria-pressed={item.id === appointment?.id}
                   onClick={() => setSelectedId(item.id)}
-                  className={`rounded-full border px-md py-xs font-label-md text-label-md transition-colors ${
+                  className={`min-h-9 rounded-full border px-3.5 text-[13px] font-semibold ${
                     item.id === appointment?.id
-                      ? "border-primary bg-primary text-white"
-                      : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container"
+                      ? "border-primary bg-primary-fixed text-on-primary-fixed-variant"
+                      : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low"
                   }`}
                 >
                   #{item.id} · {item.vehicleModel}
@@ -302,195 +317,144 @@ export default function TrackingPage({
           )}
 
           {!isLoading && !error && appointment && (
-            <div className="grid grid-cols-1 gap-lg lg:grid-cols-12">
-              <section className="flex flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest md:flex-row lg:col-span-8">
-                <div className="relative h-64 md:h-auto md:w-1/2">
-                  <img
-                    className="h-full w-full object-cover"
-                    src={vehicle?.imageUrl || vehicleImage}
-                    alt={appointment.vehicleModel}
-                  />
-                  <div className="absolute left-4 top-4 rounded-full bg-primary px-3 py-1 font-label-md text-label-md text-white shadow-lg">
-                    {statusTitle(appointment.status)}
+            <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[1fr_26.25rem]">
+              <div className="space-y-5">
+                <section
+                  aria-label="Thông tin xe"
+                  className="flex flex-col overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] sm:flex-row"
+                >
+                  <div className="h-44 sm:h-auto sm:w-56">
+                    <img
+                      className="h-full w-full object-cover"
+                      src={vehicle?.imageUrl || vehicleImage}
+                      alt={appointment.vehicleModel}
+                    />
                   </div>
-                </div>
-
-                <div className="flex flex-col justify-between p-lg md:w-1/2">
-                  <div>
-                    <h1 className="mb-xs font-headline-lg text-headline-lg text-primary">
-                      {appointment.vehicleModel}
-                    </h1>
-                    <p className="mb-lg font-body-md text-body-md text-on-surface-variant">
-                      ID Dịch vụ: #{appointment.id}
-                    </p>
-                    <div className="mb-lg inline-flex items-center gap-md rounded-lg border border-outline-variant bg-surface-container px-lg py-sm">
-                      <span className="material-symbols-outlined text-on-surface-variant">
-                        branding_watermark
-                      </span>
-                      <span className="font-headline-md text-headline-md font-bold tracking-widest">
+                  <div className="flex flex-1 flex-col gap-3 p-5">
+                    <div>
+                      <h2 className="text-xl font-extrabold text-on-primary-fixed-variant">{appointment.vehicleModel}</h2>
+                      <p className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container px-3 py-1 font-mono text-sm font-bold tracking-wider">
                         {appointment.vehicleVin}
-                      </span>
+                      </p>
                     </div>
-                  </div>
-
-                  <div className="space-y-md">
-                    <div className="flex items-center justify-between border-b border-outline-variant pb-sm">
-                      <span className="font-label-md text-on-surface-variant">
-                        Kỹ thuật viên
-                      </span>
-                      <span className="font-label-md">
-                        {appointment.engineerName || "Chưa phân công"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-label-md text-on-surface-variant">
-                        Ngày hẹn
-                      </span>
-                      <span className="font-label-md">
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+                      <dt className="text-on-surface-variant">Kỹ thuật viên</dt>
+                      <dd className="text-right font-semibold">{appointment.engineerName || "Chưa phân công"}</dd>
+                      <dt className="text-on-surface-variant">Ngày hẹn</dt>
+                      <dd className="text-right font-semibold">
                         {appointment.scheduleDate} - {appointment.timeFrame}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-label-md text-on-surface-variant">
-                        Garage
-                      </span>
-                      <span className="font-label-md">{appointment.garageName}</span>
-                    </div>
+                      </dd>
+                      <dt className="text-on-surface-variant">Garage</dt>
+                      <dd className="text-right font-semibold">{appointment.garageName}</dd>
+                    </dl>
+                    {appointment.notes && (
+                      <p className="rounded-xl bg-surface-container-low p-3 text-[13px] text-on-surface-variant">
+                        {appointment.notes}
+                      </p>
+                    )}
                     {canCancel && (
                       <button
                         type="button"
                         onClick={() => void handleCancel(appointment)}
                         disabled={isCancelling}
-                        className="mt-md flex w-full items-center justify-center gap-sm rounded-lg border border-error px-md py-sm font-label-md text-label-md text-error transition-colors hover:bg-error-container/10 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="mt-auto flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-error text-sm font-bold text-error transition-colors hover:bg-error-container/10 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <span className="material-symbols-outlined text-[18px]">cancel</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                          cancel
+                        </span>
                         {isCancelling ? "Đang huỷ..." : "Huỷ lịch hẹn"}
                       </button>
                     )}
                   </div>
-                </div>
-              </section>
+                </section>
 
-              <section className="relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-primary-container p-xl text-center text-on-primary-container shadow-lg lg:col-span-4">
-                <div className="absolute right-0 top-0 -mr-16 -mt-16 h-32 w-32 rounded-full bg-white/10" />
-                <span
-                  className="material-symbols-outlined mb-md text-[64px]"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
+                <section
+                  aria-labelledby="tracking-progress-title"
+                  className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]"
                 >
-                  schedule
-                </span>
-                <h3 className="mb-sm font-label-md text-label-md uppercase tracking-widest opacity-80">
-                  Khung giờ hẹn
-                </h3>
-                <div className="mb-xs font-display-lg text-display-lg">
-                  {appointment.timeFrame}
-                </div>
-                <div className="font-headline-md text-headline-md">
-                  {appointment.scheduleDate}
-                </div>
-                <p className="mt-lg px-md font-body-md text-body-md opacity-90">
-                  {appointment.notes || "Xe của bạn đang được đội ngũ kỹ thuật xử lý."}
-                </p>
-              </section>
-
-              <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg md:p-xl lg:col-span-12">
-                <div className="mb-xl flex flex-col justify-between gap-sm sm:flex-row sm:items-center">
-                  <h2 className="font-headline-md text-headline-md">
+                  <h2 id="tracking-progress-title" className="mb-5 text-lg font-extrabold">
                     Tiến độ sửa chữa
                   </h2>
-                </div>
-
-                <div className="hidden w-full items-start px-lg md:flex">
-                  {steps.map((step, index) => (
-                    <DesktopStep
-                      key={step.key}
-                      step={step}
-                      isLast={index === steps.length - 1}
-                    />
-                  ))}
-                </div>
-
-                <div className="flex flex-col gap-lg md:hidden">
-                  {steps.map((step, index) => (
-                    <MobileStep
-                      key={step.key}
-                      step={step}
-                      isLast={index === steps.length - 1}
-                    />
-                  ))}
-                </div>
-              </section>
-
-              <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg lg:col-span-6">
-                <h3 className="mb-lg flex items-center gap-md font-headline-md text-headline-md">
-                  <span className="material-symbols-outlined text-primary">
-                    engineering
-                  </span>
-                  Ghi chú kỹ thuật viên
-                </h3>
-                <p className="font-body-md text-body-md text-on-surface-variant">
-                  {appointment.engineerNotes || "Chưa có ghi chú mới từ kỹ thuật viên."}
-                </p>
-                {appointment.partsUsed && (
-                  <p className="mt-md font-body-md text-body-md text-on-surface-variant">
-                    <span className="font-semibold text-on-surface">Phụ tùng sử dụng: </span>
-                    {appointment.partsUsed}
-                  </p>
-                )}
-              </section>
-
-              {(appointment.extras ?? []).length > 0 && (
-                <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg lg:col-span-12">
-                  <h3 className="mb-lg flex items-center gap-md font-headline-md text-headline-md">
-                    <span className="material-symbols-outlined text-primary">add_task</span>
-                    Hạng mục phát sinh
-                  </h3>
-                  <p className="mb-md font-body-md text-body-md text-on-surface-variant">
-                    Kỹ thuật viên phát hiện thêm việc cần làm. Hạng mục chỉ được tính tiền khi bạn đồng ý.
-                  </p>
-                  <ExtrasList
-                    extras={appointment.extras ?? []}
-                    busyId={busyExtraId}
-                    onDecide={
-                      appointment.status.toLowerCase() === "in_progress"
-                        ? (extra, approve) => void handleDecideExtra(appointment, extra, approve)
-                        : undefined
-                    }
-                  />
+                  <ol>
+                    {steps.map((step, index) => (
+                      <TimelineStep key={step.key} step={step} isLast={index === steps.length - 1} />
+                    ))}
+                  </ol>
                 </section>
-              )}
 
-              <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg lg:col-span-6">
-                <h3 className="mb-lg flex items-center gap-md font-headline-md text-headline-md">
-                  <span className="material-symbols-outlined text-primary">
-                    receipt_long
-                  </span>
-                  Chi phí dịch vụ
-                </h3>
-                <CostBreakdown appointment={appointment} />
-
-                {appointment.invoiceId && appointment.invoicePaymentStatus === "unpaid" && (
-                  <div className="mt-lg space-y-sm">
-                    <button
-                      type="button"
-                      onClick={() => void handlePay(appointment)}
-                      disabled={isPaying}
-                      className="w-full rounded-lg bg-primary py-3 font-label-md text-label-md text-on-primary transition hover:opacity-90 disabled:opacity-50"
-                    >
-                      {isPaying
-                        ? "Đang chuyển sang trang thanh toán..."
-                        : `Thanh toán online${appointment.amountDue ? ` ${formatVnd(appointment.amountDue)}` : ""}`}
-                    </button>
-                    <p className="text-center text-xs text-on-surface-variant">
-                      Hoặc thanh toán tiền mặt tại quầy lễ tân khi nhận xe.
+                {(appointment.extras ?? []).length > 0 && (
+                  <section className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+                    <h2 className="mb-1 flex items-center gap-2.5 text-lg font-extrabold">
+                      <span aria-hidden="true" className="material-symbols-outlined text-primary">
+                        add_task
+                      </span>
+                      Phát sinh cần bạn duyệt
+                    </h2>
+                    <p className="mb-4 text-sm text-on-surface-variant">
+                      Kỹ thuật viên phát hiện thêm việc cần làm. Hạng mục chỉ được tính tiền khi bạn đồng ý.
                     </p>
-                  </div>
+                    <ExtrasList
+                      extras={appointment.extras ?? []}
+                      busyId={busyExtraId}
+                      onDecide={
+                        appointment.status.toLowerCase() === "in_progress"
+                          ? (extra, approve) => void handleDecideExtra(appointment, extra, approve)
+                          : undefined
+                      }
+                    />
+                  </section>
                 )}
 
-                {actionError && <p className="mt-md text-sm text-error">{actionError}</p>}
-              </section>
+                <section className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+                  <h2 className="mb-3 flex items-center gap-2.5 text-lg font-extrabold">
+                    <span aria-hidden="true" className="material-symbols-outlined text-primary">
+                      engineering
+                    </span>
+                    Ghi chú kỹ thuật viên
+                  </h2>
+                  <p className="text-sm text-on-surface-variant">
+                    {appointment.engineerNotes || "Chưa có ghi chú mới từ kỹ thuật viên."}
+                  </p>
+                  {appointment.partsUsed && (
+                    <p className="mt-3 text-sm text-on-surface-variant">
+                      <span className="font-semibold text-on-surface">Phụ tùng sử dụng: </span>
+                      {appointment.partsUsed}
+                    </p>
+                  )}
+                </section>
 
-              <div className="lg:col-span-12">
+                <section className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+                  <h2 className="mb-3 flex items-center gap-2.5 text-lg font-extrabold">
+                    <span aria-hidden="true" className="material-symbols-outlined text-primary">
+                      receipt_long
+                    </span>
+                    Chi phí dịch vụ
+                  </h2>
+                  <CostBreakdown appointment={appointment} />
+
+                  {appointment.invoiceId && appointment.invoicePaymentStatus === "unpaid" && (
+                    <div className="mt-5 space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => void handlePay(appointment)}
+                        disabled={isPaying}
+                        className="min-h-12 w-full rounded-xl bg-gradient-to-br from-primary to-primary-container text-sm font-bold text-on-primary transition hover:opacity-90 disabled:opacity-50"
+                      >
+                        {isPaying
+                          ? "Đang chuyển sang trang thanh toán..."
+                          : `Thanh toán online${appointment.amountDue ? ` ${formatVnd(appointment.amountDue)}` : ""}`}
+                      </button>
+                      <p className="text-center text-xs text-on-surface-variant">
+                        Hoặc thanh toán tiền mặt tại quầy lễ tân khi nhận xe.
+                      </p>
+                    </div>
+                  )}
+
+                  {actionError && <p className="mt-3 text-sm text-error">{actionError}</p>}
+                </section>
+              </div>
+
+              <div className="xl:sticky xl:top-6">
                 <AppointmentChat
                   key={appointment.id}
                   appointmentId={appointment.id}
@@ -565,101 +529,40 @@ type StepData = {
   status: "done" | "active" | "pending";
 };
 
-function DesktopStep({ step, isLast }: { step: StepData; isLast: boolean }) {
+function TimelineStep({ step, isLast }: { step: StepData; isLast: boolean }) {
   const isDone = step.status === "done";
   const isActive = step.status === "active";
 
   return (
-    <div className="relative flex flex-1 flex-col items-center">
-      {isActive && (
-        <span className="absolute top-0 -mt-1 h-12 w-12 animate-ping rounded-full bg-primary/40" />
+    <li aria-current={isActive ? "step" : undefined} className="relative flex gap-3.5 pb-5 last:pb-0">
+      {!isLast && (
+        <span
+          aria-hidden="true"
+          className={`absolute left-[15px] top-8 bottom-0 w-[3px] ${isDone ? "bg-[#008730]" : "bg-surface-container-high"}`}
+        />
       )}
-      <div
-        className={`z-10 flex items-center justify-center rounded-full transition-all duration-500 ${
-          isActive
-            ? "h-12 w-12 -mt-1 bg-primary text-white shadow-[0_0_0_8px_rgba(0,89,187,0.12)]"
-            : isDone
-              ? "h-10 w-10 bg-tertiary text-white"
-              : "h-10 w-10 border border-outline-variant bg-surface-container text-on-surface-variant"
+      <span
+        aria-hidden="true"
+        className={`z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+          isDone
+            ? "bg-[#008730] text-white"
+            : isActive
+              ? "bg-primary text-on-primary ring-[5px] ring-primary/20"
+              : "bg-surface-container-high text-outline"
         }`}
       >
-        <span
-          className={`material-symbols-outlined transition-transform duration-500 ${isActive ? "animate-pulse" : ""}`}
-          style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-        >
-          {step.icon}
-        </span>
-      </div>
-      {!isLast && (
-        <div className="absolute left-1/2 top-5 h-[2px] w-full overflow-hidden bg-outline-variant">
-          <div
-            className={`h-full bg-tertiary transition-transform duration-700 ease-out ${
-              isDone ? "translate-x-0" : "-translate-x-full"
-            }`}
-          />
-        </div>
-      )}
-      <div className="mt-md text-center">
+        <span className="material-symbols-outlined text-[18px]">{isDone ? "check" : step.icon}</span>
+      </span>
+      <div>
         <p
-          className={`font-label-md text-label-md transition-colors duration-500 ${
-            isActive ? "font-bold text-primary" : isDone ? "text-tertiary" : "text-on-surface-variant"
-          }`}
+          className={`font-bold ${isActive ? "text-on-primary-fixed-variant" : isDone ? "text-on-surface" : "text-outline"}`}
         >
           {step.title}
         </p>
+        <p className="text-[13px] text-on-surface-variant">
+          {isActive ? "Hiện tại" : isDone ? "Đã hoàn tất" : "Chưa tới"}
+        </p>
       </div>
-    </div>
-  );
-}
-
-function MobileStep({ step, isLast }: { step: StepData; isLast: boolean }) {
-  const isDone = step.status === "done";
-  const isActive = step.status === "active";
-
-  return (
-    <div className="flex gap-lg">
-      <div className="relative flex flex-col items-center">
-        {isActive && (
-          <span className="absolute top-0 h-10 w-10 animate-ping rounded-full bg-primary/40" />
-        )}
-        <div
-          className={`z-10 flex items-center justify-center rounded-full transition-all duration-500 ${
-            isActive
-              ? "h-10 w-10 bg-primary text-white shadow-[0_0_0_8px_rgba(0,89,187,0.12)]"
-              : isDone
-                ? "h-8 w-8 bg-tertiary text-white"
-                : "h-8 w-8 border border-outline-variant bg-surface-container text-on-surface-variant"
-          }`}
-        >
-          <span
-            className={`material-symbols-outlined text-[18px] ${isActive ? "animate-pulse" : ""}`}
-          >
-            {step.icon}
-          </span>
-        </div>
-        {!isLast && (
-          <div className="my-1 w-[2px] flex-1 overflow-hidden bg-outline-variant">
-            <div
-              className={`w-full bg-tertiary transition-transform duration-700 ease-out ${
-                isDone ? "h-full translate-y-0" : "h-full -translate-y-full"
-              }`}
-            />
-          </div>
-        )}
-      </div>
-      <div className="pb-md">
-        <h4
-          className={`transition-colors duration-500 ${
-            isActive
-              ? "font-headline-md text-[18px] text-primary"
-              : isDone
-                ? "font-label-md text-tertiary"
-                : "font-label-md text-on-surface-variant"
-          }`}
-        >
-          {step.title}
-        </h4>
-      </div>
-    </div>
+    </li>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { addVehicle, getStoredAuthSession, uploadVehicleImage } from "../../services/api";
 
 type AddVehiclePageProps = {
@@ -91,6 +91,11 @@ const VIN_PATTERN = /^[A-HJ-NPR-Z0-9]{17}$/;
 const LICENSE_PLATE_PATTERN = /^\d{2}[A-Z]{1,2}-\d{3}\.?\d{2}$/;
 const MAX_ODOMETER_KM = 500_000;
 
+const cardClass =
+  "rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]";
+const inputBase =
+  "min-h-12 w-full rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/30";
+
 export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
   const [brand, setBrand] = useState(carBrands[0]);
   const [selectedModel, setSelectedModel] = useState(carModelsByBrand[carBrands[0]][0]);
@@ -104,6 +109,8 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [vinTouched, setVinTouched] = useState(false);
+  const [plateTouched, setPlateTouched] = useState(false);
 
   const handleBrandChange = (nextBrand: string) => {
     setBrand(nextBrand);
@@ -283,55 +290,54 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
       </header>
 
       <main className="px-margin-mobile pb-xl pt-24 md:ml-[240px] md:px-xl">
-        <nav className="mb-6 hidden items-center gap-2 font-label-md text-label-md text-secondary md:flex">
-          <button className="transition-colors hover:text-primary" onClick={onBackClick}>
-            Cá nhân
-          </button>
-          <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-          <span className="font-semibold text-on-surface">Thêm phương tiện mới</span>
-        </nav>
+        <div className="mx-auto max-w-6xl space-y-5">
+          <div>
+            <button
+              type="button"
+              onClick={onBackClick}
+              className="mb-3 inline-flex min-h-10 items-center gap-1 rounded-xl border-[1.5px] border-outline-variant bg-surface-container-lowest px-3.5 text-sm font-bold hover:bg-surface-container-low"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                arrow_back
+              </span>
+              Hồ sơ
+            </button>
+            <h2 className="text-3xl font-extrabold tracking-tight text-on-surface">Thêm xe mới</h2>
+            <p className="mt-1 text-[15px] text-on-surface-variant">
+              Điền thông tin xe để đặt lịch bảo dưỡng nhanh hơn.
+            </p>
+          </div>
 
-        <div className="mx-auto max-w-5xl">
-          <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm">
-            <div className="border-b border-outline-variant bg-gradient-to-r from-surface-container-low to-transparent p-lg md:p-8">
-              <h2 className="mb-2 font-headline-lg text-headline-lg font-bold text-on-background md:text-[24px] md:leading-8">
-                Thêm phương tiện mới
-              </h2>
-              <p className="font-body-md text-body-md text-secondary">
-                Cập nhật thông tin phương tiện mới của bạn vào hệ thống Servio để
-                bắt đầu theo dõi bảo trì.
-              </p>
-            </div>
-
-            <div className="p-lg md:p-8">
-              <form className="space-y-10" onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="px-1 font-label-md text-label-md text-on-surface-variant">
-                      Tên thương hiệu
-                    </label>
-                    <div className="relative">
-                      <select aria-label="Tên thương hiệu"
-                        className="w-full appearance-none rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
-                        value={brand}
-                        onChange={(event) => handleBrandChange(event.target.value)}
-                      >
-                        {carBrands.map((brandName) => (
-                          <option key={brandName} value={brandName}>
-                            {brandName}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-secondary">
-                        expand_more
-                      </span>
-                    </div>
-                  </div>
+          <form className="grid items-start gap-5 xl:grid-cols-[1fr_22.5rem]" onSubmit={handleSubmit} noValidate>
+            <div className="space-y-5">
+              <section aria-labelledby="addv-info-title" className={`${cardClass} p-[22px]`}>
+                <h3 id="addv-info-title" className="mb-4 text-lg font-extrabold">
+                  Thông tin xe
+                </h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <SelectField label="Thương hiệu" value={brand} onChange={handleBrandChange}>
+                    {carBrands.map((brandName) => (
+                      <option key={brandName} value={brandName}>
+                        {brandName}
+                      </option>
+                    ))}
+                  </SelectField>
+                  <SelectField label="Năm sản xuất" value={year} onChange={setYear}>
+                    {vehicleYears.map((vehicleYear) => (
+                      <option key={vehicleYear} value={vehicleYear}>
+                        {vehicleYear}
+                      </option>
+                    ))}
+                  </SelectField>
                   <TextField
                     label="Số khung (VIN)"
                     placeholder="17 ký tự, VD: RLZAB1234C5678901"
                     value={vin}
                     onChange={(value) => setVin(value.toUpperCase())}
+                    onBlur={() => setVinTouched(true)}
+                    error={vinTouched && vin.trim() !== "" && !VIN_PATTERN.test(vin.trim()) ? "VIN gồm đúng 17 ký tự chữ/số, không chứa I, O, Q." : undefined}
+                    valid={VIN_PATTERN.test(vin.trim())}
+                    hint="17 ký tự"
                     required
                   />
                   <TextField
@@ -339,54 +345,25 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
                     placeholder="VD: 30A-123.45"
                     value={licensePlate}
                     onChange={(value) => setLicensePlate(value.toUpperCase())}
+                    onBlur={() => setPlateTouched(true)}
+                    error={plateTouched && licensePlate.trim() !== "" && !LICENSE_PLATE_PATTERN.test(licensePlate.trim()) ? "Biển số chưa đúng định dạng (VD: 30A-123.45)." : undefined}
+                    valid={LICENSE_PLATE_PATTERN.test(licensePlate.trim())}
                     required
                   />
-                  <div className="space-y-2">
-                    <label className="px-1 font-label-md text-label-md text-on-surface-variant">
-                      Năm sản xuất
-                    </label>
-                    <div className="relative">
-                      <select aria-label="Năm sản xuất"
-                        className="w-full appearance-none rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
-                        value={year}
-                        onChange={(event) => setYear(event.target.value)}
-                      >
-                        {vehicleYears.map((vehicleYear) => (
-                          <option key={vehicleYear} value={vehicleYear}>
-                            {vehicleYear}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-secondary">
-                        expand_more
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="px-1 font-label-md text-label-md text-on-surface-variant">
-                      Màu sắc
-                    </label>
-                    <div className="relative">
-                      <select aria-label="Màu sắc"
-                        className="w-full appearance-none rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
-                        value={color}
-                        onChange={(event) => setColor(event.target.value)}
-                      >
-                        <option value="">Chọn màu sắc</option>
-                        {carColors.map((colorName) => (
-                          <option key={colorName} value={colorName}>
-                            {colorName}
-                          </option>
-                        ))}
-                        <option value={OTHER_COLOR}>Khác (tự nhập)</option>
-                      </select>
-                      <span className="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-secondary">
-                        expand_more
-                      </span>
-                    </div>
+                  <div>
+                    <SelectField label="Màu sắc" value={color} onChange={setColor}>
+                      <option value="">Chọn màu sắc</option>
+                      {carColors.map((colorName) => (
+                        <option key={colorName} value={colorName}>
+                          {colorName}
+                        </option>
+                      ))}
+                      <option value={OTHER_COLOR}>Khác (tự nhập)</option>
+                    </SelectField>
                     {color === OTHER_COLOR && (
-                      <input aria-label="Màu sắc khác"
-                        className="w-full rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      <input
+                        aria-label="Màu sắc khác"
+                        className={`${inputBase} mt-2`}
                         type="text"
                         value={customColor}
                         onChange={(event) => setCustomColor(event.target.value)}
@@ -400,135 +377,165 @@ export default function AddVehiclePage({ onBackClick }: AddVehiclePageProps) {
                     value={odometer}
                     onChange={setOdometer}
                     type="number"
+                    suffix="km"
                   />
                 </div>
+              </section>
 
-                <section className="space-y-4">
-                  <h3 className="font-headline-md text-headline-md text-on-background">
-                    Ảnh xe (không bắt buộc)
+              <section aria-labelledby="addv-model-title" className={`${cardClass} p-[22px]`}>
+                <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 id="addv-model-title" className="text-lg font-extrabold">
+                    Chọn mẫu xe
                   </h3>
-                  <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-                    <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-dashed border-outline-variant bg-surface-container-low">
-                      {imagePreview ? (
-                        <img
-                          src={imagePreview}
-                          alt="Ảnh xe xem trước"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="material-symbols-outlined text-4xl text-secondary opacity-40">
-                          directions_car
-                        </span>
-                      )}
-                    </div>
-                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-outline-variant bg-white px-4 py-2.5 font-label-md text-label-md text-on-surface transition-colors hover:bg-surface-container-low">
-                      <span className="material-symbols-outlined text-[20px]">
-                        upload
-                      </span>
-                      {imageFile ? "Đổi ảnh khác" : "Chọn ảnh xe"}
-                      <input
-                        className="sr-only"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                      />
-                    </label>
-                  </div>
-                </section>
-
-                <section className="space-y-4">
-                  <div className="flex items-end justify-between gap-md">
-                    <h3 className="font-headline-md text-headline-md text-on-background">
-                      Chọn mẫu xe
-                    </h3>
-                    <span className="font-label-sm text-label-sm text-secondary">
-                      {brand} Series
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-                    {(carModelsByBrand[brand] ?? []).map((model) => (
+                  <span className="text-[13px] text-on-surface-variant">{brand} Series</span>
+                </div>
+                <div role="radiogroup" aria-label="Mẫu xe" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {(carModelsByBrand[brand] ?? []).map((model) => {
+                    const active = selectedModel === model;
+                    return (
                       <label key={model} className="group relative cursor-pointer">
                         <input
                           className="peer sr-only"
                           name="model"
                           type="radio"
                           value={model}
-                          checked={selectedModel === model}
+                          checked={active}
                           onChange={() => setSelectedModel(model)}
                         />
-                        <div className="flex h-full flex-col items-center gap-3 rounded-xl border border-outline-variant bg-white p-4 transition-all hover:border-primary hover:bg-surface-container-low peer-checked:border-primary peer-checked:bg-surface-container-low peer-checked:shadow-[0_0_0_1px_var(--color-primary)]">
-                          <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-lg bg-surface-container p-2">
-                            <span
-                              className={`material-symbols-outlined text-4xl text-primary transition-opacity group-hover:opacity-100 ${
-                                selectedModel === model ? "opacity-100" : "opacity-40"
-                              }`}
-                            >
+                        <div
+                          className={`overflow-hidden rounded-[18px] border-[1.5px] bg-surface-container-lowest transition-all peer-focus-visible:ring-4 peer-focus-visible:ring-primary/30 ${
+                            active
+                              ? "border-primary shadow-[0_0_0_3px_rgba(0,89,187,0.15)]"
+                              : "border-outline-variant/50 hover:border-primary/60"
+                          }`}
+                        >
+                          <div className="flex h-[92px] items-center justify-center bg-primary-fixed/50 text-primary">
+                            <span aria-hidden="true" className="material-symbols-outlined text-[40px]">
                               {getModelIcon(model)}
                             </span>
                           </div>
-                          <span
-                            className={`font-label-md text-label-md ${
-                              selectedModel === model ? "font-bold text-primary" : "text-on-surface"
-                            }`}
-                          >
-                            {model}
-                          </span>
+                          <div className="flex items-center justify-between px-3 py-2.5">
+                            <b className={`text-[13px] ${active ? "text-on-primary-fixed-variant" : ""}`}>{model}</b>
+                            {active && (
+                              <span aria-hidden="true" className="material-symbols-outlined text-xl text-primary">
+                                check_circle
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </label>
-                    ))}
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
+
+            <aside className="space-y-5 xl:sticky xl:top-24">
+              <section aria-labelledby="addv-photo-title" className={`${cardClass} p-[22px]`}>
+                <h3 id="addv-photo-title" className="mb-3 text-lg font-extrabold">
+                  Ảnh xe
+                </h3>
+                <label className="flex cursor-pointer flex-col items-center gap-2 rounded-[20px] border-2 border-dashed border-primary-fixed-dim bg-primary-fixed/30 p-6 text-center focus-within:ring-4 focus-within:ring-primary/30 hover:bg-primary-fixed/50">
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Ảnh xe xem trước" className="h-32 w-full rounded-2xl object-cover" />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="flex h-[52px] w-[52px] items-center justify-center rounded-[18px] bg-surface-container-lowest text-on-primary-fixed-variant"
+                    >
+                      <span className="material-symbols-outlined">photo_camera</span>
+                    </span>
+                  )}
+                  <b className="text-sm">{imageFile ? "Đổi ảnh khác" : "Bấm để chọn ảnh xe"}</b>
+                  <span className="text-xs text-on-surface-variant">JPG, PNG hoặc WebP · không bắt buộc</span>
+                  <input className="sr-only" type="file" accept="image/*" onChange={handleImageChange} />
+                </label>
+              </section>
+
+              <section aria-label="Xem trước" className={`${cardClass} space-y-3 p-[22px]`}>
+                <b className="text-[15px]">Xem trước thẻ xe</b>
+                <div className="flex items-center gap-3 rounded-[20px] border-[1.5px] border-outline-variant/50 p-3.5">
+                  <span
+                    aria-hidden="true"
+                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-fixed text-on-primary-fixed-variant"
+                  >
+                    <span className="material-symbols-outlined text-[30px]">{getModelIcon(selectedModel)}</span>
+                  </span>
+                  <div className="min-w-0">
+                    <b className="block truncate">{`${brand} ${selectedModel}`.trim()}</b>
+                    <span className="block truncate text-[13px] text-on-surface-variant">
+                      {[licensePlate.trim() || "Chưa có biển số", year, color === OTHER_COLOR ? customColor.trim() : color]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
                   </div>
-                </section>
+                </div>
 
                 {error && (
-                  <p className="rounded-lg bg-error-container px-4 py-3 text-sm text-on-error-container" role="alert">
+                  <p className="rounded-2xl bg-error-container px-4 py-3 text-sm text-on-error-container" role="alert">
                     {error}
                   </p>
                 )}
 
-                <div className="flex flex-col items-center justify-end gap-4 border-t border-outline-variant pt-8 sm:flex-row">
-                  <button
-                    className="w-full rounded-lg border border-outline px-10 py-3 font-headline-md text-headline-md text-on-surface-variant transition-colors hover:bg-surface-container-low active:scale-95 sm:w-auto"
-                    type="button"
-                    onClick={onBackClick}
-                  >
-                    Hủy bỏ
-                  </button>
-                  <button
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-10 py-3 font-headline-md text-headline-md text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-container active:scale-95 sm:w-auto disabled:cursor-not-allowed disabled:opacity-70"
-                    type="submit"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Đang lưu..." : "Xác nhận thêm xe"}
-                    <span className="material-symbols-outlined text-[20px]">
-                      add_circle
-                    </span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          </section>
-
-          <section className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-            <HintCard
-              icon="security"
-              title="Dữ liệu an toàn"
-              body="Thông tin số khung (VIN) của bạn được mã hóa và bảo mật tuyệt đối theo tiêu chuẩn quốc tế."
-            />
-            <HintCard
-              icon="history"
-              title="Tự động đồng bộ"
-              body="Lịch sử bảo hành từ VinFast sẽ tự động được cập nhật sau khi bạn xác nhận phương tiện."
-              tone="tertiary"
-            />
-            <HintCard
-              icon="build"
-              title="Hỗ trợ 24/7"
-              body="Gặp khó khăn khi tìm số khung? Gọi ngay cho chúng tôi qua hotline 1900 6789."
-              tone="secondary"
-            />
-          </section>
+                <button
+                  className="flex min-h-[50px] w-full items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-br from-primary to-primary-container text-sm font-bold text-on-primary shadow-[0_12px_22px_-14px_rgba(0,89,187,0.9)] transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                    check
+                  </span>
+                  {isSubmitting ? "Đang lưu..." : "Lưu xe"}
+                </button>
+                <button
+                  className="min-h-12 w-full rounded-2xl border-[1.5px] border-outline-variant text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low active:scale-95"
+                  type="button"
+                  onClick={onBackClick}
+                >
+                  Hủy
+                </button>
+              </section>
+            </aside>
+          </form>
         </div>
       </main>
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: ReactNode;
+}) {
+  const id = useId();
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1.5 block px-0.5 text-xs font-bold text-on-surface-variant">
+        {label}
+      </label>
+      <div className="relative">
+        <select
+          id={id}
+          className={`${inputBase} appearance-none pr-10`}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          {children}
+        </select>
+        <span
+          aria-hidden="true"
+          className="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-outline"
+        >
+          expand_more
+        </span>
+      </div>
     </div>
   );
 }
@@ -538,64 +545,64 @@ function TextField({
   placeholder,
   value,
   onChange,
+  onBlur,
   type = "text",
   required = false,
+  error,
+  valid = false,
+  hint,
+  suffix,
 }: {
   label: string;
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   type?: string;
   required?: boolean;
+  error?: string;
+  valid?: boolean;
+  hint?: string;
+  suffix?: string;
 }) {
+  const id = useId();
+  const errorId = useId();
   return (
-    <div className="space-y-2">
-      <label htmlFor="pages-customer-addvehiclepage-field-1" className="px-1 font-label-md text-label-md text-on-surface-variant">
+    <div>
+      <label htmlFor={id} className="mb-1.5 block px-0.5 text-xs font-bold text-on-surface-variant">
         {label}
       </label>
-      <input id="pages-customer-addvehiclepage-field-1"
-        className="w-full rounded-lg border border-outline-variant bg-white p-3 font-body-md text-body-md outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
-        placeholder={placeholder}
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required={required}
-      />
-    </div>
-  );
-}
-
-function HintCard({
-  icon,
-  title,
-  body,
-  tone = "primary",
-}: {
-  icon: string;
-  title: string;
-  body: string;
-  tone?: "primary" | "tertiary" | "secondary";
-}) {
-  const toneClass =
-    tone === "tertiary"
-      ? "bg-tertiary-container/10 text-on-tertiary-container"
-      : tone === "secondary"
-        ? "bg-secondary-container/50 text-on-secondary-container"
-        : "bg-primary-container/10 text-primary";
-
-  return (
-    <article className="flex items-start gap-4 rounded-xl border border-outline-variant bg-surface-container-low p-4">
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${toneClass}`}>
-        <span className="material-symbols-outlined">{icon}</span>
+      <div
+        className={`flex min-h-12 items-center gap-2 rounded-2xl border bg-surface-container-lowest px-4 transition-all focus-within:ring-2 focus-within:ring-primary/30 ${
+          error ? "border-error" : "border-outline-variant focus-within:border-primary"
+        }`}
+      >
+        <input
+          id={id}
+          className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
+          placeholder={placeholder}
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onBlur={onBlur}
+          required={required}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
+        />
+        {suffix && <span className="text-[13px] text-on-surface-variant">{suffix}</span>}
+        {valid && !error && (
+          <span aria-hidden="true" className="material-symbols-outlined text-xl text-[#008730]">
+            check_circle
+          </span>
+        )}
       </div>
-      <div>
-        <h4 className="mb-1 font-headline-md text-headline-md text-on-surface">
-          {title}
-        </h4>
-        <p className="font-body-md text-body-md leading-relaxed text-secondary">
-          {body}
+      {error ? (
+        <p id={errorId} role="alert" className="mt-1 px-0.5 text-xs font-semibold text-error">
+          {error}
         </p>
-      </div>
-    </article>
+      ) : (
+        hint && <p className="mt-1 px-0.5 text-xs text-on-surface-variant">{hint}</p>
+      )}
+    </div>
   );
 }

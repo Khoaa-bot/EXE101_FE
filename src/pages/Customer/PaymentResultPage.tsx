@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { confirmPayosReturn, type PaymentReturnResult } from "../../services/api";
 import { formatVnd } from "../../utils/format";
 
@@ -15,6 +15,28 @@ const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve
 
 type Outcome = "loading" | "success" | "cancelled" | "pending" | "error";
 
+function Badge({ icon, tone, spin = false }: { icon: string; tone: string; spin?: boolean }) {
+  return (
+    <span aria-hidden="true" className={`flex h-[84px] w-[84px] items-center justify-center rounded-full ${tone}`}>
+      <span className={`material-symbols-outlined text-[46px] ${spin ? "animate-spin" : ""}`}>{icon}</span>
+    </span>
+  );
+}
+
+function Detail({ rows }: { rows: Array<{ label: string; value: ReactNode }> }) {
+  if (rows.length === 0) return null;
+  return (
+    <dl className="mt-2 grid w-full grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-2xl bg-surface-container-low p-4 text-left text-[13px]">
+      {rows.map((row) => (
+        <div key={row.label} className="contents">
+          <dt className="text-on-surface-variant">{row.label}</dt>
+          <dd className="text-right font-bold">{row.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 export default function PaymentResultPage({
   onHomeClick,
   onTrackingClick,
@@ -26,6 +48,7 @@ export default function PaymentResultPage({
     params.get("cancel") === "true" || params.get("status")?.toUpperCase() === "CANCELLED";
 
   const [attemptKey, setAttemptKey] = useState(0);
+  const [attempt, setAttempt] = useState(1);
   const [outcome, setOutcome] = useState<Outcome>(hasOrderCode ? "loading" : "error");
   const [result, setResult] = useState<PaymentReturnResult | null>(null);
   const [error, setError] = useState<string | null>(
@@ -37,7 +60,8 @@ export default function PaymentResultPage({
     let cancelled = false;
 
     const run = async () => {
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+      for (let current = 1; current <= MAX_ATTEMPTS; current += 1) {
+        setAttempt(current);
         let data: PaymentReturnResult;
         try {
           data = await confirmPayosReturn(search);
@@ -59,7 +83,7 @@ export default function PaymentResultPage({
           setOutcome("cancelled");
           return;
         }
-        if (attempt === MAX_ATTEMPTS) {
+        if (current === MAX_ATTEMPTS) {
           setResult(data);
           setOutcome("pending");
           return;
@@ -89,35 +113,51 @@ export default function PaymentResultPage({
     ? { label: "Xem lịch hẹn của tôi", onClick: onTrackingClick }
     : { label: "Về trang chủ", onClick: onHomeClick };
 
+  // Chỉ hiện những dòng chi tiết mà API thực sự trả về.
+  const detailRows: Array<{ label: string; value: ReactNode }> = [];
+  if (result?.orderCode !== undefined) detailRows.push({ label: "Mã giao dịch", value: `#${result.orderCode}` });
+  if (isInvoice && result?.appointmentId !== undefined) {
+    detailRows.push({ label: "Lịch hẹn", value: `#${result.appointmentId}` });
+  }
+
+  const outlineButton =
+    "min-h-12 w-full rounded-2xl border-[1.5px] border-primary text-sm font-bold text-on-primary-fixed-variant transition hover:bg-primary-fixed/40";
+
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background p-margin-mobile font-sans text-on-surface">
-      <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-xl text-center shadow-lg">
+    <div className="flex min-h-dvh items-center justify-center bg-gradient-to-b from-primary-fixed/50 to-background p-margin-mobile font-sans text-on-surface">
+      <div
+        role={outcome === "error" ? "alert" : "status"}
+        aria-live="polite"
+        className="flex min-h-[26rem] w-full max-w-[26rem] flex-col items-center gap-2.5 rounded-[28px] border border-outline-variant/40 bg-surface-container-lowest px-7 py-8 text-center shadow-[0_18px_40px_-22px_rgba(25,28,29,0.4)]"
+      >
         {outcome === "loading" && (
           <>
-            <span className="material-symbols-outlined animate-spin text-4xl text-primary">
-              sync
-            </span>
-            <p className="mt-4 font-body-md text-body-md text-on-surface-variant">
-              Đang xác nhận giao dịch...
+            <Badge icon="sync" tone="bg-primary-fixed text-primary" spin />
+            <h1 className="mt-1.5 text-[22px] font-extrabold">Đang xác nhận giao dịch…</h1>
+            <p className="max-w-[17.5rem] text-sm text-on-surface-variant">
+              Vui lòng không đóng trang. Việc này thường chỉ mất vài giây.
             </p>
+            <div className="mt-3.5 h-2 w-full overflow-hidden rounded bg-surface-container-high">
+              <div
+                className="h-full rounded bg-gradient-to-r from-primary to-primary-container transition-all duration-500"
+                style={{ width: `${(attempt / MAX_ATTEMPTS) * 100}%` }}
+              />
+            </div>
+            <span className="text-xs text-on-surface-variant">
+              Lần thử {attempt}/{MAX_ATTEMPTS}
+            </span>
           </>
         )}
 
         {outcome === "error" && (
           <>
-            <span className="material-symbols-outlined text-5xl text-error">error</span>
-            <h1 className="mt-4 font-headline-md text-headline-md">
-              Không xác nhận được giao dịch
-            </h1>
-            <p className="mt-2 font-body-md text-body-md text-on-surface-variant">
+            <Badge icon="error" tone="bg-error-container text-error" />
+            <h1 className="mt-1.5 text-[22px] font-extrabold">Không xác nhận được giao dịch</h1>
+            <p className="max-w-[18.75rem] text-sm text-on-surface-variant">
               {error ?? "Vui lòng kiểm tra lại số dư hoặc thử lại sau."}
             </p>
             {hasOrderCode && (
-              <button
-                type="button"
-                onClick={retry}
-                className="mt-6 w-full rounded-lg border border-primary py-3 font-label-md text-label-md text-primary transition hover:bg-primary-container/10"
-              >
+              <button type="button" onClick={retry} className={`${outlineButton} mt-3`}>
                 Thử lại
               </button>
             )}
@@ -126,65 +166,60 @@ export default function PaymentResultPage({
 
         {outcome === "success" && result && (
           <>
-            <span className="material-symbols-outlined text-5xl text-tertiary">check_circle</span>
-            <h1 className="mt-4 font-headline-md text-headline-md">
+            <span className="rounded-full ring-[10px] ring-[#008730]/10">
+              <Badge icon={isInvoice ? "receipt_long" : "check"} tone="bg-[#d9f7dd] text-[#008730]" />
+            </span>
+            <h1 className="mt-1.5 text-[22px] font-extrabold">
               {isInvoice ? "Thanh toán hoá đơn thành công!" : "Nạp tiền thành công!"}
             </h1>
-            <p className="mt-2 font-body-md text-body-md text-on-surface-variant">
-              {result.message}
-            </p>
             {result.amount !== undefined && (
-              <p className="mt-4 font-headline-lg text-headline-lg text-primary">
+              <p className={`text-4xl font-extrabold tracking-tight ${isInvoice ? "text-on-primary-fixed-variant" : "text-[#008730]"}`}>
                 {isTopUp ? "+" : ""}
                 {formatVnd(result.amount)}
               </p>
             )}
-            {isInvoice && (
-              <p className="mt-1 font-body-sm text-body-sm text-on-surface-variant">
-                Lịch hẹn của bạn đã được ghi nhận thanh toán.
-              </p>
-            )}
+            <p className="text-sm text-on-surface-variant">
+              {result.message}
+              {isInvoice ? " Lịch hẹn của bạn đã được ghi nhận thanh toán." : ""}
+            </p>
+            <Detail rows={detailRows} />
           </>
         )}
 
         {outcome === "cancelled" && (
           <>
-            <span className="material-symbols-outlined text-5xl text-error">cancel</span>
-            <h1 className="mt-4 font-headline-md text-headline-md">Bạn đã huỷ thanh toán</h1>
-            <p className="mt-2 font-body-md text-body-md text-on-surface-variant">
+            <Badge icon="block" tone="bg-[#e9eaeb] text-[#3a3f4b]" />
+            <h1 className="mt-1.5 text-[22px] font-extrabold">Bạn đã huỷ thanh toán</h1>
+            <p className="max-w-[18.75rem] text-sm text-on-surface-variant">
               {isInvoice
                 ? "Hoá đơn vẫn chưa được thanh toán. Bạn có thể thanh toán lại trong mục Theo dõi."
-                : "Chưa có khoản tiền nào được nạp vào ví."}
+                : "Chưa có khoản tiền nào được trừ hoặc nạp vào ví. Bạn có thể thử lại bất cứ lúc nào."}
             </p>
+            <Detail rows={detailRows} />
           </>
         )}
 
         {outcome === "pending" && (
           <>
-            <span className="material-symbols-outlined text-5xl text-tertiary">schedule</span>
-            <h1 className="mt-4 font-headline-md text-headline-md">
-              Giao dịch đang được xử lý
-            </h1>
-            <p className="mt-2 font-body-md text-body-md text-on-surface-variant">
-              Chưa nhận được xác nhận từ ngân hàng. Nếu bạn đã chuyển tiền, hệ thống sẽ tự cập nhật
-              sau ít phút — bạn có thể kiểm tra lại hoặc xem trong Thông báo.
+            <Badge icon="schedule" tone="bg-[#fff1cc] text-[#c47f00]" />
+            <h1 className="mt-1.5 text-[22px] font-extrabold">Giao dịch đang được xử lý</h1>
+            <p className="max-w-[19.375rem] text-sm text-on-surface-variant">
+              Chưa nhận được xác nhận từ ngân hàng. Nếu bạn đã chuyển tiền, hệ thống sẽ tự cập nhật sau ít phút —
+              bạn có thể kiểm tra lại hoặc xem trong Thông báo.
             </p>
-            <button
-              type="button"
-              onClick={retry}
-              className="mt-6 w-full rounded-lg border border-primary py-3 font-label-md text-label-md text-primary transition hover:bg-primary-container/10"
-            >
+            <Detail rows={detailRows} />
+            <button type="button" onClick={retry} className={`${outlineButton} mt-3`}>
               Kiểm tra lại
             </button>
           </>
         )}
 
         {outcome !== "loading" && (
-          <div className="mt-6 space-y-3">
+          <div className="mt-auto w-full space-y-3 pt-4">
             <button
               type="button"
               onClick={primaryAction.onClick}
-              className="w-full rounded-lg bg-primary py-3 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98]"
+              className="min-h-12 w-full rounded-2xl bg-gradient-to-br from-primary to-primary-container text-sm font-bold text-on-primary shadow-[0_12px_22px_-14px_rgba(0,89,187,0.9)] transition active:scale-[0.98]"
             >
               {primaryAction.label}
             </button>
@@ -192,7 +227,7 @@ export default function PaymentResultPage({
               <button
                 type="button"
                 onClick={onHomeClick}
-                className="w-full rounded-lg border border-outline-variant py-3 font-label-md text-label-md text-on-surface-variant transition hover:bg-surface-container"
+                className="min-h-12 w-full rounded-2xl border-[1.5px] border-outline-variant text-sm font-bold text-on-surface-variant transition hover:bg-surface-container"
               >
                 Về trang chủ
               </button>

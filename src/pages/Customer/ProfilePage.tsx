@@ -347,7 +347,7 @@ export default function ProfilePage({
             type="button"
             onClick={onAddVehicleClick}
           >
-            Add Vehicle
+            Thêm xe
           </button>
           <button
             className="h-8 w-8 overflow-hidden rounded-full border border-outline-variant"
@@ -363,206 +363,205 @@ export default function ProfilePage({
       </header>
 
       <main className="min-h-screen pt-16 md:ml-[240px]">
-        <div className="mx-auto max-w-7xl p-margin-mobile md:p-xl">
-          <section className="mb-10">
-            <h2 className="mb-1 font-headline-lg text-headline-lg font-bold text-primary md:text-[24px] md:leading-8">
-              Thông tin cá nhân
-            </h2>
-            <p className="font-body-md text-body-md text-secondary">
-              Quản lý hồ sơ và danh sách phương tiện điện tử của bạn.
-            </p>
+        <div className="mx-auto max-w-7xl space-y-5 p-margin-mobile pb-28 md:p-xl">
+          <section
+            aria-label="Hồ sơ của bạn"
+            className="flex flex-col gap-5 rounded-3xl bg-gradient-to-br from-primary to-primary-container p-6 text-on-primary sm:flex-row sm:items-center"
+          >
+            <div className="relative h-[84px] w-[84px] shrink-0">
+              <img
+                className="h-full w-full rounded-full border-4 border-white/80 object-cover"
+                src={profile?.avatarUrl || avatarImage}
+                alt="Ảnh đại diện người dùng"
+              />
+              <label
+                className={`absolute -bottom-0.5 -right-0.5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-on-primary-fixed-variant text-white transition-transform hover:scale-110 ${
+                  isUploadingAvatar ? "pointer-events-none opacity-60" : ""
+                }`}
+              >
+                <span aria-hidden="true" className="material-symbols-outlined text-base">
+                  {isUploadingAvatar ? "hourglass_empty" : "photo_camera"}
+                </span>
+                <input
+                  aria-label="Tải ảnh đại diện"
+                  className="sr-only"
+                  type="file"
+                  accept="image/*"
+                  disabled={isUploadingAvatar}
+                  onChange={handleAvatarChange}
+                />
+              </label>
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-2xl font-extrabold">
+                {profile?.fullName || profile?.username || "Hồ sơ của bạn"}
+              </h2>
+              <p className="truncate text-sm opacity-85">
+                {profile?.username ? `${profile.username} · ` : ""}
+                {profile?.email || ""}
+              </p>
+              {isUploadingAvatar && <p className="mt-1 text-xs opacity-85">Đang tải ảnh lên...</p>}
+            </div>
+            <div className="flex gap-7 text-center">
+              <div>
+                <b className="text-2xl">{vehicles.length}</b>
+                <p className="text-xs opacity-85">Xe</p>
+              </div>
+              <div>
+                <b className="text-2xl">{recentActivity.length}</b>
+                <p className="text-xs opacity-85">Hoạt động gần đây</p>
+              </div>
+            </div>
           </section>
 
-          <div className="grid grid-cols-12 gap-lg">
-            <section className="col-span-12 lg:col-span-5">
-              <div className="h-full rounded-xl border border-outline-variant bg-white p-lg shadow-sm md:p-8">
-                <div className="mb-8 flex flex-col items-center">
-                  <div className="group relative">
-                    <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-surface-container-high shadow-lg">
-                      <img
-                        className="h-full w-full object-cover"
-                        src={profile?.avatarUrl || avatarImage}
-                        alt="Ảnh đại diện người dùng"
-                      />
-                    </div>
-                    <label
-                      className={`absolute bottom-1 right-1 flex cursor-pointer items-center justify-center rounded-full bg-primary p-2 text-white shadow-md transition-transform hover:scale-110 active:scale-90 ${
-                        isUploadingAvatar ? "pointer-events-none opacity-60" : ""
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[20px]">
-                        {isUploadingAvatar ? "hourglass_empty" : "photo_camera"}
-                      </span>
-                      <input aria-label="Tải ảnh đại diện"
-                        className="sr-only"
-                        type="file"
-                        accept="image/*"
-                        disabled={isUploadingAvatar}
-                        onChange={handleAvatarChange}
-                      />
-                    </label>
-                  </div>
-                  <label className="mt-4 cursor-pointer font-label-md text-label-md text-primary hover:underline">
-                    {isUploadingAvatar ? "Đang tải ảnh lên..." : "Thay đổi ảnh đại diện"}
-                    <input aria-label="Tải ảnh đại diện"
-                      className="sr-only"
-                      type="file"
-                      accept="image/*"
-                      disabled={isUploadingAvatar}
-                      onChange={handleAvatarChange}
-                    />
-                  </label>
-                </div>
+          <div className="grid items-start gap-5 xl:grid-cols-[22rem_1fr]">
+            <section
+              aria-labelledby="profile-info-title"
+              className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-6 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]"
+            >
+              <h3 id="profile-info-title" className="mb-4 text-lg font-extrabold">
+                Thông tin cá nhân
+              </h3>
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-bold text-on-surface-variant">Tên người dùng</span>
+                  <input
+                    className="min-h-12 w-full rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/30"
+                    type="text"
+                    value={fullNameInput}
+                    disabled={isLoadingProfile}
+                    onChange={(event) => {
+                      setFullNameInput(event.target.value);
+                      setProfileSaved(false);
+                    }}
+                  />
+                </label>
 
-                <div className="space-y-6">
-                  <label className="block">
-                    <span className="mb-2 block font-label-md text-label-md text-secondary">
-                      Tên người dùng
-                    </span>
-                    <div className="relative">
-                      <input
-                        className="w-full rounded-lg border border-outline-variant px-4 py-3 font-body-lg text-body-lg transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        type="text"
-                        value={fullNameInput}
-                        disabled={isLoadingProfile}
-                        onChange={(event) => {
-                          setFullNameInput(event.target.value);
-                          setProfileSaved(false);
-                        }}
-                      />
-                      <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline">
-                        edit
-                      </span>
-                    </div>
-                  </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-bold text-on-surface-variant">Địa chỉ Email</span>
+                  <input
+                    className="min-h-12 w-full cursor-not-allowed rounded-2xl border border-outline-variant bg-surface-container-low px-4 text-sm text-on-surface-variant"
+                    readOnly
+                    type="email"
+                    value={profile?.email || ""}
+                  />
+                </label>
 
-                  <label className="block">
-                    <span className="mb-2 block font-label-md text-label-md text-secondary">
-                      Địa chỉ Email
-                    </span>
-                    <input
-                      className="w-full cursor-not-allowed rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 font-body-md text-body-md text-on-surface-variant"
-                      readOnly
-                      type="email"
-                      value={profile?.email || ""}
-                    />
-                  </label>
+                {profileError && (
+                  <p className="rounded-2xl bg-error-container px-4 py-3 text-sm text-on-error-container" role="alert">
+                    {profileError}
+                  </p>
+                )}
+                {profileSaved && !profileError && (
+                  <p role="status" className="rounded-2xl bg-[#d9f7dd] px-4 py-3 text-sm text-[#00531a]">
+                    Đã lưu thay đổi.
+                  </p>
+                )}
 
-                  {profileError && (
-                    <p className="rounded-lg bg-error-container px-4 py-3 text-sm text-on-error-container" role="alert">
-                      {profileError}
-                    </p>
-                  )}
-                  {profileSaved && !profileError && (
-                    <p className="rounded-lg bg-tertiary-fixed px-4 py-3 text-sm text-on-tertiary-fixed-variant">
-                      Đã lưu thay đổi.
-                    </p>
-                  )}
-
-                  <div className="pt-4">
-                    <button
-                      type="button"
-                      onClick={handleSaveProfile}
-                      disabled={isSavingProfile || isLoadingProfile}
-                      className="w-full rounded-lg bg-primary py-3 font-headline-md text-headline-md text-white transition-all hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {isSavingProfile ? "Đang lưu..." : "Lưu thay đổi"}
-                    </button>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveProfile}
+                  disabled={isSavingProfile || isLoadingProfile}
+                  className="flex min-h-12 w-full items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-br from-primary to-primary-container text-sm font-bold text-on-primary shadow-[0_12px_22px_-14px_rgba(0,89,187,0.9)] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                    check
+                  </span>
+                  {isSavingProfile ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
               </div>
             </section>
 
-            <section className="col-span-12 space-y-lg lg:col-span-7">
-              <div className="rounded-xl border border-outline-variant bg-white p-lg shadow-sm md:p-8">
-                <div className="mb-8 flex flex-col gap-md sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h3 className="font-headline-lg text-headline-lg text-on-surface">
-                      Xe của tôi
-                    </h3>
-                    <p className="font-body-md text-body-md text-secondary">
-                      Danh sách các xe VinFast đang quản lý
-                    </p>
-                    {(overdueCount > 0 || soonCount > 0) && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {overdueCount > 0 && (
-                          <span className="flex items-center gap-1 rounded-lg bg-error-container px-3 py-1.5 font-label-md text-label-md text-on-error-container">
-                            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-                              warning
-                            </span>
-                            {overdueCount} xe quá hạn
+            <section
+              aria-labelledby="profile-vehicles-title"
+              className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-6 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]"
+            >
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 id="profile-vehicles-title" className="text-lg font-extrabold">
+                    Xe của tôi
+                  </h3>
+                  <p className="text-[13px] text-on-surface-variant">Danh sách các xe đang quản lý</p>
+                  {(overdueCount > 0 || soonCount > 0) && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {overdueCount > 0 && (
+                        <span className="flex items-center gap-1 rounded-full bg-error-container px-3 py-1 text-xs font-bold text-on-error-container">
+                          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+                            warning
                           </span>
-                        )}
-                        {soonCount > 0 && (
-                          <span className="flex items-center gap-1 rounded-lg bg-[#ffe9c7] px-3 py-1.5 font-label-md text-label-md text-[#6b4000]">
-                            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-                              schedule
-                            </span>
-                            {soonCount} xe sắp đến hạn
+                          {overdueCount} xe quá hạn
+                        </span>
+                      )}
+                      {soonCount > 0 && (
+                        <span className="flex items-center gap-1 rounded-full bg-[#ffe9c7] px-3 py-1 text-xs font-bold text-[#6b4000]">
+                          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+                            schedule
                           </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    className="flex items-center justify-center gap-2 rounded-lg bg-primary-container px-4 py-2 font-label-md text-label-md text-on-primary-container transition-all hover:brightness-110 active:scale-95"
-                    type="button"
-                    onClick={onAddVehicleClick}
-                  >
-                    <span className="material-symbols-outlined">add</span>
-                    Thêm phương tiện mới
-                  </button>
+                          {soonCount} xe sắp đến hạn
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
+                <button
+                  className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border-[1.5px] border-outline-variant px-3.5 text-sm font-bold text-on-primary-fixed-variant transition-all hover:bg-surface-container-low active:scale-95"
+                  type="button"
+                  onClick={onAddVehicleClick}
+                >
+                  <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                    add
+                  </span>
+                  Thêm xe
+                </button>
+              </div>
 
-                {isLoadingVehicles && (
-                  <p className="text-sm text-on-surface-variant">Đang tải danh sách xe...</p>
-                )}
-                {!isLoadingVehicles && vehiclesError && (
-                  <p className="rounded-lg bg-error-container px-4 py-3 text-sm text-on-error-container">
-                    {vehiclesError}
-                  </p>
-                )}
-                {!isLoadingVehicles && !vehiclesError && vehicles.length === 0 && (
-                  <p className="text-sm text-on-surface-variant">
-                    Bạn chưa có xe nào. Bấm "Thêm phương tiện mới" để bắt đầu.
-                  </p>
-                )}
+              {isLoadingVehicles && <p className="text-sm text-on-surface-variant">Đang tải danh sách xe...</p>}
+              {!isLoadingVehicles && vehiclesError && (
+                <p className="rounded-2xl bg-error-container px-4 py-3 text-sm text-on-error-container" role="alert">
+                  {vehiclesError}
+                </p>
+              )}
+              {!isLoadingVehicles && !vehiclesError && vehicles.length === 0 && (
+                <p className="rounded-2xl bg-surface-container-low p-4 text-sm text-on-surface-variant">
+                  Bạn chưa có xe nào. Bấm “Thêm xe” để bắt đầu.
+                </p>
+              )}
 
-                <div className="grid grid-cols-1 gap-md md:grid-cols-2">
-                  {vehicles.map((vehicle) => (
-                    <VehicleCard
-                      key={vehicle.id}
-                      vehicle={vehicle}
-                      isDeleting={deletingId === vehicle.id}
-                      onDelete={() => handleDeleteVehicle(vehicle.id)}
-                      isEditing={editingId === vehicle.id}
-                      isSavingEdit={isSavingEdit}
-                      onStartEdit={() => setEditingId(vehicle.id)}
-                      onCancelEdit={() => setEditingId(null)}
-                      onSaveEdit={(payload) => handleSaveEdit(vehicle.id, payload)}
-                      isUploadingImage={uploadingImageId === vehicle.id}
-                      onUploadImage={(file) => handleUploadImage(vehicle.id, file)}
-                      maintenance={maintenance.filter((item) => item.vehicleId === vehicle.id)}
-                      onBook={onBookingClick}
-                      onUpdateOdometer={(odometer) => handleQuickOdometer(vehicle.id, odometer)}
-                    />
-                  ))}
-                </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {vehicles.map((vehicle) => (
+                  <VehicleCard
+                    key={vehicle.id}
+                    vehicle={vehicle}
+                    isDeleting={deletingId === vehicle.id}
+                    onDelete={() => handleDeleteVehicle(vehicle.id)}
+                    isEditing={editingId === vehicle.id}
+                    isSavingEdit={isSavingEdit}
+                    onStartEdit={() => setEditingId(vehicle.id)}
+                    onCancelEdit={() => setEditingId(null)}
+                    onSaveEdit={(payload) => handleSaveEdit(vehicle.id, payload)}
+                    isUploadingImage={uploadingImageId === vehicle.id}
+                    onUploadImage={(file) => handleUploadImage(vehicle.id, file)}
+                    maintenance={maintenance.filter((item) => item.vehicleId === vehicle.id)}
+                    onBook={onBookingClick}
+                    onUpdateOdometer={(odometer) => handleQuickOdometer(vehicle.id, odometer)}
+                  />
+                ))}
               </div>
             </section>
           </div>
 
-          <section className="mt-lg rounded-xl border border-outline-variant bg-white p-lg shadow-sm md:p-8">
-            <h3 className="mb-6 font-headline-md text-headline-md text-on-surface">
+          <section
+            aria-labelledby="profile-activity-title"
+            className="overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]"
+          >
+            <h3 id="profile-activity-title" className="px-6 pb-2 pt-5 text-lg font-extrabold">
               Hoạt động gần đây
             </h3>
             {recentActivity.length === 0 ? (
-              <p className="text-sm text-on-surface-variant">
-                Chưa có lịch sử dịch vụ nào.
-              </p>
+              <p className="px-6 pb-5 text-sm text-on-surface-variant">Chưa có lịch sử dịch vụ nào.</p>
             ) : (
-              <div className="space-y-4">
-                {recentActivity.map((record, index) => (
+              <div className="divide-y divide-outline-variant/40">
+                {recentActivity.map((record) => (
                   <ActivityItem
                     key={record.id}
                     icon="build"
@@ -570,7 +569,6 @@ export default function ProfilePage({
                     subtitle={`${record.garageName} - ${record.scheduleDate}`}
                     value={activityStatusLabel(record.status)}
                     valueClassName={activityStatusClassName(record.status)}
-                    secondary={index % 2 === 1}
                   />
                 ))}
               </div>
@@ -626,9 +624,10 @@ function activityStatusLabel(status: string): string {
 
 function activityStatusClassName(status: string): string {
   const s = status.toLowerCase();
-  if (s === "completed") return "text-tertiary";
-  if (s === "cancelled" || s === "no_show") return "text-error";
-  return "text-secondary";
+  if (s === "completed") return "bg-[#d9f7dd] text-[#00531a]";
+  if (s === "cancelled") return "bg-[#e9eaeb] text-[#3a3f4b]";
+  if (s === "no_show") return "bg-error-container text-on-error-container";
+  return "bg-primary-fixed text-on-primary-fixed-variant";
 }
 
 function SideNavItem({
@@ -731,7 +730,7 @@ function VehicleCard({
 
   if (isEditing) {
     return (
-      <article className="rounded-xl border border-primary bg-surface-container-low p-4">
+      <article className="rounded-3xl border border-primary bg-surface-container-low p-4">
         <h4 className="mb-1 font-headline-md text-headline-md text-on-surface">
           {vehicle.model}
         </h4>
@@ -838,8 +837,8 @@ function VehicleCard({
   }
 
   return (
-    <article className="group rounded-xl border border-outline-variant p-4 transition-all hover:border-primary hover:bg-surface-container-low">
-      <div className="relative mb-4 flex aspect-video items-center justify-center overflow-hidden rounded-lg bg-surface-variant">
+    <article className="group rounded-3xl border border-outline-variant/50 p-4 transition-all hover:border-primary hover:bg-surface-container-low/60">
+      <div className="relative mb-4 flex aspect-video items-center justify-center overflow-hidden rounded-2xl bg-primary-fixed">
         {vehicle.imageUrl ? (
           <img
             src={vehicle.imageUrl}
@@ -875,7 +874,7 @@ function VehicleCard({
             {vehicle.model}
           </h4>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded bg-secondary-container px-2 py-0.5 font-label-md text-label-md uppercase text-on-secondary-container">
+            <span className="inline-block rounded-md border border-outline-variant bg-surface-container-lowest px-1.5 font-mono text-xs font-bold uppercase">
               {vehicle.licensePlate || "Chưa có biển số"}
             </span>
             {maintenance.length > 0 && <MaintenanceBadge stage={worstStage(maintenance)} />}
@@ -999,35 +998,28 @@ function ActivityItem({
   subtitle,
   value,
   valueClassName,
-  secondary = false,
 }: {
   icon: string;
   title: string;
   subtitle: string;
   value: string;
   valueClassName: string;
-  secondary?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-md rounded-lg bg-surface p-4 transition-colors hover:bg-surface-container-low sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-4">
+    <div className="flex flex-col gap-2 px-6 py-3.5 transition-colors hover:bg-surface-container-low/60 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3.5">
         <div
-          className={`flex h-10 w-10 items-center justify-center rounded-full ${
-            secondary
-              ? "bg-secondary-fixed text-on-secondary-fixed-variant"
-              : "bg-tertiary-fixed text-on-tertiary-fixed-variant"
-          }`}
+          aria-hidden="true"
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-fixed text-on-primary-fixed-variant"
         >
           <span className="material-symbols-outlined">{icon}</span>
         </div>
         <div>
-          <p className="font-headline-md text-headline-md text-on-surface">
-            {title}
-          </p>
-          <p className="font-label-sm text-label-sm text-secondary">{subtitle}</p>
+          <p className="text-sm font-bold text-on-surface">{title}</p>
+          <p className="text-xs text-on-surface-variant">{subtitle}</p>
         </div>
       </div>
-      <span className={`font-label-md text-label-md ${valueClassName}`}>
+      <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-bold ${valueClassName}`}>
         {value}
       </span>
     </div>

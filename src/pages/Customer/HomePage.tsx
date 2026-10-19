@@ -39,6 +39,30 @@ function statusLabel(status: string) {
   }
 }
 
+// Các bước tiến độ hiển thị trên thẻ xe; trạng thái lịch hẹn quy về một bước.
+const PROGRESS_STEPS = ["Chờ xác nhận", "Đã xác nhận", "Đang sửa chữa", "Hoàn thành"];
+
+function progressIndex(status: string) {
+  switch (status.toLowerCase()) {
+    case "confirmed":
+      return 1;
+    case "in_progress":
+      return 2;
+    case "completed":
+    case "successful":
+      return 3;
+    default:
+      return 0;
+  }
+}
+
+const QUICK_TONES = [
+  "bg-primary-fixed text-on-primary-fixed-variant",
+  "bg-[#d9f7dd] text-[#00531a]",
+  "bg-[#e6defa] text-[#3b2a7a]",
+  "bg-[#ffe4d6] text-[#7a2e00]",
+];
+
 function notificationIcon(type: string) {
   switch (type) {
     case "VEHICLE":
@@ -286,22 +310,22 @@ export default function Home({
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl space-y-xl p-margin-mobile pb-28 md:p-xl">
+        <div className="mx-auto max-w-7xl space-y-5 p-margin-mobile pb-28 md:p-xl">
           <section className="flex flex-col justify-between gap-md md:flex-row md:items-end">
             <div>
-              <h2 className="font-display-lg text-display-lg text-on-surface">
+              <h2 className="text-[34px] font-extrabold leading-tight tracking-tight text-on-surface">
                 Xin chào, {username}!
               </h2>
-              <p className="font-body-lg text-body-lg text-on-surface-variant">
+              <p className="mt-1.5 text-base text-on-surface-variant">
                 Hôm nay chiếc xe của bạn đang được chăm sóc tốt nhất.
               </p>
             </div>
             <button
-              className="flex items-center justify-center gap-sm rounded-lg bg-primary px-lg py-md font-label-md text-label-md text-on-primary transition-all hover:shadow-lg active:scale-95"
+              className="flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-primary to-primary-container px-6 text-[15px] font-bold text-on-primary shadow-[0_14px_24px_-14px_rgba(0,89,187,0.9)] transition-all active:scale-95"
               type="button"
               onClick={onBookingClick}
             >
-              <span className="material-symbols-outlined text-[18px]">add</span>
+              <span aria-hidden="true" className="material-symbols-outlined">add</span>
               Tạo lịch mới
             </button>
           </section>
@@ -331,36 +355,33 @@ export default function Home({
             </section>
           )}
 
-          <div className="grid grid-cols-12 gap-lg">
-            <section className="col-span-12 flex flex-col gap-lg rounded-xl border border-outline-variant bg-surface-container-lowest p-lg transition-shadow hover:shadow-sm lg:col-span-8 md:flex-row">
-              <div className="md:w-1/2">
-                <div className="mb-md flex items-center justify-between gap-md">
-                  <span className="font-headline-md text-headline-md text-on-surface">
-                    Xe của bạn
-                  </span>
+          <div className="grid gap-5 xl:grid-cols-[1fr_22.5rem]">
+            <section
+              aria-labelledby="home-car-title"
+              className="flex flex-col overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] md:flex-row"
+            >
+              <div className="flex flex-1 flex-col gap-4 p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 id="home-car-title" className="text-lg font-extrabold">
+                    {activeAppointment ? "Xe đang được xử lý" : "Xe của bạn"}
+                  </h3>
                   {activeAppointment && (
-                    <span className="flex items-center gap-xs rounded-lg bg-tertiary-container/10 px-sm py-xs font-label-md text-label-md text-tertiary">
-                      <span className="h-2 w-2 animate-pulse rounded-full bg-tertiary" />
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e6defa] px-3 py-1.5 text-xs font-bold text-[#3b2a7a]">
+                      <i aria-hidden="true" className="h-[7px] w-[7px] rounded-full bg-[#6a4fd1]" />
                       {statusLabel(activeAppointment.status)}
                     </span>
                   )}
                 </div>
 
-                {isLoading && (
-                  <p className="font-body-md text-body-md text-on-surface-variant">
-                    Đang tải...
-                  </p>
-                )}
+                {isLoading && <p className="text-sm text-on-surface-variant">Đang tải...</p>}
 
                 {!isLoading && !activeAppointment && (
-                  <div className="space-y-md">
-                    <p className="font-body-md text-body-md text-on-surface-variant">
-                      Bạn chưa có lịch hẹn nào đang diễn ra.
-                    </p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-on-surface-variant">Bạn chưa có lịch hẹn nào đang diễn ra.</p>
                     <button
                       type="button"
                       onClick={onBookingClick}
-                      className="rounded-lg bg-primary px-lg py-sm font-label-md text-label-md text-on-primary transition-all hover:shadow-lg active:scale-95"
+                      className="min-h-11 rounded-xl bg-primary px-5 text-sm font-bold text-on-primary transition-all active:scale-95"
                     >
                       Đặt lịch ngay
                     </button>
@@ -368,184 +389,189 @@ export default function Home({
                 )}
 
                 {!isLoading && activeAppointment && (
-                  <div className="space-y-md">
+                  <>
                     <div>
-                      <h3 className="font-headline-lg text-headline-lg text-primary">
+                      <p className="text-[26px] font-extrabold leading-tight text-on-primary-fixed-variant">
                         {activeAppointment.vehicleModel}
-                      </h3>
+                      </p>
                       {activeVehicle?.licensePlate && (
-                        <p className="font-body-md text-body-md text-on-surface-variant">
-                          Biển số: {activeVehicle.licensePlate}
-                        </p>
+                        <p className="text-[13px] text-on-surface-variant">Biển số {activeVehicle.licensePlate}</p>
                       )}
                     </div>
 
-                    <div className="space-y-sm rounded-lg bg-surface-container-low p-md">
-                      <div className="flex justify-between gap-md text-body-md">
-                        <span className="text-outline">Dịch vụ:</span>
-                        <span className="text-right font-semibold text-on-surface">
-                          {activeAppointment.serviceName}
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-md text-body-md">
-                        <span className="text-outline">Lịch hẹn:</span>
-                        <span className="text-right font-semibold text-on-surface">
-                          {activeAppointment.scheduleDate} · {activeAppointment.timeFrame}
-                        </span>
-                      </div>
+                    <ol
+                      aria-label={`Tiến độ: ${statusLabel(activeAppointment.status)}`}
+                      className="flex pb-1 pt-1.5"
+                    >
+                      {PROGRESS_STEPS.map((label, index) => {
+                        const current = progressIndex(activeAppointment.status);
+                        const done = index < current;
+                        const isCurrent = index === current;
+                        return (
+                          <li
+                            key={label}
+                            aria-current={isCurrent ? "step" : undefined}
+                            className={`relative flex flex-1 flex-col items-center gap-1.5 text-center text-xs font-semibold ${
+                              done ? "text-[#00531a]" : isCurrent ? "font-extrabold text-on-primary-fixed-variant" : "text-outline"
+                            }`}
+                          >
+                            {index > 0 && (
+                              <span
+                                aria-hidden="true"
+                                className={`absolute left-[-50%] top-3.5 h-[3px] w-full ${
+                                  index <= current ? "bg-[#008730]" : "bg-surface-container-high"
+                                }`}
+                              />
+                            )}
+                            <b
+                              className={`z-[1] flex h-7 w-7 items-center justify-center rounded-full text-[13px] ${
+                                done
+                                  ? "bg-[#008730] text-white"
+                                  : isCurrent
+                                    ? "bg-primary text-on-primary ring-4 ring-primary/20"
+                                    : "bg-surface-container-high text-outline"
+                              }`}
+                            >
+                              {done ? "✓" : index + 1}
+                            </b>
+                            {label}
+                          </li>
+                        );
+                      })}
+                    </ol>
+
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-2xl bg-surface-container-low p-4 text-sm">
+                      <dt className="text-on-surface-variant">Dịch vụ</dt>
+                      <dd className="text-right font-semibold">{activeAppointment.serviceName}</dd>
+                      <dt className="text-on-surface-variant">Lịch hẹn</dt>
+                      <dd className="text-right font-semibold">
+                        {activeAppointment.scheduleDate} · {activeAppointment.timeFrame}
+                      </dd>
                       {activeAppointment.garageName && (
-                        <div className="flex justify-between gap-md text-body-md">
-                          <span className="text-outline">Garage:</span>
-                          <span className="text-right font-semibold text-on-surface">
-                            {activeAppointment.garageName}
-                          </span>
-                        </div>
+                        <>
+                          <dt className="text-on-surface-variant">Garage</dt>
+                          <dd className="text-right font-semibold">{activeAppointment.garageName}</dd>
+                        </>
                       )}
+                      <dt className="text-on-surface-variant">Kỹ thuật viên</dt>
+                      <dd className="text-right font-semibold">{activeAppointment.engineerName || "Chưa phân công"}</dd>
+                      {activeAppointment.notes && (
+                        <>
+                          <dt className="text-on-surface-variant">Ghi chú</dt>
+                          <dd className="text-right font-semibold">{activeAppointment.notes}</dd>
+                        </>
+                      )}
+                    </dl>
+
+                    <div>
+                      <button
+                        type="button"
+                        onClick={onTrackingClick}
+                        className="min-h-11 rounded-xl bg-primary px-5 text-sm font-bold text-on-primary transition-all active:scale-95"
+                      >
+                        Theo dõi xe
+                      </button>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
 
-              <div className="relative h-48 overflow-hidden rounded-xl border border-outline-variant md:h-auto md:w-1/2">
+              <div className="relative h-48 md:h-auto md:w-[18.75rem]">
                 <img
                   className="h-full w-full object-cover"
                   src={activeVehicle?.imageUrl || carImage}
                   alt={activeAppointment?.vehicleModel || "Xe của bạn"}
                 />
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 hidden bg-gradient-to-r from-surface-container-lowest to-transparent md:block"
+                />
               </div>
             </section>
 
-            <aside className="col-span-12 grid grid-cols-1 gap-lg md:grid-cols-2 lg:col-span-4 lg:grid-cols-1">
-              <button className="group flex cursor-pointer flex-col justify-between rounded-xl border border-outline-variant bg-secondary-container/20 p-lg text-left transition-colors hover:bg-secondary-container/30">
-                <div className="flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
-                    <span className="material-symbols-outlined">redeem</span>
-                  </div>
-                  <span className="material-symbols-outlined text-outline transition-colors group-hover:text-primary">
-                    arrow_forward
-                  </span>
+            <aside className="flex flex-col gap-5">
+              <div className="flex items-center gap-3.5 rounded-3xl border border-[#f3dc9a] bg-[#fff1cc] p-5">
+                <span
+                  aria-hidden="true"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#6b4200]"
+                >
+                  <span className="material-symbols-outlined">redeem</span>
+                </span>
+                <div className="flex-1">
+                  <p className="text-[15px] font-bold">Ưu đãi của bạn</p>
+                  <p className="text-[13px] text-[#6b4200]">Giảm 20% thay dầu nhớt cho lần tới.</p>
                 </div>
-                <div className="mt-xl">
-                  <p className="font-headline-md text-headline-md text-on-surface">
-                    Ưu đãi của bạn
-                  </p>
-                  <p className="font-body-md text-body-md text-on-surface-variant">
-                    Giảm 20% thay dầu nhớt cho lần tới.
-                  </p>
-                </div>
-              </button>
-
+              </div>
             </aside>
           </div>
 
-          <section>
-            <h3 className="mb-lg font-headline-md text-headline-md">
+          <section aria-labelledby="home-quick-title">
+            <h3 id="home-quick-title" className="mb-3 text-lg font-extrabold">
               Truy cập nhanh
             </h3>
-            <div className="grid grid-cols-2 gap-lg md:grid-cols-4">
-              {quickActions.map((action) => (
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {quickActions.map((action, index) => (
                 <button
                   key={action.label}
-                  className="group space-y-md rounded-xl border border-outline-variant bg-surface-container-lowest p-lg text-center transition-all hover:bg-primary hover:text-on-primary"
+                  className="flex flex-col items-center gap-2.5 rounded-[20px] border border-outline-variant/40 bg-surface-container-lowest px-3 py-5 text-sm font-bold shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] transition-all hover:-translate-y-0.5"
                   type="button"
                   onClick={() => {
                     handleClickFeedback();
                     action.onClick?.();
                   }}
                 >
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-container/20 text-primary group-hover:bg-on-primary group-hover:text-primary">
+                  <span
+                    aria-hidden="true"
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl ${QUICK_TONES[index % QUICK_TONES.length]}`}
+                  >
                     <span className="material-symbols-outlined">{action.icon}</span>
-                  </div>
-                  <p className="font-label-md text-label-md">{action.label}</p>
+                  </span>
+                  {action.label}
                 </button>
               ))}
             </div>
           </section>
 
-          <div className="grid grid-cols-12 gap-lg pb-xl">
-            <section className="col-span-12 overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm lg:col-span-7">
-              <div className="flex items-center justify-between border-b border-outline-variant px-lg py-md">
-                <h3 className="font-headline-md text-headline-md">Gần đây</h3>
-                <button
-                  className="font-label-md text-label-md text-primary hover:underline"
-                  type="button"
-                  onClick={onHistoryClick}
-                >
-                  Xem tất cả
-                </button>
-              </div>
-              <div className="divide-y divide-outline-variant">
-                {notifications.length === 0 && (
-                  <p className="p-lg font-body-md text-body-md text-on-surface-variant">
-                    Chưa có hoạt động nào gần đây.
-                  </p>
-                )}
-                {notifications.map((notification) => {
-                  const { icon, tone } = notificationIcon(notification.type);
-                  return (
-                    <div
-                      key={notification.id}
-                      className="flex items-center gap-md p-lg transition-colors hover:bg-surface-container-low"
-                    >
-                      <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-lg ${tone}`}
-                      >
-                        <span className="material-symbols-outlined">{icon}</span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-body-md text-body-md font-semibold">
-                          {notification.title}
-                        </p>
-                        <p className="truncate font-label-sm text-label-sm text-outline">
-                          {notification.message}
-                        </p>
-                      </div>
-                      <p className="whitespace-nowrap font-label-sm text-label-sm text-outline">
-                        {timeAgo(notification.createdAt)}
-                      </p>
+          <section
+            aria-labelledby="home-recent-title"
+            className="overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]"
+          >
+            <div className="flex items-center justify-between px-6 pb-2 pt-5">
+              <h3 id="home-recent-title" className="text-lg font-extrabold">
+                Hoạt động gần đây
+              </h3>
+              <button
+                className="min-h-9 text-[13px] font-bold text-on-primary-fixed-variant hover:underline"
+                type="button"
+                onClick={onHistoryClick}
+              >
+                Xem lịch sử →
+              </button>
+            </div>
+            <div className="divide-y divide-outline-variant/40">
+              {notifications.length === 0 && (
+                <p className="px-6 py-5 text-sm text-on-surface-variant">Chưa có hoạt động nào gần đây.</p>
+              )}
+              {notifications.map((notification) => {
+                const { icon, tone } = notificationIcon(notification.type);
+                return (
+                  <div
+                    key={notification.id}
+                    className="flex items-center gap-3.5 px-6 py-3.5 transition-colors hover:bg-surface-container-low/60"
+                  >
+                    <div aria-hidden="true" className={`flex h-10 w-10 items-center justify-center rounded-xl ${tone}`}>
+                      <span className="material-symbols-outlined">{icon}</span>
                     </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="col-span-12 space-y-lg lg:col-span-5">
-              <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg shadow-sm">
-                <h3 className="mb-lg font-headline-md text-headline-md">
-                  Tiến độ dịch vụ
-                </h3>
-                {!activeAppointment && (
-                  <p className="font-body-md text-body-md text-on-surface-variant">
-                    Bạn chưa có lịch hẹn nào đang diễn ra.
-                  </p>
-                )}
-                {activeAppointment && (
-                  <div className="space-y-sm">
-                    <div className="flex justify-between gap-md text-body-md">
-                      <span className="text-outline">Trạng thái:</span>
-                      <span className="text-right font-semibold text-primary">
-                        {statusLabel(activeAppointment.status)}
-                      </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold">{notification.title}</p>
+                      <p className="truncate text-xs text-on-surface-variant">{notification.message}</p>
                     </div>
-                    <div className="flex justify-between gap-md text-body-md">
-                      <span className="text-outline">Kỹ thuật viên:</span>
-                      <span className="text-right font-semibold text-on-surface">
-                        {activeAppointment.engineerName || "Chưa phân công"}
-                      </span>
-                    </div>
-                    {activeAppointment.notes && (
-                      <div className="flex justify-between gap-md text-body-md">
-                        <span className="text-outline">Ghi chú:</span>
-                        <span className="text-right font-semibold text-on-surface">
-                          {activeAppointment.notes}
-                        </span>
-                      </div>
-                    )}
+                    <p className="whitespace-nowrap text-xs text-on-surface-variant">{timeAgo(notification.createdAt)}</p>
                   </div>
-                )}
-              </div>
-            </section>
-          </div>
+                );
+              })}
+            </div>
+          </section>
         </div>
       </main>
 
