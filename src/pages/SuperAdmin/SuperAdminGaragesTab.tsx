@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, type ComponentProps } from "react";
 import { useDialogA11y } from "../../hooks/useDialogA11y";
 import {
   createGarage,
@@ -10,7 +10,91 @@ import {
   type SuperAdminGarage,
 } from "../../services/api";
 
+import CommissionDialog from "./CommissionDialog";
+import ReasonConfirmDialog from "./ReasonConfirmDialog";
+import RowActionMenu from "./RowActionMenu";
+import { FilterChip, StatusChips } from "./SuperAdminChips";
+
 const NO_GARAGES: SuperAdminGarage[] = [];
+
+const BLOCK_REASONS = [
+  "Vi phạm quy định của nền tảng",
+  "Nhận nhiều khiếu nại từ khách",
+  "Thông tin garage không chính xác",
+  "Garage tạm ngừng hoạt động",
+];
+const HIDE_REASONS = [
+  "Garage ngừng hợp tác",
+  "Garage trùng lặp hoặc tạo nhầm",
+  "Garage đang cập nhật thông tin",
+];
+
+type StatusFilter = "all" | "active" | "blocked";
+type Pending = { kind: "block" | "hide"; garage: SuperAdminGarage };
+type DialogConfig = Omit<ComponentProps<typeof ReasonConfirmDialog>, "busy" | "onCancel" | "onConfirm">;
+
+function withReason(message: string, reason: string | null) {
+  return reason ? `${message} Lý do: ${reason}.` : message;
+}
+
+function buildDialog({ kind, garage }: Pending): DialogConfig {
+  const name = garage.name;
+  const summary = `${garage.employeeCount} nhân viên · ${garage.appointmentCount} lịch hẹn`;
+
+  if (kind === "block") {
+    if (garage.status === "blocked") {
+      return {
+        tone: "warning",
+        icon: "lock_open",
+        confirmTitle: `Mở chặn garage “${name}”?`,
+        confirmLabel: "Mở chặn",
+        confirmIcon: "lock_open",
+      };
+    }
+    return {
+      tone: "danger",
+      icon: "block",
+      reasonTitle: `Vì sao chặn “${name}”?`,
+      reasonSubtitle: summary,
+      reasons: BLOCK_REASONS,
+      confirmTitle: `Chặn garage “${name}”?`,
+      confirmDescription: "Khi chặn, những điều sau sẽ xảy ra:",
+      effects: [
+        { icon: "visibility_off", tone: "danger", text: "Khách sẽ không thấy hoặc đặt lịch được ở garage này." },
+        { icon: "lock", tone: "danger", text: "Admin Garage và nhân viên sẽ không đăng nhập được." },
+        { icon: "check_circle", tone: "ok", text: "Lịch hẹn đang chờ không bị tự hủy." },
+      ],
+      confirmLabel: "Chặn garage",
+      confirmIcon: "block",
+    };
+  }
+
+  if (garage.hidden) {
+    return {
+      tone: "warning",
+      icon: "visibility",
+      confirmTitle: `Bỏ ẩn garage “${name}”?`,
+      confirmLabel: "Bỏ ẩn",
+      confirmIcon: "visibility",
+    };
+  }
+  return {
+    tone: "warning",
+    icon: "visibility_off",
+    reasonTitle: `Vì sao ẩn “${name}”?`,
+    reasonSubtitle: "Có thể bỏ ẩn lại bất cứ lúc nào.",
+    reasons: HIDE_REASONS,
+    confirmTitle: `Ẩn garage “${name}”?`,
+    confirmDescription: "Khi ẩn, những điều sau sẽ xảy ra:",
+    effects: [
+      { icon: "visibility_off", tone: "warning", text: "Garage sẽ không hiển thị cho khách." },
+      { icon: "list_alt", tone: "warning", text: "Garage sẽ biến mất khỏi danh sách quản lý này." },
+      { icon: "undo", tone: "ok", text: "Có thể bỏ ẩn lại bất cứ lúc nào." },
+    ],
+    confirmLabel: "Ẩn garage",
+    confirmIcon: "visibility_off",
+  };
+}
 
 type Props = {
   notify: (message: string, type?: "success" | "error") => void;
@@ -27,6 +111,10 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
   const [showHidden, setShowHidden] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [commissionFor, setCommissionFor] = useState<SuperAdminGarage | null>(null);
 
   const [garageOpen, setGarageOpen] = useState(false);
   const [garageForm, setGarageForm] = useState(EMPTY_GARAGE_FORM);
@@ -73,6 +161,20 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
 
   const garagesWithoutOwner = useMemo(() => garages.filter((g) => g.ownerId === null), [garages]);
 
+  const visibleGarages = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return garages.filter((g) => {
+      const matchesStatus = statusFilter === "all" || g.status === statusFilter;
+      const matchesQuery =
+        !q ||
+        g.name.toLowerCase().includes(q) ||
+        (g.address ?? "").toLowerCase().includes(q) ||
+        (g.ownerName ?? "").toLowerCase().includes(q) ||
+        (g.ownerUsername ?? "").toLowerCase().includes(q);
+      return matchesStatus && matchesQuery;
+    });
+  }, [garages, query, statusFilter]);
+
   const applyUpdate = (updated: SuperAdminGarage) => {
     setResult((prev) =>
       prev && {
@@ -82,63 +184,67 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
     );
   };
 
-  const toggleBlock = (garage: SuperAdminGarage) => {
+  const runBlock = (garage: SuperAdminGarage, reason: string | null) => {
     const blocking = garage.status !== "blocked";
-    const confirmed = window.confirm(
-      blocking
-        ? `Chặn garage "${garage.name}"? Khách sẽ không thấy hoặc đặt lịch được ở garage này, Admin Garage và nhân viên sẽ không đăng nhập được. Lịch hẹn đang chờ không bị tự hủy.`
-        : `Mở chặn garage "${garage.name}"?`,
-    );
-    if (!confirmed) return;
     setBusyId(garage.id);
     setGarageStatus(garage.id, blocking ? "blocked" : "active")
       .then((updated) => {
         applyUpdate(updated);
-        notify(blocking ? `Đã chặn garage ${garage.name}.` : `Đã mở chặn garage ${garage.name}.`);
+        notify(
+          blocking
+            ? withReason(`Đã chặn garage ${garage.name}.`, reason)
+            : `Đã mở chặn garage ${garage.name}.`,
+        );
       })
       .catch((err) => notify(err instanceof Error ? err.message : "Không cập nhật được trạng thái garage.", "error"))
-      .finally(() => setBusyId(null));
+      .finally(() => {
+        setBusyId(null);
+        setPending(null);
+      });
   };
 
-  const editCommission = (garage: SuperAdminGarage) => {
-    const current = Math.round(garage.effectiveCommissionRate * 1000) / 10;
-    const input = window.prompt(
-      `Hoa hồng nền tảng thu của "${garage.name}" (%, từ 0 đến 50). Để trống để dùng mức mặc định. Áp dụng cho các lịch bàn giao từ bây giờ.`,
-      String(current),
-    );
-    if (input === null) return;
-    const trimmed = input.trim();
-    const percent = trimmed === "" ? null : Number(trimmed.replace(",", "."));
-    if (percent !== null && (!Number.isFinite(percent) || percent < 0 || percent > 50)) {
-      notify("Hoa hồng phải là số từ 0 đến 50.", "error");
-      return;
-    }
+  const askBlock = (garage: SuperAdminGarage) => setPending({ kind: "block", garage });
+  const askHidden = (garage: SuperAdminGarage) => setPending({ kind: "hide", garage });
+
+  const confirmPending = (reason: string | null) => {
+    if (!pending) return;
+    if (pending.kind === "block") runBlock(pending.garage, reason);
+    else runHidden(pending.garage, reason);
+  };
+
+  // Mức mặc định = mức hiệu lực của một garage chưa có mức riêng (không có thì dùng 10%).
+  const defaultGarage = garages.find((g) => g.commissionRate === null);
+  const defaultCommissionPercent = defaultGarage ? Math.round(defaultGarage.effectiveCommissionRate * 1000) / 10 : 10;
+
+  const saveCommission = (garage: SuperAdminGarage, percent: number | null) => {
     setBusyId(garage.id);
     setGarageCommission(garage.id, percent)
       .then((updated) => {
         applyUpdate(updated);
         notify(`Hoa hồng của ${garage.name} là ${Math.round(updated.effectiveCommissionRate * 1000) / 10}%.`);
+        setCommissionFor(null);
       })
       .catch((err) => notify(err instanceof Error ? err.message : "Không cập nhật được hoa hồng.", "error"))
       .finally(() => setBusyId(null));
   };
 
-  const toggleHidden = (garage: SuperAdminGarage) => {
+  const runHidden = (garage: SuperAdminGarage, reason: string | null) => {
     const hiding = !garage.hidden;
-    const confirmed = window.confirm(
-      hiding
-        ? `Ẩn garage "${garage.name}"? Garage sẽ không hiển thị cho khách và khỏi danh sách quản lý này. Có thể bỏ ẩn lại.`
-        : `Bỏ ẩn garage "${garage.name}"?`,
-    );
-    if (!confirmed) return;
     setBusyId(garage.id);
     setGarageHidden(garage.id, hiding)
       .then((updated) => {
         applyUpdate(updated);
-        notify(hiding ? `Đã ẩn garage ${garage.name}.` : `Đã bỏ ẩn garage ${garage.name}.`);
+        notify(
+          hiding
+            ? withReason(`Đã ẩn garage ${garage.name}.`, reason)
+            : `Đã bỏ ẩn garage ${garage.name}.`,
+        );
       })
       .catch((err) => notify(err instanceof Error ? err.message : "Không cập nhật được trạng thái ẩn.", "error"))
-      .finally(() => setBusyId(null));
+      .finally(() => {
+        setBusyId(null);
+        setPending(null);
+      });
   };
 
   const submitCreateGarage = () => {
@@ -194,54 +300,95 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-sm text-on-surface-variant">
-          <input type="checkbox" checked={showHidden} onChange={(e) => setShowHidden(e.target.checked)} />
-          Hiện cả garage đã ẩn
-        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            aria-label="Tìm garage hoặc Admin Garage"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Tìm tên garage, Admin Garage"
+            className="min-h-11 w-80 max-w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          />
+          <div role="group" aria-label="Lọc theo trạng thái" className="flex flex-wrap gap-2">
+            <FilterChip active={statusFilter === "all"} onClick={() => setStatusFilter("all")}>
+              Tất cả
+            </FilterChip>
+            <FilterChip active={statusFilter === "active"} onClick={() => setStatusFilter("active")}>
+              Hoạt động
+            </FilterChip>
+            <FilterChip active={statusFilter === "blocked"} onClick={() => setStatusFilter("blocked")}>
+              Bị chặn
+            </FilterChip>
+            <FilterChip active={showHidden} onClick={() => setShowHidden((current) => !current)}>
+              <span aria-hidden="true" className="material-symbols-outlined text-lg">
+                visibility_off
+              </span>
+              Hiện cả garage đã ẩn
+            </FilterChip>
+          </div>
+        </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => setGarageOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2 text-sm font-semibold text-on-surface hover:bg-surface-container-low"
+            onClick={() => openOwnerModal()}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border-[1.5px] border-primary bg-surface-container-lowest px-4 text-sm font-bold text-on-primary-fixed-variant hover:bg-primary-fixed/40"
           >
-            <span className="material-symbols-outlined text-base">storefront</span>
-            Tạo Garage mới
+            <span aria-hidden="true" className="material-symbols-outlined text-xl">
+              person_add
+            </span>
+            Tạo Admin Garage
           </button>
           <button
             type="button"
-            onClick={() => openOwnerModal()}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:opacity-90"
+            onClick={() => setGarageOpen(true)}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-on-primary"
           >
-            <span className="material-symbols-outlined text-base">add</span>
-            Tạo Admin Garage
+            <span aria-hidden="true" className="material-symbols-outlined text-xl">
+              add
+            </span>
+            Tạo garage
           </button>
         </div>
       </div>
+      {!isLoading && !loadError && (
+        <p className="mt-3 text-right text-xs text-on-surface-variant" aria-live="polite">
+          Hiển thị {visibleGarages.length} / {garages.length} garage
+        </p>
+      )}
 
       {isLoading && <p className="mt-6 text-body-sm text-on-surface-variant">Đang tải danh sách garage...</p>}
       {!isLoading && loadError && <p className="mt-6 text-body-sm text-error">{loadError}</p>}
 
       {!isLoading && !loadError && (
-        <div className="mt-6 overflow-x-auto rounded-xl border border-outline-variant bg-surface-container-lowest">
+        <div className="mt-2 overflow-x-auto rounded-2xl border border-outline-variant/50 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
           <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="border-b border-outline-variant bg-surface-container-low text-xs uppercase text-on-surface-variant">
+            <thead className="bg-surface-container-low text-[11px] uppercase tracking-wider text-on-surface-variant">
               <tr>
-                <th className="px-4 py-3 font-medium">Garage</th>
-                <th className="px-4 py-3 font-medium">Admin Garage</th>
-                <th className="px-4 py-3 font-medium">Nhân viên</th>
-                <th className="px-4 py-3 font-medium">Lịch hẹn</th>
-                <th className="px-4 py-3 font-medium">Hoa hồng</th>
-                <th className="px-4 py-3 font-medium">Trạng thái</th>
-                <th className="px-4 py-3 text-right font-medium">Thao tác</th>
+                <th className="px-4 py-3 font-bold">Garage</th>
+                <th className="px-4 py-3 font-bold">Admin Garage</th>
+                <th className="px-4 py-3 font-bold">Nhân viên</th>
+                <th className="px-4 py-3 font-bold">Lịch hẹn</th>
+                <th className="px-4 py-3 font-bold">Hoa hồng</th>
+                <th className="px-4 py-3 font-bold">Trạng thái</th>
+                <th className="px-4 py-3 text-right font-bold">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant">
-              {garages.map((g) => (
+            <tbody className="divide-y divide-outline-variant/50">
+              {visibleGarages.map((g) => (
                 <tr key={g.id} className={`hover:bg-surface-container-low ${g.hidden ? "opacity-60" : ""}`}>
                   <td className="px-4 py-3">
-                    <div className="font-semibold">{g.name}</div>
-                    <div className="text-xs text-on-surface-variant">{g.address || "—"}</div>
-                    <div className="text-xs text-on-surface-variant">{g.phone || ""}</div>
+                    <div className="flex items-center gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-fixed text-on-primary-fixed-variant"
+                      >
+                        <span className="material-symbols-outlined">storefront</span>
+                      </span>
+                      <div className="min-w-0">
+                        <div className="font-bold">{g.name}</div>
+                        <div className="text-xs text-on-surface-variant">{g.address || "—"}</div>
+                        <div className="text-xs text-on-surface-variant">{g.phone || ""}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     {g.ownerId !== null ? (
@@ -250,13 +397,10 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
                         <div className="text-xs text-on-surface-variant">{g.ownerUsername}</div>
                       </>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => openOwnerModal(g.id)}
-                        className="text-xs font-semibold text-primary hover:underline"
-                      >
-                        Chưa có — tạo Admin
-                      </button>
+                      <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#fff1cc] px-2.5 py-1 text-xs font-semibold text-[#6b4200]">
+                        <i className="h-[7px] w-[7px] rounded-full bg-[#c47f00]" />
+                        Chưa có Admin
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3">{g.employeeCount}</td>
@@ -268,55 +412,49 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        g.status === "blocked"
-                          ? "bg-error-container/40 text-on-error-container"
-                          : "bg-tertiary-container/20 text-tertiary"
-                      }`}
-                    >
-                      {g.status === "blocked" ? "Đã chặn" : "Hoạt động"}
-                    </span>
-                    {g.hidden && (
-                      <span className="ml-2 rounded-full bg-surface-container-high px-2.5 py-0.5 text-xs font-semibold text-on-surface-variant">
-                        Đã ẩn
-                      </span>
-                    )}
+                    <StatusChips blocked={g.status === "blocked"} hidden={g.hidden} />
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-3">
-                      <button
-                        type="button"
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      {g.ownerId === null && (
+                        <button
+                          type="button"
+                          onClick={() => openOwnerModal(g.id)}
+                          className="min-h-9 rounded-[10px] bg-primary px-3 text-xs font-bold text-on-primary"
+                        >
+                          Gán Admin
+                        </button>
+                      )}
+                      <RowActionMenu
+                        label={`Thêm thao tác với ${g.name}`}
                         disabled={busyId === g.id}
-                        onClick={() => toggleBlock(g)}
-                        className="text-xs font-semibold text-error hover:underline disabled:opacity-50"
-                      >
-                        {g.status === "blocked" ? "Mở chặn" : "Chặn"}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busyId === g.id}
-                        onClick={() => editCommission(g)}
-                        className="text-xs font-semibold text-primary hover:underline disabled:opacity-50"
-                      >
-                        Hoa hồng
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busyId === g.id}
-                        onClick={() => toggleHidden(g)}
-                        className="text-xs font-semibold text-on-surface-variant hover:underline disabled:opacity-50"
-                      >
-                        {g.hidden ? "Bỏ ẩn" : "Ẩn"}
-                      </button>
+                        items={[
+                          {
+                            label: "Sửa hoa hồng",
+                            icon: "percent",
+                            onSelect: () => setCommissionFor(g),
+                          },
+                          {
+                            label: g.status === "blocked" ? "Mở chặn garage" : "Chặn garage",
+                            icon: g.status === "blocked" ? "lock_open" : "block",
+                            danger: g.status !== "blocked",
+                            onSelect: () => askBlock(g),
+                          },
+                          {
+                            label: g.hidden ? "Bỏ ẩn" : "Ẩn khỏi danh sách",
+                            icon: g.hidden ? "visibility" : "visibility_off",
+                            onSelect: () => askHidden(g),
+                          },
+                        ]}
+                      />
                     </div>
                   </td>
                 </tr>
               ))}
-              {garages.length === 0 && (
+              {visibleGarages.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-on-surface-variant">
-                    Chưa có garage nào.
+                    {garages.length === 0 ? "Chưa có garage nào." : "Không tìm thấy garage phù hợp."}
                   </td>
                 </tr>
               )}
@@ -479,6 +617,26 @@ export default function SuperAdminGaragesTab({ notify }: Props) {
             </div>
           </div>
         </div>
+      )}
+
+      {pending && (
+        <ReasonConfirmDialog
+          {...buildDialog(pending)}
+          busy={busyId === pending.garage.id}
+          onCancel={() => setPending(null)}
+          onConfirm={confirmPending}
+        />
+      )}
+      {commissionFor && (
+        <CommissionDialog
+          garageName={commissionFor.name}
+          currentPercent={Math.round(commissionFor.effectiveCommissionRate * 1000) / 10}
+          defaultPercent={defaultCommissionPercent}
+          usingDefault={commissionFor.commissionRate === null}
+          busy={busyId === commissionFor.id}
+          onCancel={() => setCommissionFor(null)}
+          onSave={(percent) => saveCommission(commissionFor, percent)}
+        />
       )}
     </div>
   );

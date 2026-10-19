@@ -90,7 +90,7 @@ export default function EngineerPartsPanel({
           {parts.map((part) => (
             <li
               key={part.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm"
+              className="flex items-center justify-between gap-3 rounded-2xl border-[1.5px] border-outline-variant/40 bg-surface-container-lowest px-4 py-3 text-body-sm"
             >
               <span>
                 {part.partName} × {part.quantity}
@@ -125,7 +125,7 @@ export default function EngineerPartsPanel({
           <select aria-label="Chọn linh kiện"
             value={partId}
             onChange={(event) => setPartId(event.target.value)}
-            className="flex-1 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="min-h-11 flex-1 rounded-2xl border border-outline-variant bg-surface-container-lowest px-3.5 py-2 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
           >
             <option value="">Chọn phụ tùng trong kho...</option>
             {catalog.map((part) => (
@@ -140,12 +140,12 @@ export default function EngineerPartsPanel({
             onChange={(event) => setQuantity(event.target.value)}
             inputMode="numeric"
             aria-label="Số lượng"
-            className="w-20 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="min-h-11 w-20 rounded-2xl border border-outline-variant bg-surface-container-lowest px-3.5 py-2 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
           />
           <button
             type="submit"
             disabled={!canAdd}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-11 rounded-2xl bg-gradient-to-br from-primary to-primary-container px-5 text-sm font-bold text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Thêm
           </button>

@@ -6,41 +6,11 @@ import {
   uploadGarageImage,
   type Garage,
 } from "../../services/api";
+import AdminShell, { type AdminNavProps } from "./AdminShell";
 
-const navItems = [
-  ["dashboard", "Dashboard"],
-  ["engineering", "Nhân viên"],
-  ["groups", "Khách hàng"],
-  ["history", "Lịch sử lịch hẹn"],
-  ["inventory_2", "Kho linh kiện"],
-  ["payments", "Bảng giá"],
-  ["storefront", "Thông tin garage"],
-  ["account_balance_wallet", "Ví garage"],
-];
+export type AdminGaragePageProps = AdminNavProps;
 
-type AdminGaragePageProps = {
-  onDashboardClick?: () => void;
-  onEngineersClick?: () => void;
-  onCustomersClick?: () => void;
-  onAppointmentsClick?: () => void;
-  onInventoryClick?: () => void;
-  onPricingClick?: () => void;
-  onGarageClick?: () => void;
-  onWalletClick?: () => void;
-  onLogout?: () => void;
-};
-
-export default function AdminGaragePage({
-  onDashboardClick,
-  onEngineersClick,
-  onCustomersClick,
-  onAppointmentsClick,
-  onInventoryClick,
-  onPricingClick,
-  onGarageClick,
-  onWalletClick,
-  onLogout,
-}: AdminGaragePageProps) {
+export default function AdminGaragePage(props: AdminGaragePageProps) {
   const [garage, setGarage] = useState<Garage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -65,9 +35,6 @@ export default function AdminGaragePage({
     setIsLoading(true);
     setLoadError(null);
 
-    // Lấy đúng garage của admin đang đăng nhập (qua garageId trong hồ sơ
-    // của họ) thay vì đoán garage đầu tiên trong hệ thống — trước đây luôn
-    // hiện garage #1 cho mọi admin, kể cả admin được gán garage khác.
     getMyProfile()
       .then((profile) => {
         if (cancelled) return null;
@@ -88,7 +55,9 @@ export default function AdminGaragePage({
       .catch((err) => {
         if (cancelled) return;
         setLoadError(
-          err instanceof Error ? err.message : "Không tải được thông tin garage.",
+          err instanceof Error
+            ? err.message
+            : "Không tải được thông tin garage.",
         );
       })
       .finally(() => {
@@ -113,7 +82,9 @@ export default function AdminGaragePage({
       })
       .catch((err) => {
         showNotice(
-          err instanceof Error ? err.message : "Không thể cập nhật thông tin garage.",
+          err instanceof Error
+            ? err.message
+            : "Không thể cập nhật thông tin garage.",
         );
       })
       .finally(() => setIsSaving(false));
@@ -138,196 +109,159 @@ export default function AdminGaragePage({
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-outline-variant bg-surface-container-lowest p-lg md:flex">
-        <div className="mb-xl">
-          <div className="flex items-center gap-2 text-primary">
-            <span className="material-symbols-outlined text-3xl">
-              electric_car
-            </span>
-            <span className="font-headline-lg text-headline-lg font-bold">
-              Servio
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-on-surface-variant">
-            Quản trị garage
-          </p>
+    <AdminShell
+      activeTab="garage"
+      title="Thông tin garage"
+      description="Thông tin hiển thị cho khách hàng trên ứng dụng và bản đồ tìm kiếm."
+      garageName={garage?.name}
+      notice={notice}
+      maxWidthClass="max-w-4xl"
+      {...props}
+    >
+      {isLoading && (
+        <div className="flex items-center gap-2 py-8 text-body-sm text-on-surface-variant">
+          <span className="material-symbols-outlined animate-spin text-primary">sync</span>
+          <span>Đang tải thông tin garage...</span>
         </div>
-        <nav className="space-y-1">
-          {navItems.map(([icon, label]) => {
-            const isCurrent = label === "Thông tin garage";
-            return (
-              <button
-                key={label}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left font-body-md text-body-md transition-colors active:scale-[0.98] ${
-                  isCurrent
-                    ? "bg-primary-container/15 font-semibold text-primary"
-                    : "text-on-surface-variant hover:bg-surface-container-low"
-                }`}
-                type="button"
-                onClick={() => {
-                  if (label === "Dashboard") onDashboardClick?.();
-                  else if (label === "Nhân viên") onEngineersClick?.();
-                  else if (label === "Khách hàng") onCustomersClick?.();
-                  else if (label === "Lịch sử lịch hẹn") onAppointmentsClick?.();
-                  else if (label === "Kho linh kiện") onInventoryClick?.();
-                  else if (label === "Bảng giá") onPricingClick?.();
-                  else if (label === "Thông tin garage") onGarageClick?.();
-                  else if (label === "Ví garage") onWalletClick?.();
+      )}
+
+      {!isLoading && loadError && (
+        <div className="rounded-xl border border-error/30 bg-error-container/10 p-4 text-body-sm text-error">
+          {loadError}
+        </div>
+      )}
+
+      {!isLoading && !loadError && garage && (
+        <div className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-6 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] sm:p-8">
+          {imageUrl && (
+            <div className="mb-6 overflow-hidden rounded-2xl border border-outline-variant/60 shadow-sm">
+              <img
+                src={imageUrl}
+                alt="Xem trước ảnh garage"
+                className="h-56 w-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
                 }}
+              />
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label
+                htmlFor="garage-name-input"
+                className="mb-1 block text-xs font-semibold text-on-surface-variant"
               >
-                <span className="material-symbols-outlined">{icon}</span>
-                {label}
-              </button>
-            );
-          })}
-        </nav>
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
-            type="button"
-          >
-            <span className="material-symbols-outlined">logout</span>
-            Đăng xuất
-          </button>
-        )}
-      </aside>
+                Tên garage *
+              </label>
+              <input
+                id="garage-name-input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
 
-      <main className="min-h-[100dvh] p-margin-mobile md:ml-60 md:p-margin-desktop">
-        <div className="mx-auto max-w-3xl">
-          <h1 className="font-headline-lg text-headline-lg font-bold">
-            Thông tin garage
-          </h1>
-          <p className="mt-1 text-body-sm text-on-surface-variant">
-            Thông tin này hiển thị cho khách hàng ở trang chi tiết garage.
-          </p>
+            <div>
+              <label
+                htmlFor="garage-address-input"
+                className="mb-1 block text-xs font-semibold text-on-surface-variant"
+              >
+                Địa chỉ *
+              </label>
+              <input
+                id="garage-address-input"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
 
-          {isLoading && (
-            <p className="mt-6 text-body-sm text-on-surface-variant">
-              Đang tải thông tin garage...
-            </p>
-          )}
+            <div>
+              <label
+                htmlFor="garage-phone-input"
+                className="mb-1 block text-xs font-semibold text-on-surface-variant"
+              >
+                Số điện thoại liên hệ
+              </label>
+              <input
+                id="garage-phone-input"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
 
-          {!isLoading && loadError && (
-            <p className="mt-6 text-body-sm text-error">{loadError}</p>
-          )}
-
-          {!isLoading && !loadError && garage && (
-            <div className="mt-6 space-y-5 rounded-2xl border border-outline-variant bg-surface-container-lowest p-6">
-              {imageUrl && (
-                <div className="overflow-hidden rounded-xl border border-outline-variant">
-                  <img
-                    src={imageUrl}
-                    alt="Xem trước ảnh garage"
-                    className="h-48 w-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="pages-admin-admingaragepage-field-1" className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                  Tên garage *
-                </label>
-                <input id="pages-admin-admingaragepage-field-1"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
+                Hình ảnh garage
+              </label>
+              <label
+                className={`flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-outline-variant/70 bg-surface-container-low/30 p-5 text-center cursor-pointer transition hover:border-primary hover:bg-surface-container-low ${
+                  isUploadingImage ? "opacity-50 pointer-events-none" : ""
+                }`}
+              >
+                <span className="material-symbols-outlined text-3xl text-primary">
+                  photo_camera
+                </span>
+                <span className="text-xs font-semibold text-on-surface">
+                  {isUploadingImage
+                    ? "Đang tải ảnh lên hệ thống..."
+                    : "Nhấp để tải ảnh đại diện từ máy tính"}
+                </span>
+                <span className="text-[11px] text-on-surface-variant">
+                  Hỗ trợ định dạng PNG, JPG, WEBP (tối đa 5MB)
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleImageFile(e.target.files)}
                 />
-              </div>
+              </label>
 
-              <div>
-                <label htmlFor="pages-admin-admingaragepage-field-2" className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                  Địa chỉ *
-                </label>
-                <input id="pages-admin-admingaragepage-field-2"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-              </div>
+              <input
+                aria-label="Hoặc dán đường dẫn ảnh (URL)..."
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="Hoặc dán trực tiếp đường dẫn ảnh (URL)..."
+                className="mt-2.5 w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
 
-              <div>
-                <label htmlFor="pages-admin-admingaragepage-field-3" className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                  Số điện thoại
-                </label>
-                <input id="pages-admin-admingaragepage-field-3"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-              </div>
+            <div>
+              <label
+                htmlFor="garage-desc-input"
+                className="mb-1 block text-xs font-semibold text-on-surface-variant"
+              >
+                Mô tả &amp; giới thiệu garage
+              </label>
+              <textarea
+                id="garage-desc-input"
+                rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Giới thiệu dịch vụ nổi bật, trang thiết bị kỹ thuật, giờ mở cửa..."
+                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                  Ảnh garage
-                </label>
-                <label
-                  className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-outline-variant p-4 text-center cursor-pointer transition hover:border-primary/50 ${
-                    isUploadingImage ? "opacity-50 pointer-events-none" : ""
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-2xl text-primary">
-                    photo_camera
-                  </span>
-                  <span className="text-xs font-medium">
-                    {isUploadingImage
-                      ? "Đang tải ảnh lên..."
-                      : "Nhấp để chọn ảnh từ máy"}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleImageFile(e.target.files)}
-                  />
-                </label>
-
-                <input aria-label="Hoặc dán đường dẫn ảnh (URL)..."
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="Hoặc dán đường dẫn ảnh (URL)..."
-                  className="mt-2 w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="pages-admin-admingaragepage-field-4" className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                  Mô tả garage
-                </label>
-                <textarea id="pages-admin-admingaragepage-field-4"
-                  rows={4}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Giới thiệu ngắn về garage, dịch vụ nổi bật..."
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
+            <div className="pt-2">
               <button
                 type="button"
                 onClick={saveGarage}
                 disabled={isSaving}
-                className="w-full rounded-lg bg-primary py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
               >
-                {isSaving ? "Đang lưu..." : "Lưu thông tin garage"}
+                <span className="material-symbols-outlined text-lg">
+                  {isSaving ? "sync" : "save"}
+                </span>
+                {isSaving ? "Đang lưu thay đổi..." : "Lưu thông tin garage"}
               </button>
             </div>
-          )}
-        </div>
-      </main>
-
-      {notice && (
-        <div
-          className="fixed bottom-5 right-5 z-50 rounded-lg bg-inverse-surface px-4 py-3 text-body-sm text-inverse-on-surface shadow-lg"
-          role="status"
-        >
-          {notice}
+          </div>
         </div>
       )}
-    </div>
+    </AdminShell>
   );
 }

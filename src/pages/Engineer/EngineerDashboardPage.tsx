@@ -1,3 +1,4 @@
+import StaffShell from "../../components/StaffShell";
 import { useEffect, useState } from "react";
 import {
   getEngineerDashboard,
@@ -14,15 +15,6 @@ function isTodayOrFuture(scheduleDate: string) {
   date.setHours(0, 0, 0, 0);
   return date >= today;
 }
-
-const navItems = [
-  ["dashboard", "Tổng quan"],
-  ["calendar_today", "Lịch làm việc"],
-  ["event_note", "Lịch hẹn"],
-  ["engineering", "Kỹ thuật viên"],
-  ["person", "Khách hàng"],
-  ["settings", "Cài đặt"],
-];
 
 type EngineerDashboardPageProps = {
   onDashboardClick?: () => void;
@@ -98,7 +90,6 @@ export default function EngineerDashboardPage({
       .finally(() => setAcceptingId(null));
   };
 
-  const initial = engineerName ? engineerName.charAt(0).toUpperCase() : "?";
 
   // Chỉ hiện công việc còn cần xử lý (chưa hoàn thành/hủy) từ hôm nay trở
   // đi — job cũ/đã xong thuộc về Lịch sử, không nên lẫn vào đây.
@@ -112,106 +103,20 @@ export default function EngineerDashboardPage({
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
       {/* Sidebar Navigation */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-outline-variant bg-surface-container-lowest p-lg md:flex">
-        <div className="mb-xl">
-          <div className="flex items-center gap-2 text-primary">
-            <span className="material-symbols-outlined text-3xl">
-              electric_car
-            </span>
-            <span className="font-headline-lg text-headline-lg font-bold">
-              Servio
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-on-surface-variant">
-            Garage Kỹ thuật viên
-          </p>
-        </div>
-        <nav className="space-y-1">
-          {navItems.map(([icon, label]) => {
-            const isCurrent = label === "Tổng quan";
-            return (
-              <button
-                key={label}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left font-body-md text-body-md transition-colors active:scale-[0.98] ${
-                  isCurrent
-                    ? "bg-primary-container/15 font-semibold text-primary"
-                    : "text-on-surface-variant hover:bg-surface-container-low"
-                }`}
-                type="button"
-                onClick={() => {
-                  if (label === "Tổng quan") onDashboardClick?.();
-                  else if (label === "Lịch làm việc") onScheduleClick?.();
-                  else if (label === "Lịch hẹn") onAppointmentsClick?.();
-                  else if (label === "Kỹ thuật viên") onTechniciansClick?.();
-                  else if (label === "Khách hàng") onCustomersClick?.();
-                  else if (label === "Cài đặt") onSettingsClick?.();
-                }}
-              >
-                <span className="material-symbols-outlined">{icon}</span>
-                {label}
-              </button>
-            );
-          })}
-        </nav>
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
-            type="button"
-          >
-            <span className="material-symbols-outlined">logout</span>
-            Đăng xuất
-          </button>
-        )}
-      </aside>
-
-      {/* Main Content Area */}
-      <main className="min-h-[100dvh] md:ml-60">
-        {/* Header Bar */}
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-outline-variant bg-surface/95 px-margin-mobile backdrop-blur md:px-margin-desktop">
-          <button
-            className="rounded-full p-2 text-on-surface-variant md:hidden"
-            type="button"
-            aria-label="Mở menu"
-          >
-            <span className="material-symbols-outlined">menu</span>
-          </button>
-          <label className="relative hidden w-full max-w-[28rem] md:block">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-              search
-            </span>
-            <input
-              className="w-full rounded-full border border-outline-variant bg-surface-container-low px-4 py-2 pl-10 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-              placeholder="Tìm kiếm phiếu, xe, biển số..."
-            />
-          </label>
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container"
-              type="button"
-              aria-label="Thông báo"
-            >
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
-            <div className="ml-2 flex items-center gap-2 border-l border-outline-variant pl-3">
-              <div className="hidden text-right sm:block">
-                <p className="font-label-md text-label-md">
-                  {engineerName || "Kỹ thuật viên"}
-                </p>
-              </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
-                {initial}
-              </div>
-            </div>
-          </div>
-        </header>
+      <StaffShell
+        role="engineer"
+        active="dashboard"
+        handlers={{ dashboard: onDashboardClick, schedule: onScheduleClick, appointments: onAppointmentsClick, technicians: onTechniciansClick, customers: onCustomersClick, settings: onSettingsClick }}
+        userName={engineerName || "Kỹ thuật viên"}
+        onLogout={onLogout}
+      >
 
         {/* Page Content */}
         <div className="mx-auto max-w-[1440px] p-margin-mobile md:p-margin-desktop">
           {/* Banner Section */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant pb-5">
             <div>
-              <h1 className="font-headline-lg text-headline-lg font-bold">
+              <h1 className="text-3xl font-extrabold tracking-tight">
                 Lịch làm việc của bạn
               </h1>
               <p className="mt-1 text-body-sm text-on-surface-variant">
@@ -234,7 +139,7 @@ export default function EngineerDashboardPage({
             <>
               {/* Metrics Section */}
               <section className="mt-6 grid gap-4 sm:grid-cols-3">
-                <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
+                <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] p-5">
                   <p className="text-xs font-semibold uppercase text-outline">
                     ĐƯỢC PHÂN CÔNG
                   </p>
@@ -242,7 +147,7 @@ export default function EngineerDashboardPage({
                     {visibleAppointments.length} xe
                   </p>
                 </article>
-                <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
+                <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] p-5">
                   <p className="text-xs font-semibold uppercase text-outline">
                     ĐANG THỰC HIỆN
                   </p>
@@ -257,7 +162,7 @@ export default function EngineerDashboardPage({
                     xe
                   </p>
                 </article>
-                <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
+                <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] p-5">
                   <p className="text-xs font-semibold uppercase text-outline">
                     ĐÃ HOÀN TẤT
                   </p>
@@ -365,7 +270,7 @@ export default function EngineerDashboardPage({
             </>
           )}
         </div>
-      </main>
+      </StaffShell>
 
       {/* Notice Toast */}
       {notice && (

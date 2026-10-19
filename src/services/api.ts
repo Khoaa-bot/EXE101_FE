@@ -298,6 +298,24 @@ export type UpdateVehiclePayload = {
   odometer?: number;
 };
 
+// Trạng thái nhắc bảo dưỡng của một xe cho một dịch vụ (MaintenanceStatusDto
+// bên backend). kmRemaining / daysRemaining âm = đã quá hạn; null = dịch vụ này
+// không theo dõi mốc đó.
+export type MaintenanceStage = "OK" | "SOON" | "OVERDUE";
+
+export type MaintenanceStatus = {
+  vehicleId: number;
+  serviceId: number;
+  serviceName: string;
+  stage: MaintenanceStage;
+  lastServiceKm: number | null;
+  lastServiceDate: string;
+  nextDueKm: number | null;
+  nextDueDate: string | null;
+  kmRemaining: number | null;
+  daysRemaining: number | null;
+};
+
 type VehicleRequestOptions = {
   method?: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
@@ -361,6 +379,12 @@ export function deleteVehicle(vehicleId: number | string) {
 // GET /api/vehicles/my-fleet — danh sách xe của khách hàng đang đăng nhập.
 export function getMyFleet() {
   return vehicleRequest<Vehicle[]>("/my-fleet");
+}
+
+// GET /api/vehicles/my-fleet/maintenance-status — hạn bảo dưỡng của mọi xe của
+// khách đang đăng nhập (chỉ gồm các dịch vụ đã từng làm ít nhất một lần).
+export function getFleetMaintenanceStatus() {
+  return vehicleRequest<MaintenanceStatus[]>("/my-fleet/maintenance-status");
 }
 
 // GET /api/vehicles/{id} — chi tiết một xe.
@@ -469,6 +493,17 @@ export type AppointmentDto = {
   amountPaid?: number;
   amountDue?: number;
   garagePhone?: string | null;
+  // Đánh giá khách đã gửi cho lịch hẹn này (null nếu chưa đánh giá). BE trả `review`
+  // lồng; api.ts tách sang các trường review* bên dưới.
+  review?: ReviewDto | null;
+  reviewId?: number | null;
+  reviewRating?: number | null;
+  reviewComment?: string | null;
+  reviewCreatedAt?: string | null;
+  reviewHidden?: boolean | null; // bị Super Admin ẩn khỏi trang công khai (khách vẫn thấy)
+  reviewReply?: string | null; // phản hồi của garage
+  reviewCanEdit?: boolean | null; // còn trong 7 ngày kể từ khi gửi
+  reviewEditDaysLeft?: number | null;
 };
 
 export type ExtraStatus = "proposed" | "approved" | "rejected";
@@ -524,6 +559,12 @@ export type Review = {
   rating: number;
   comment: string | null;
   createdAt: string;
+  hidden?: boolean;
+  reply?: string | null;
+  repliedAt?: string | null;
+  updatedAt?: string | null;
+  canEdit?: boolean | null;
+  editDaysLeft?: number | null;
 };
 
 type ApiRequestOptions = {
@@ -587,14 +628,31 @@ export function cancelAppointment(appointmentId: number | string) {
 
 // GET /api/appointments/status — các lịch hẹn đang hoạt động của khách hàng
 // đang đăng nhập (dùng cho trang Tracking).
-export function getActiveAppointments() {
-  return apiRequest<AppointmentDto[]>("/appointments/status");
+export async function getActiveAppointments() {
+  return (await apiRequest<AppointmentDto[]>("/appointments/status")).map(withReviewFields);
+}
+
+// BE gắn đánh giá lồng trong `review`; FE dùng các trường phẳng review*.
+function withReviewFields(appointment: AppointmentDto): AppointmentDto {
+  const review = appointment.review;
+  if (!review) return appointment;
+  return {
+    ...appointment,
+    reviewId: review.id,
+    reviewRating: review.rating,
+    reviewComment: review.comment,
+    reviewCreatedAt: review.createdAt,
+    reviewHidden: review.hidden === true,
+    reviewReply: review.reply ?? null,
+    reviewCanEdit: review.canEdit ?? null,
+    reviewEditDaysLeft: review.editDaysLeft ?? null,
+  };
 }
 
 // GET /api/appointments/history — lịch sử lịch hẹn của khách hàng đang đăng
 // nhập (dùng cho trang History).
-export function getAppointmentHistory() {
-  return apiRequest<AppointmentDto[]>("/appointments/history");
+export async function getAppointmentHistory() {
+  return (await apiRequest<AppointmentDto[]>("/appointments/history")).map(withReviewFields);
 }
 
 // ---------------------------------------------------------------------------
@@ -611,6 +669,7 @@ export type EngineerCompletePayload = {
   notes?: string;
   engineerNotes?: string;
   partsUsed?: string;
+  odometerAtService?: number;
 };
 
 export type AppointmentStep = {
@@ -768,7 +827,8 @@ export type Garage = {
   phone?: string;
   description?: string;
   imageUrl?: string;
-  rating?: number;
+  rating?: number | null; // điểm trung bình đánh giá, null nếu chưa có
+  reviewCount?: number;
 };
 
 export type NewGaragePayload = {
@@ -1152,6 +1212,8 @@ export type SuperAdminGarage = {
   appointmentCount: number;
   commissionRate: number | null;
   effectiveCommissionRate: number;
+  rating: number | null;
+  reviewCount: number;
   createdAt: string;
 };
 
@@ -1650,6 +1712,288 @@ export type PlatformWallet = {
 // GET /api/admin/platform-wallet — ví nền tảng và đối soát (Super Admin).
 export function getPlatformWallet() {
   return apiRequest<PlatformWallet>("/admin/platform-wallet");
+}
+
+export type AdminOverview = {
+  customerCount: number;
+  blockedCustomerCount: number;
+  hiddenCustomerCount: number;
+  garageCount: number;
+  blockedGarageCount: number;
+  hiddenGarageCount: number;
+  garagesWithoutOwner: Array<{ id: number; name: string }>;
+  pendingWithdrawalCount: number;
+  pendingWithdrawalAmount: number;
+  wallet: PlatformWallet;
+};
+
+// GET /api/admin/overview — số liệu KPI trang Tổng quan trong một lần gọi (Super Admin).
+export function getAdminOverview() {
+  return apiRequest<AdminOverview>("/admin/overview");
+}
+
+export type StatsSeries = {
+  buckets: number[]; // giờ (day) hoặc ngày (week, month) của kỳ hiện tại
+  total: number;
+  previousTotal: number; // kỳ trước cùng độ dài
+};
+
+export type AdminPeriodStats = {
+  period: "day" | "week" | "month";
+  serverNow: string; // giờ hiện tại theo múi giờ Asia/Ho_Chi_Minh
+  registrations: StatsSeries;
+  appointments: StatsSeries;
+  revenue: StatsSeries;
+  outcomes: { done: number; active: number; cancelled: number; noShow: number };
+  timeFrames: Array<{ label: string; count: number }> | null; // chỉ có khi period = day
+};
+
+// GET /api/admin/stats/period — thống kê hôm nay / tuần này / tháng này, tính ở server.
+export function getAdminPeriodStats(period: "day" | "week" | "month") {
+  return apiRequest<AdminPeriodStats>("/admin/stats/period", { query: { period } });
+}
+
+export type AdminYearMonthRow = {
+  registrations: number;
+  appointments: number;
+  done: number;
+  lost: number; // hủy + không đến
+  revenue: number;
+};
+
+export type AdminYearStats = {
+  year: number;
+  firstYear: number;
+  cutoffMonth: number; // 0-11, mốc cắt "cùng kỳ"
+  cutoffDay: number;
+  years: Array<{ year: number; months: AdminYearMonthRow[] }>; // tăng dần, năm cuối là `year`
+};
+
+// GET /api/admin/stats/yearly — 12 tháng của một năm và các năm trước để so sánh.
+export function getAdminYearStats(year: number) {
+  return apiRequest<AdminYearStats>("/admin/stats/yearly", { query: { year } });
+}
+
+// ---------------------------------------------------------------------------
+// Đánh giá: khách xem công khai và sửa trong 7 ngày, Admin Garage phản hồi,
+// Super Admin ẩn (không xóa).
+// ---------------------------------------------------------------------------
+
+export type ReviewItem = {
+  id: number;
+  appointmentId: number;
+  customerName: string; // công khai: tên rút gọn, garage và admin: tên đầy đủ
+  customerUsername: string | null; // chỉ Super Admin
+  vehicleLicensePlate: string | null; // không có ở bản công khai
+  garageId: number | null;
+  garageName: string | null;
+  serviceName: string | null;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  hidden: boolean;
+  reply: string | null;
+  repliedAt: string | null;
+};
+
+export type ReviewSummary = {
+  average: number | null;
+  count: number;
+  distribution: number[]; // 5 phần tử: số đánh giá 1, 2, 3, 4, 5 sao
+};
+
+export type GarageReviews = {
+  summary: ReviewSummary;
+  items: ReviewItem[];
+  total: number;
+  page: number;
+  size: number;
+};
+
+export type GarageOwnerReviews = GarageReviews & {
+  unreplied: number;
+  replied: number;
+  lowLast30Days: number;
+};
+
+export type ReviewPage = {
+  items: ReviewItem[];
+  total: number;
+  page: number;
+  size: number;
+};
+
+// Dạng đánh giá do BE trả về (ReviewResponseDto). Các hàm bên dưới chuyển sang
+// ReviewItem rồi lọc / phân trang / tổng hợp ở FE.
+export type ReviewDto = {
+  id: number;
+  appointmentId: number;
+  customerName: string | null;
+  garageId: number | null;
+  garageName: string | null;
+  serviceName: string | null;
+  vehicleLicensePlate: string | null;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+  hidden?: boolean | null;
+  reply?: string | null;
+  repliedAt?: string | null;
+  canEdit?: boolean | null;
+  editDaysLeft?: number | null;
+};
+
+function toReviewItem(dto: ReviewDto): ReviewItem {
+  return {
+    id: dto.id,
+    appointmentId: dto.appointmentId,
+    customerName: dto.customerName ?? "Khách hàng",
+    customerUsername: null,
+    vehicleLicensePlate: dto.vehicleLicensePlate ?? null,
+    garageId: dto.garageId ?? null,
+    garageName: dto.garageName ?? null,
+    serviceName: dto.serviceName ?? null,
+    rating: dto.rating,
+    comment: dto.comment ?? null,
+    createdAt: dto.createdAt,
+    hidden: dto.hidden === true,
+    reply: dto.reply ?? null,
+    repliedAt: dto.repliedAt ?? null,
+  };
+}
+
+function summarizeReviews(items: ReviewItem[]): ReviewSummary {
+  const distribution = [0, 0, 0, 0, 0];
+  let sum = 0;
+  for (const item of items) {
+    if (item.rating >= 1 && item.rating <= 5) distribution[item.rating - 1] += 1;
+    sum += item.rating;
+  }
+  return {
+    average: items.length > 0 ? Math.round((sum / items.length) * 10) / 10 : null,
+    count: items.length,
+    distribution,
+  };
+}
+
+function inRatingRange(item: ReviewItem, min?: number, max?: number) {
+  return (min === undefined || item.rating >= min) && (max === undefined || item.rating <= max);
+}
+
+function matchesText(item: ReviewItem, q?: string) {
+  const needle = q?.trim().toLowerCase();
+  if (!needle) return true;
+  return [item.customerName, item.garageName, item.serviceName, item.comment, item.vehicleLicensePlate]
+    .filter(Boolean)
+    .some((value) => (value as string).toLowerCase().includes(needle));
+}
+
+function pageOf<T>(items: T[], page = 0, size = 20) {
+  return { items: items.slice(page * size, (page + 1) * size), total: items.length, page, size };
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// PUT /api/reviews/{id} — khách sửa đánh giá của mình trong 7 ngày kể từ khi gửi.
+export function updateReview(reviewId: number, payload: { rating: number; comment?: string }) {
+  return apiRequest<Review>(`/reviews/${reviewId}`, {
+    method: "PUT",
+    body: { rating: payload.rating, comment: payload.comment },
+  });
+}
+
+// GET /api/garages/{id}/reviews — đánh giá công khai của một garage (không cần đăng nhập,
+// BE đã bỏ đánh giá bị ẩn, che tên và không trả số điện thoại).
+export async function getGarageReviews(
+  garageId: number | string,
+  filters: { minRating?: number; maxRating?: number; page?: number; size?: number } = {},
+): Promise<GarageReviews> {
+  const all = (await apiRequest<ReviewDto[]>(`/garages/${garageId}/reviews`)).map(toReviewItem);
+  const filtered = all.filter((item) => inRatingRange(item, filters.minRating, filters.maxRating));
+  return { summary: summarizeReviews(all), ...pageOf(filtered, filters.page, filters.size ?? 5) };
+}
+
+// GET /api/garage-owner/reviews — đánh giá của garage mình (Admin Garage).
+export async function getMyGarageReviews(
+  filters: { mode?: "all" | "unreplied" | "replied"; maxRating?: number; q?: string; page?: number; size?: number } = {},
+): Promise<GarageOwnerReviews> {
+  const all = (await apiRequest<ReviewDto[]>("/garage-owner/reviews")).map(toReviewItem);
+  const filtered = all
+    .filter((item) => (filters.mode === "unreplied" ? item.reply === null : filters.mode === "replied" ? item.reply !== null : true))
+    .filter((item) => inRatingRange(item, undefined, filters.maxRating))
+    .filter((item) => matchesText(item, filters.q));
+  const since = Date.now() - 30 * DAY_MS;
+  return {
+    summary: summarizeReviews(all),
+    ...pageOf(filtered, filters.page, filters.size ?? 20),
+    unreplied: all.filter((item) => item.reply === null).length,
+    replied: all.filter((item) => item.reply !== null).length,
+    lowLast30Days: all.filter((item) => item.rating <= 3 && new Date(item.createdAt).getTime() >= since).length,
+  };
+}
+
+// PUT /api/garage-owner/reviews/{id}/reply — gửi hoặc sửa phản hồi (Admin Garage).
+export async function replyToReview(reviewId: number, reply: string) {
+  const dto = await apiRequest<ReviewDto>(`/garage-owner/reviews/${reviewId}/reply`, {
+    method: "PUT",
+    body: { reply },
+  });
+  return toReviewItem(dto);
+}
+
+// GET /api/admin/reviews — đánh giá trên mọi garage (Super Admin), mặc định bỏ đánh giá đã ẩn.
+export async function getAdminReviews(
+  filters: {
+    garageId?: number;
+    minRating?: number;
+    maxRating?: number;
+    includeHidden?: boolean;
+    q?: string;
+    page?: number;
+    size?: number;
+  } = {},
+): Promise<ReviewPage> {
+  const all = (await apiRequest<ReviewDto[]>("/admin/reviews", { query: { garageId: filters.garageId } })).map(
+    toReviewItem,
+  );
+  const filtered = all
+    .filter((item) => filters.includeHidden || !item.hidden)
+    .filter((item) => inRatingRange(item, filters.minRating, filters.maxRating))
+    .filter((item) => matchesText(item, filters.q));
+  return pageOf(filtered, filters.page, filters.size ?? 20);
+}
+
+export type ReviewStats = {
+  reviewAverage: number | null;
+  reviewCount: number;
+  reviewsLast30Days: number;
+  reviewsPrevious30Days: number;
+  hiddenReviewCount: number;
+};
+
+// KPI trang Đánh giá của Super Admin, tính từ danh sách đánh giá toàn hệ thống.
+export async function getAdminReviewStats(): Promise<ReviewStats> {
+  const all = (await apiRequest<ReviewDto[]>("/admin/reviews")).map(toReviewItem);
+  const visible = all.filter((item) => !item.hidden);
+  const now = Date.now();
+  const time = (item: ReviewItem) => new Date(item.createdAt).getTime();
+  return {
+    reviewAverage: summarizeReviews(visible).average,
+    reviewCount: visible.length,
+    reviewsLast30Days: visible.filter((item) => time(item) >= now - 30 * DAY_MS).length,
+    reviewsPrevious30Days: visible.filter((item) => time(item) < now - 30 * DAY_MS && time(item) >= now - 60 * DAY_MS).length,
+    hiddenReviewCount: all.length - visible.length,
+  };
+}
+
+// PUT /api/admin/reviews/{id}/hidden — ẩn hoặc bỏ ẩn một đánh giá (Super Admin).
+export async function setReviewHidden(reviewId: number, hidden: boolean) {
+  const dto = await apiRequest<ReviewDto>(`/admin/reviews/${reviewId}/hidden`, {
+    method: "PUT",
+    body: { hidden },
+  });
+  return toReviewItem(dto);
 }
 
 // GET /api/payment/wallet-summary — số dư và tổng nạp/chi/nhận.

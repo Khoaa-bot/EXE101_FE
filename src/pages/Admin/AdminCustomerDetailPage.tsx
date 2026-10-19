@@ -1,167 +1,139 @@
 import type { Customer } from "./AdminCustomersPage";
+import AdminShell, { StatusPill, type AdminNavProps } from "./AdminShell";
 
 export type { Customer };
 
-const navItems = [
-  ["dashboard", "Dashboard"],
-  ["engineering", "Nhân viên"],
-  ["groups", "Khách hàng"],
-  ["history", "Lịch sử lịch hẹn"],
-  ["inventory_2", "Kho linh kiện"],
-  ["payments", "Bảng giá"],
-  ["storefront", "Thông tin garage"],
-  ["account_balance_wallet", "Ví garage"],
-];
-
-type AdminCustomerDetailPageProps = {
+export interface AdminCustomerDetailPageProps extends AdminNavProps {
   customer: Customer;
   onBack: () => void;
-  onDashboardClick?: () => void;
-  onEngineersClick?: () => void;
-  onCustomersClick?: () => void;
-  onAppointmentsClick?: () => void;
-  onInventoryClick?: () => void;
-  onPricingClick?: () => void;
-  onGarageClick?: () => void;
-  onWalletClick?: () => void;
-  onLogout?: () => void;
-};
+}
 
 export default function AdminCustomerDetailPage({
   customer,
   onBack,
-  onDashboardClick,
-  onEngineersClick,
-  onCustomersClick,
-  onAppointmentsClick,
-  onInventoryClick,
-  onPricingClick,
-  onGarageClick,
-  onWalletClick,
-  onLogout,
+  ...navProps
 }: AdminCustomerDetailPageProps) {
   const cust = customer;
 
-  const handleNav = (label: string) => {
-    if (label === "Dashboard") onDashboardClick?.();
-    else if (label === "Nhân viên") onEngineersClick?.();
-    else if (label === "Khách hàng") onCustomersClick?.();
-    else if (label === "Lịch sử lịch hẹn") onAppointmentsClick?.();
-    else if (label === "Kho linh kiện") onInventoryClick?.();
-    else if (label === "Bảng giá") onPricingClick?.();
-    else if (label === "Thông tin garage") onGarageClick?.();
-    else if (label === "Ví garage") onWalletClick?.();
-  };
-
   return (
-    <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-outline-variant bg-surface-container-lowest p-lg md:flex">
-        <div className="mb-xl">
-          <div className="flex items-center gap-2 text-primary">
-            <span className="material-symbols-outlined text-3xl">electric_car</span>
-            <span className="font-headline-lg text-headline-lg font-bold">Servio</span>
+    <AdminShell
+      activeTab="customers"
+      title="Chi tiết khách hàng"
+      description={`Thông tin hồ sơ và phương tiện của ${cust.name}.`}
+      headerAction={
+        <button
+          onClick={onBack}
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface-container-lowest px-3.5 py-2 text-xs font-semibold text-on-surface transition-colors hover:bg-surface-container-low"
+        >
+          <span className="material-symbols-outlined text-base">arrow_back</span>
+          Quay lại danh sách
+        </button>
+      }
+      maxWidthClass="max-w-6xl"
+      {...navProps}
+    >
+      {/* Top Banner Card */}
+      <section className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-6 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary-fixed text-2xl font-bold text-on-primary-fixed-variant">
+            {cust.initials}
           </div>
-          <p className="mt-1 text-xs text-on-surface-variant">Quản trị garage</p>
-        </div>
-        <nav className="space-y-1">
-          {navItems.map(([icon, label]) => (
-            <button
-              key={label}
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left font-body-md text-body-md transition-colors active:scale-[0.98] ${label === "Khách hàng" ? "bg-primary-container/15 font-semibold text-primary" : "text-on-surface-variant hover:bg-surface-container-low"}`}
-              type="button"
-              onClick={() => handleNav(label)}
-            >
-              <span className="material-symbols-outlined">{icon}</span>
-              {label}
-            </button>
-          ))}
-        </nav>
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
-            type="button"
-          >
-            <span className="material-symbols-outlined">logout</span>
-            Đăng xuất
-          </button>
-        )}
-      </aside>
-
-      <main className="min-h-[100dvh] md:ml-60">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-outline-variant bg-surface/95 px-margin-mobile backdrop-blur md:px-margin-desktop">
-          <button className="rounded-full p-2 text-on-surface-variant md:hidden" type="button" aria-label="Mở menu">
-            <span className="material-symbols-outlined">menu</span>
-          </button>
-          <h2 className="font-headline-md text-headline-md font-bold">Chi tiết khách hàng</h2>
-          <div className="ml-auto flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">A</div>
-          </div>
-        </header>
-
-        <div className="mx-auto max-w-[1440px] p-margin-mobile md:p-margin-desktop">
-          <button onClick={onBack} className="inline-flex items-center gap-2 text-sm text-primary hover:underline mb-4">
-            <span className="material-symbols-outlined text-base">arrow_back</span>
-            Quay lại danh sách khách hàng
-          </button>
-
-          <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-            <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-primary-fixed text-primary flex items-center justify-center text-2xl font-bold">
-                {cust.initials}
-              </div>
-              <div>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-2xl md:text-3xl font-bold">{cust.name}</h1>
-                  <span
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                      cust.isBanned
-                        ? "bg-error-container text-on-error-container"
-                        : "bg-tertiary-container/20 text-tertiary"
-                    }`}
-                  >
-                    {cust.isBanned ? "Đã cấm khỏi garage" : "Bình thường"}
-                  </span>
-                </div>
-                <p className="text-sm text-on-surface-variant mt-1">Khách hàng · #{cust.id}</p>
-              </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-xl font-bold text-on-surface md:text-2xl">
+                {cust.name}
+              </h2>
+              {cust.isBanned ? (
+                <StatusPill tone="error">Bị chặn khỏi garage</StatusPill>
+              ) : (
+                <StatusPill tone="success">Hoạt động bình thường</StatusPill>
+              )}
             </div>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="space-y-6">
-              <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg space-y-4">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-on-surface-variant">Thông tin liên hệ</h2>
-                <Row icon="mail" label="Email" value={cust.email} />
-                <Row icon="phone" label="Số điện thoại" value={cust.phone} />
-                <Row icon="calendar_today" label="Ngày đăng ký" value={cust.servicedAt} />
-              </article>
-
-              <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg space-y-4">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-on-surface-variant">Phương tiện</h2>
-                <Row icon="directions_car" label="Số xe đăng ký" value={cust.vehicle} />
-              </article>
-
-              <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg space-y-4">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-on-surface-variant">Lịch sử không đến</h2>
-                <Row icon="event_busy" label="Số lần không đến" value={String(cust.noShow)} />
-              </article>
-            </div>
+            <p className="mt-1 text-xs text-on-surface-variant">
+              Mã khách hàng: #{cust.id} · Đã đăng ký {cust.vehicle}
+            </p>
           </div>
         </div>
-      </main>
+      </section>
 
-    </div>
+      {/* Detail Cards Grid */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <article className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+          <div className="mb-4 flex items-center gap-2.5 border-b border-outline-variant/40 pb-3">
+            <span className="material-symbols-outlined text-primary text-xl">contact_mail</span>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+              Thông tin liên hệ
+            </h3>
+          </div>
+          <div className="space-y-4">
+            <Row icon="mail" label="Email" value={cust.email || "—"} />
+            <Row icon="phone" label="Số điện thoại" value={cust.phone || "—"} />
+            <Row icon="calendar_today" label="Ngày tham gia" value={cust.servicedAt || "—"} />
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+          <div className="mb-4 flex items-center gap-2.5 border-b border-outline-variant/40 pb-3">
+            <span className="material-symbols-outlined text-primary text-xl">electric_car</span>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+              Phương tiện
+            </h3>
+          </div>
+          <div className="space-y-4">
+            <Row icon="directions_car" label="Số xe đăng ký" value={cust.vehicle} />
+            <Row icon="pin" label="Biển số mặc định" value={cust.plate || "—"} />
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+          <div className="mb-4 flex items-center gap-2.5 border-b border-outline-variant/40 pb-3">
+            <span className="material-symbols-outlined text-primary text-xl">history</span>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+              Chỉ số lịch hẹn
+            </h3>
+          </div>
+          <div className="space-y-4">
+            <Row
+              icon="event_busy"
+              label="Số lần không đến"
+              value={`${cust.noShow} lần`}
+              highlight={cust.noShow > 0}
+            />
+          </div>
+        </article>
+      </div>
+    </AdminShell>
   );
 }
 
-function Row({ icon, label, value }: { icon: string; label: string; value: string }) {
+function Row({
+  icon,
+  label,
+  value,
+  highlight = false,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
   return (
     <div className="flex items-start gap-3">
-      <span className="material-symbols-outlined text-base text-on-surface-variant mt-0.5">{icon}</span>
+      <span className="material-symbols-outlined mt-0.5 text-base text-on-surface-variant">
+        {icon}
+      </span>
       <div className="min-w-0 flex-1">
-        <p className="text-xs uppercase text-on-surface-variant font-semibold">{label}</p>
-        <p className="text-sm break-words">{value}</p>
+        <p className="text-[11px] font-bold uppercase text-on-surface-variant">
+          {label}
+        </p>
+        <p
+          className={`text-sm break-words ${
+            highlight ? "font-bold text-error" : "font-medium text-on-surface"
+          }`}
+        >
+          {value}
+        </p>
       </div>
     </div>
   );

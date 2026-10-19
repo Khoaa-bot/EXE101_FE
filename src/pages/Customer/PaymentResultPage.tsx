@@ -5,7 +5,6 @@ import { formatVnd } from "../../utils/format";
 type PaymentResultPageProps = {
   onHomeClick: () => void;
   onTrackingClick: () => void;
-  onWalletClick: () => void;
 };
 
 // PayOS đôi khi báo "đang xử lý" vài giây sau khi khách đã trả; hỏi lại vài lần trước khi kết luận.
@@ -19,7 +18,6 @@ type Outcome = "loading" | "success" | "cancelled" | "pending" | "error";
 export default function PaymentResultPage({
   onHomeClick,
   onTrackingClick,
-  onWalletClick,
 }: PaymentResultPageProps) {
   const search = window.location.search;
   const params = new URLSearchParams(search);
@@ -89,9 +87,7 @@ export default function PaymentResultPage({
   // Nút chính đưa khách về nơi hợp lý nhất theo loại giao dịch.
   const primaryAction = isInvoice
     ? { label: "Xem lịch hẹn của tôi", onClick: onTrackingClick }
-    : isTopUp
-      ? { label: "Về trang ví", onClick: onWalletClick }
-      : { label: "Về trang chủ", onClick: onHomeClick };
+    : { label: "Về trang chủ", onClick: onHomeClick };
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background p-margin-mobile font-sans text-on-surface">

@@ -1,13 +1,18 @@
-import { useEffect, useState, useRef } from "react";
+import { Fragment, useEffect, useState, useRef } from "react";
 import { useDialogA11y } from "../../hooks/useDialogA11y";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import StarRating from "../../components/StarRating";
 import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCount";
 import {
   createReview,
   getAppointmentHistory,
   requestInvoicePayment,
+  updateReview,
   type AppointmentDto,
+  type Review,
 } from "../../services/api";
+
+const REVIEW_COMMENT_LIMIT = 1000;
 
 type HistoryPageProps = {
   onHomeClick: () => void;
@@ -23,10 +28,14 @@ const filters = [
   { value: "no_show", label: "Không đến" },
 ];
 
+// Lễ tân bàn giao xe sẽ chuyển lịch từ completed sang successful; cả hai đều là đã hoàn thành.
+function isDone(status: string) {
+  return ["completed", "successful", "successed"].includes(status.toLowerCase());
+}
+
 function statusLabel(status: string) {
+  if (isDone(status)) return "Hoàn thành";
   switch (status.toLowerCase()) {
-    case "completed":
-      return "Hoàn thành";
     case "cancelled":
       return "Đã huỷ";
     case "no_show":
@@ -45,14 +54,14 @@ function statusLabel(status: string) {
 function statusTone(status: string) {
   const s = status.toLowerCase();
   if (s === "cancelled" || s === "no_show") return "bg-error-container/30 text-on-error-container";
-  if (s === "completed") return "bg-secondary-container/30 text-on-secondary-container";
+  if (isDone(s)) return "bg-secondary-container/30 text-on-secondary-container";
   return "bg-primary-container/20 text-primary";
 }
 
 function statusIcon(status: string) {
   const s = status.toLowerCase();
   if (s === "cancelled" || s === "no_show") return "cancel";
-  if (s === "completed") return "task_alt";
+  if (isDone(s)) return "task_alt";
   return "build";
 }
 
@@ -76,7 +85,6 @@ export default function HistoryPage({
   const [reviewingRecord, setReviewingRecord] = useState<AppointmentDto | null>(null);
   const reviewRef = useRef<HTMLDivElement>(null);
   useDialogA11y(reviewingRecord !== null, reviewRef, () => setReviewingRecord(null));
-  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
@@ -88,11 +96,32 @@ export default function HistoryPage({
     window.setTimeout(() => setNotice(""), 3000);
   };
 
+  // Mở hộp thoại: lịch hẹn đã có đánh giá thì điền sẵn nội dung cũ để sửa.
   const openReview = (record: AppointmentDto) => {
     setReviewingRecord(record);
-    setReviewRating(5);
-    setReviewComment("");
+    setReviewRating(record.reviewId ? (record.reviewRating ?? 5) : 5);
+    setReviewComment(record.reviewId ? (record.reviewComment ?? "") : "");
     setReviewError(null);
+  };
+
+  const applyReview = (record: AppointmentDto, review: Review) => {
+    setAppointments((prev) =>
+      prev.map((item) =>
+        item.id !== record.id
+          ? item
+          : {
+              ...item,
+              reviewId: review.id,
+              reviewRating: review.rating,
+              reviewComment: review.comment,
+              reviewCreatedAt: review.createdAt,
+              reviewHidden: review.hidden ?? false,
+              reviewReply: review.reply ?? null,
+              reviewCanEdit: item.reviewId ? (item.reviewCanEdit ?? true) : true,
+              reviewEditDaysLeft: item.reviewId ? (item.reviewEditDaysLeft ?? 7) : 7,
+            },
+      ),
+    );
   };
 
   const [payingInvoiceId, setPayingInvoiceId] = useState<number | null>(null);
@@ -114,23 +143,28 @@ export default function HistoryPage({
 
   const submitReview = () => {
     if (!reviewingRecord) return;
+    const record = reviewingRecord;
+    const payload = { rating: reviewRating, comment: reviewComment.trim() || undefined };
+    const isEditing = Boolean(record.reviewId);
     setIsSubmittingReview(true);
     setReviewError(null);
-    createReview({
-      appointmentId: reviewingRecord.id,
-      rating: reviewRating,
-      comment: reviewComment.trim() || undefined,
-    })
-      .then(() => {
-        setReviewedIds((prev) => new Set(prev).add(reviewingRecord.id));
-        showNotice("Cảm ơn bạn đã đánh giá dịch vụ!");
+    (isEditing
+      ? updateReview(record.reviewId as number, payload)
+      : createReview({ appointmentId: record.id, ...payload })
+    )
+      .then((review) => {
+        applyReview(record, review);
+        showNotice(isEditing ? "Đã cập nhật đánh giá của bạn." : "Cảm ơn bạn đã đánh giá dịch vụ!");
         setReviewingRecord(null);
       })
       .catch((err) => {
         const message =
           err instanceof Error ? err.message : "Không thể gửi đánh giá.";
         if (message.toLowerCase().includes("already been reviewed")) {
-          setReviewedIds((prev) => new Set(prev).add(reviewingRecord.id));
+          // Đã có đánh giá từ trước (ví dụ gửi từ thiết bị khác): tải lại để hiện đúng nội dung.
+          getAppointmentHistory()
+            .then(setAppointments)
+            .catch(() => undefined);
           setReviewingRecord(null);
           showNotice("Lịch hẹn này đã được đánh giá trước đó.");
         } else {
@@ -175,10 +209,12 @@ export default function HistoryPage({
   const visibleRecords =
     activeFilter === "all"
       ? appointments
-      : appointments.filter((record) => record.status.toLowerCase() === activeFilter);
+      : appointments.filter((record) =>
+          activeFilter === "completed" ? isDone(record.status) : record.status.toLowerCase() === activeFilter,
+        );
 
   const totalCost = appointments
-    .filter((record) => record.status.toLowerCase() === "completed")
+    .filter((record) => isDone(record.status))
     .reduce((sum, record) => sum + (record.servicePrice || 0), 0);
 
   return (
@@ -380,8 +416,8 @@ export default function HistoryPage({
                   </thead>
                   <tbody className="divide-y divide-outline-variant">
                     {visibleRecords.map((record) => (
+                      <Fragment key={record.id}>
                       <tr
-                        key={record.id}
                         className="group transition-colors hover:bg-surface-container-low"
                       >
                         <td className="px-xl py-lg">
@@ -453,8 +489,8 @@ export default function HistoryPage({
                                 Đã thanh toán
                               </span>
                             )}
-                            {record.status.toLowerCase() === "completed" &&
-                              (reviewedIds.has(record.id) ? (
+                            {isDone(record.status) &&
+                              (record.reviewId ? (
                                 <span className="font-label-sm text-label-sm text-tertiary">
                                   Đã đánh giá
                                 </span>
@@ -473,6 +509,14 @@ export default function HistoryPage({
                           </div>
                         </td>
                       </tr>
+                      {record.reviewId ? (
+                        <tr>
+                          <td colSpan={6} className="px-xl pb-lg pt-0">
+                            <ReviewBlock record={record} onEdit={() => openReview(record)} />
+                          </td>
+                        </tr>
+                      ) : null}
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -539,12 +583,10 @@ export default function HistoryPage({
                         </span>
                       </div>
                     )}
-                    {record.status.toLowerCase() === "completed" && (
+                    {isDone(record.status) && (
                       <div className="mt-md">
-                        {reviewedIds.has(record.id) ? (
-                          <span className="font-label-sm text-label-sm text-tertiary">
-                            Đã đánh giá
-                          </span>
+                        {record.reviewId ? (
+                          <ReviewBlock record={record} onEdit={() => openReview(record)} />
                         ) : (
                           <button
                             type="button"
@@ -621,7 +663,7 @@ export default function HistoryPage({
           <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-lg shadow-xl">
             <div className="flex items-center justify-between">
               <h3 className="font-headline-md text-headline-md">
-                Đánh giá dịch vụ
+                {reviewingRecord.reviewId ? "Sửa đánh giá" : "Đánh giá dịch vụ"}
               </h3>
               <button aria-label="Đóng"
                 type="button"
@@ -666,12 +708,25 @@ export default function HistoryPage({
               </label>
               <textarea id="pages-customer-historypage-field-1"
                 rows={3}
+                maxLength={REVIEW_COMMENT_LIMIT}
                 value={reviewComment}
                 onChange={(e) => setReviewComment(e.target.value)}
                 placeholder="Chia sẻ trải nghiệm của bạn về dịch vụ này..."
                 className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 font-body-md text-body-md outline-none focus:border-primary focus:ring-2 focus:ring-primary"
               />
+              <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+                <span>Tối đa {REVIEW_COMMENT_LIMIT.toLocaleString("vi-VN")} ký tự.</span>
+                <span aria-live="polite">
+                  {reviewComment.length} / {REVIEW_COMMENT_LIMIT.toLocaleString("vi-VN")}
+                </span>
+              </div>
             </div>
+
+            {reviewingRecord.reviewId && reviewingRecord.reviewEditDaysLeft ? (
+              <p className="mt-3 rounded-lg bg-[#fff1cc] px-3 py-2 font-body-sm text-body-sm text-[#6b4200]">
+                Bạn còn {reviewingRecord.reviewEditDaysLeft} ngày để sửa. Sau đó đánh giá sẽ được giữ nguyên.
+              </p>
+            ) : null}
 
             {reviewError && (
               <p className="mt-3 font-body-sm text-body-sm text-error">{reviewError}</p>
@@ -683,7 +738,11 @@ export default function HistoryPage({
               disabled={isSubmittingReview}
               className="mt-lg w-full rounded-lg bg-primary py-3 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
             >
-              {isSubmittingReview ? "Đang gửi..." : "Gửi đánh giá"}
+              {isSubmittingReview
+                ? "Đang gửi..."
+                : reviewingRecord.reviewId
+                  ? "Lưu thay đổi"
+                  : "Gửi đánh giá"}
             </button>
           </div>
         </div>
@@ -696,6 +755,82 @@ export default function HistoryPage({
         >
           {notice}
         </div>
+      )}
+    </div>
+  );
+}
+
+function reviewDate(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("vi-VN");
+}
+
+// Đánh giá khách đã gửi cho một lịch hẹn: sao, nội dung, hạn sửa, trạng thái bị ẩn và phản hồi của garage.
+function ReviewBlock({ record, onEdit }: { record: AppointmentDto; onEdit: () => void }) {
+  const canEdit = record.reviewCanEdit === true;
+  const hidden = record.reviewHidden === true;
+
+  return (
+    <div className="space-y-2 rounded-xl border border-outline-variant bg-surface-container-low px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <b className="font-label-md text-label-md">Đánh giá của bạn</b>
+        <StarRating value={record.reviewRating ?? 0} size={16} />
+        {record.reviewCreatedAt && (
+          <span className="font-label-sm text-label-sm text-on-surface-variant">
+            · gửi {reviewDate(record.reviewCreatedAt)}
+          </span>
+        )}
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          {hidden && (
+            <span className="rounded-full bg-error-container px-2.5 py-0.5 font-label-sm text-label-sm text-on-error-container">
+              Đã bị ẩn khỏi trang garage
+            </span>
+          )}
+          {canEdit ? (
+            <span className="rounded-full bg-[#fff1cc] px-2.5 py-0.5 font-label-sm text-label-sm text-[#6b4200]">
+              Còn {record.reviewEditDaysLeft ?? 1} ngày để sửa
+            </span>
+          ) : (
+            <span className="rounded-full bg-[#e9eaeb] px-2.5 py-0.5 font-label-sm text-label-sm text-[#3a3f4b]">
+              Đã quá hạn sửa
+            </span>
+          )}
+        </span>
+      </div>
+      {record.reviewComment && (
+        <p className="font-body-md text-body-md text-on-surface">{record.reviewComment}</p>
+      )}
+      {hidden && (
+        <p className="flex items-start gap-1.5 font-label-sm text-label-sm text-on-surface-variant">
+          <span aria-hidden="true" className="material-symbols-outlined text-base">
+            info
+          </span>
+          Quản trị viên đã ẩn đánh giá này khỏi trang công khai. Chỉ mình bạn nhìn thấy nó.
+        </p>
+      )}
+      {record.reviewReply && (
+        <div className="flex gap-2 rounded-lg bg-surface-container px-3 py-2 font-label-sm text-label-sm text-on-surface-variant">
+          <span aria-hidden="true" className="material-symbols-outlined text-lg text-primary">
+            subdirectory_arrow_right
+          </span>
+          <div>
+            <b className="text-on-surface">Phản hồi từ garage</b>
+            <p>{record.reviewReply}</p>
+          </div>
+        </div>
+      )}
+      {canEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:underline"
+        >
+          <span aria-hidden="true" className="material-symbols-outlined text-base">
+            edit
+          </span>
+          Sửa đánh giá
+        </button>
       )}
     </div>
   );

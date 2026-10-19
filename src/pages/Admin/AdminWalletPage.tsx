@@ -1,33 +1,21 @@
 import WalletPage from "../Customer/WalletPage";
+import AdminShell, { type AdminNavProps } from "./AdminShell";
 
-type AdminWalletPageProps = {
-  onDashboardClick?: () => void;
-  onLogout?: () => void;
-};
+export type AdminWalletPageProps = AdminNavProps;
 
-// Ví của garage: dùng lại nội dung WalletPage (số dư, rút tiền, lịch sử) trong khung gọn cho chủ garage.
-export default function AdminWalletPage({ onDashboardClick, onLogout }: AdminWalletPageProps) {
+// Ví của garage: dùng lại nội dung WalletPage (số dư, rút tiền, lịch sử) trong AdminShell nhất quán với SuperAdmin.
+export default function AdminWalletPage(props: AdminWalletPageProps) {
   return (
-    <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
-      <header className="flex items-center justify-between border-b border-outline-variant bg-surface-container-lowest px-margin-mobile py-3 md:px-margin-desktop">
-        <button
-          type="button"
-          onClick={onDashboardClick}
-          className="flex items-center gap-2 font-label-md text-label-md text-primary"
-        >
-          <span className="material-symbols-outlined">arrow_back</span>
-          Về Dashboard
-        </button>
-        <h1 className="font-headline-md text-headline-md font-bold">Ví garage</h1>
-        {onLogout ? (
-          <button type="button" onClick={onLogout} className="font-label-md text-label-md text-error">
-            Đăng xuất
-          </button>
-        ) : (
-          <span />
-        )}
-      </header>
-      <WalletPage />
-    </div>
+    <AdminShell
+      activeTab="wallet"
+      title="Ví garage"
+      description="Quản lý số dư, yêu cầu rút tiền doanh thu về tài khoản ngân hàng và theo dõi lịch sử dòng tiền."
+      maxWidthClass="max-w-6xl"
+      {...props}
+    >
+      <div className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-4 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] md:p-6">
+        <WalletPage />
+      </div>
+    </AdminShell>
   );
 }

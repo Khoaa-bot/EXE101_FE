@@ -7,45 +7,16 @@ import {
   getMyProfile,
   type MaintenanceService,
 } from "../../services/api";
+import AdminShell, { StatusPill, type AdminNavProps } from "./AdminShell";
 
-const navItems = [
-  ["dashboard", "Dashboard"],
-  ["engineering", "Nhân viên"],
-  ["groups", "Khách hàng"],
-  ["history", "Lịch sử lịch hẹn"],
-  ["inventory_2", "Kho linh kiện"],
-  ["payments", "Bảng giá"],
-  ["storefront", "Thông tin garage"],
-  ["account_balance_wallet", "Ví garage"],
-];
-
-type AdminPricingPageProps = {
-  onDashboardClick?: () => void;
-  onEngineersClick?: () => void;
-  onCustomersClick?: () => void;
-  onAppointmentsClick?: () => void;
-  onInventoryClick?: () => void;
-  onPricingClick?: () => void;
-  onGarageClick?: () => void;
-  onWalletClick?: () => void;
-  onLogout?: () => void;
-};
+export type AdminPricingPageProps = AdminNavProps;
 
 const formatPrice = (n: number) => `${n.toLocaleString("vi-VN")}đ`;
 
-export default function AdminPricingPage({
-  onDashboardClick,
-  onEngineersClick,
-  onCustomersClick,
-  onAppointmentsClick,
-  onInventoryClick,
-  onPricingClick,
-  onGarageClick,
-  onWalletClick,
-  onLogout,
-}: AdminPricingPageProps) {
+export default function AdminPricingPage(props: AdminPricingPageProps) {
   const [list, setList] = useState<MaintenanceService[]>([]);
   const [myGarageId, setMyGarageId] = useState<number | null>(null);
+  const [garageName, setGarageName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -71,12 +42,10 @@ export default function AdminPricingPage({
   const loadServices = () => {
     setIsLoading(true);
     setLoadError(null);
-    // Lấy garageId của chính admin đang đăng nhập để chỉ hiện dịch vụ dùng
-    // chung + dịch vụ riêng của garage này — tránh hiện lẫn dịch vụ riêng mà
-    // garage khác vừa thêm.
     getMyProfile()
       .then((profile) => {
         setMyGarageId(profile.garageId ?? null);
+        setGarageName(profile.garageName ?? "");
         return getAllServices(profile.garageId ?? undefined);
       })
       .then((data) => setList(data))
@@ -112,7 +81,11 @@ export default function AdminPricingPage({
   const visiblePricing = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return list;
-    return list.filter((item) => item.name.toLowerCase().includes(q));
+    return list.filter(
+      (item) =>
+        item.name.toLowerCase().includes(q) ||
+        (item.description ?? "").toLowerCase().includes(q),
+    );
   }, [list, query]);
 
   const submitNewPricing = (e: React.FormEvent) => {
@@ -146,234 +119,137 @@ export default function AdminPricingPage({
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
-      {/* Sidebar Navigation */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-outline-variant bg-surface-container-lowest p-lg md:flex">
-        <div className="mb-xl">
-          <div className="flex items-center gap-2 text-primary">
-            <span className="material-symbols-outlined text-3xl">
-              electric_car
-            </span>
-            <span className="font-headline-lg text-headline-lg font-bold">
-              Servio
-            </span>
+    <AdminShell
+      activeTab="pricing"
+      title="Bảng giá dịch vụ"
+      description="Danh sách dịch vụ bảo dưỡng, sửa chữa và bảng giá niêm yết của garage."
+      garageName={garageName}
+      notice={notice}
+      maxWidthClass="max-w-7xl"
+      headerAction={
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition hover:opacity-90 active:scale-[0.98]"
+        >
+          <span className="material-symbols-outlined text-lg">add_circle</span>
+          Thêm dịch vụ mới
+        </button>
+      }
+      {...props}
+    >
+      {/* Search and Counter */}
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <input
+          aria-label="Tìm kiếm dịch vụ..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Tìm kiếm theo tên dịch vụ, mô tả..."
+          className="min-h-11 w-80 max-w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+        />
+        <span className="ml-auto text-xs text-on-surface-variant">
+          {isLoading
+            ? "Đang tải dữ liệu..."
+            : `Hiển thị ${visiblePricing.length} / ${list.length} dịch vụ`}
+        </span>
+      </div>
+
+      {/* Pricing Table */}
+      <div className="overflow-hidden rounded-2xl border border-outline-variant/50 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+        {isLoading && (
+          <div className="flex items-center justify-center gap-2 p-8 text-body-sm text-on-surface-variant">
+            <span className="material-symbols-outlined animate-spin text-primary">sync</span>
+            <span>Đang tải bảng giá dịch vụ...</span>
           </div>
-          <p className="mt-1 text-xs text-on-surface-variant">
-            Quản trị garage
-          </p>
-        </div>
-        <nav className="space-y-1">
-          {navItems.map(([icon, label]) => {
-            const isCurrent = label === "Bảng giá";
-            return (
-              <button
-                key={label}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left font-body-md text-body-md transition-colors active:scale-[0.98] ${
-                  isCurrent
-                    ? "bg-primary-container/15 font-semibold text-primary"
-                    : "text-on-surface-variant hover:bg-surface-container-low"
-                }`}
-                type="button"
-                onClick={() => {
-                  if (label === "Dashboard") onDashboardClick?.();
-                  else if (label === "Nhân viên") onEngineersClick?.();
-                  else if (label === "Khách hàng") onCustomersClick?.();
-                  else if (label === "Lịch sử lịch hẹn") onAppointmentsClick?.();
-                  else if (label === "Kho linh kiện") onInventoryClick?.();
-                  else if (label === "Bảng giá") onPricingClick?.();
-                  else if (label === "Thông tin garage") onGarageClick?.();
-                  else if (label === "Ví garage") onWalletClick?.();
-                }}
-              >
-                <span className="material-symbols-outlined">{icon}</span>
-                {label}
-              </button>
-            );
-          })}
-        </nav>
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
-            type="button"
-          >
-            <span className="material-symbols-outlined">logout</span>
-            Đăng xuất
-          </button>
         )}
-      </aside>
 
-      {/* Main Content Area */}
-      <main className="min-h-[100dvh] md:ml-60">
-        {/* Header Bar */}
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-outline-variant bg-surface/95 px-margin-mobile backdrop-blur md:px-margin-desktop">
-          <button
-            className="rounded-full p-2 text-on-surface-variant md:hidden"
-            type="button"
-            aria-label="Mở menu"
-          >
-            <span className="material-symbols-outlined">menu</span>
-          </button>
-          <label className="relative hidden w-full max-w-[28rem] md:block">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-              search
-            </span>
-            <input
-              className="w-full rounded-full border border-outline-variant bg-surface-container-low px-4 py-2 pl-10 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-              placeholder="Tìm kiếm dịch vụ..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </label>
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container"
-              type="button"
-              aria-label="Thông báo"
-            >
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
-            <div className="ml-2 flex items-center gap-2 border-l border-outline-variant pl-3">
-              <div className="hidden text-right sm:block">
-                <p className="font-label-md text-label-md">Quản trị viên</p>
-              </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
-                A
-              </div>
-            </div>
-          </div>
-        </header>
+        {!isLoading && loadError && (
+          <div className="p-6 text-body-sm text-error">{loadError}</div>
+        )}
 
-        {/* Page Content */}
-        <div className="mx-auto max-w-[1440px] p-margin-mobile md:p-margin-desktop">
-          {/* Header Banner */}
-          <section className="mb-xl flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="font-headline-lg text-headline-lg font-bold">
-                Bảng giá dịch vụ
-              </h1>
-              <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
-                Danh sách dịch vụ bảo dưỡng, sửa chữa và đơn giá niêm yết.
-              </p>
-            </div>
-            <button
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98]"
-              type="button"
-              onClick={() => setAddOpen(true)}
-            >
-              <span className="material-symbols-outlined text-lg">
-                add_circle
-              </span>
-              Thêm dịch vụ mới
-            </button>
-          </section>
+        {!isLoading && !loadError && (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px] text-left text-sm">
+              <thead className="bg-surface-container-low text-[11px] uppercase tracking-wider text-on-surface-variant">
+                <tr>
+                  <th className="px-5 py-3 font-bold">Tên dịch vụ</th>
+                  <th className="px-5 py-3 font-bold">Mô tả</th>
+                  <th className="px-5 py-3 font-bold">Thời gian ước tính</th>
+                  <th className="px-5 py-3 font-bold">Đơn giá</th>
+                  <th className="px-5 py-3 font-bold">Phạm vi</th>
+                  <th className="px-5 py-3 text-right font-bold">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/50">
+                {visiblePricing.map((item) => {
+                  const isMine =
+                    item.garageId !== null && item.garageId === myGarageId;
 
-          {/* Pricing Table Section */}
-          <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant p-lg">
-              <span className="text-xs text-outline">
-                Hiển thị {visiblePricing.length} dịch vụ
-              </span>
-            </div>
-
-            {isLoading && (
-              <p className="p-lg text-body-sm text-on-surface-variant">
-                Đang tải bảng giá...
-              </p>
-            )}
-
-            {!isLoading && loadError && (
-              <p className="p-lg text-body-sm text-error">{loadError}</p>
-            )}
-
-            {!isLoading && !loadError && (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px] text-left text-body-sm">
-                  <thead className="bg-surface-container-low text-xs text-outline">
-                    <tr>
-                      <th className="px-5 py-3 font-semibold">Tên dịch vụ</th>
-                      <th className="px-5 py-3 font-semibold">Mô tả</th>
-                      <th className="px-5 py-3 font-semibold">Thời gian dự kiến</th>
-                      <th className="px-5 py-3 font-semibold">Đơn giá</th>
-                      <th className="px-5 py-3 font-semibold">Phạm vi</th>
-                      <th className="px-5 py-3 font-semibold text-right">Thao tác</th>
+                  return (
+                    <tr
+                      key={item.id}
+                      className="transition-colors hover:bg-surface-container-low"
+                    >
+                      <td className="px-5 py-3.5 font-semibold text-on-surface">
+                        {item.name}
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-on-surface-variant max-w-xs truncate">
+                        {item.description || "—"}
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-on-surface-variant">
+                        {item.duration ? (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[15px] text-primary">
+                              schedule
+                            </span>
+                            {item.duration}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 font-bold font-mono text-primary text-sm">
+                        {formatPrice(item.price)}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {isMine ? (
+                          <StatusPill tone="primary">Riêng garage</StatusPill>
+                        ) : (
+                          <StatusPill tone="neutral">Dùng chung</StatusPill>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        {isMine && (
+                          <button
+                            type="button"
+                            onClick={() => removeService(item)}
+                            disabled={deletingId === item.id}
+                            className="inline-flex items-center gap-1 rounded-xl border border-error/30 bg-error-container/20 px-2.5 py-1 text-xs font-semibold text-error hover:bg-error-container/50 transition-colors disabled:opacity-50"
+                          >
+                            <span className="material-symbols-outlined text-base">delete</span>
+                            {deletingId === item.id ? "Đang xóa..." : "Xóa"}
+                          </button>
+                        )}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {visiblePricing.map((item) => {
-                      const isMine = item.garageId !== null && item.garageId === myGarageId;
-                      return (
-                      <tr
-                        key={item.id}
-                        className="border-t border-outline-variant transition-colors hover:bg-surface-container-low"
-                      >
-                        <td className="px-5 py-4">
-                          <p className="font-semibold text-on-surface">
-                            {item.name}
-                          </p>
-                        </td>
-                        <td className="px-5 py-4 text-on-surface-variant">
-                          {item.description || "—"}
-                        </td>
-                        <td className="px-5 py-4 text-on-surface-variant">
-                          {item.duration ? (
-                            <span className="inline-flex items-center gap-1">
-                              <span className="material-symbols-outlined text-sm text-outline">
-                                schedule
-                              </span>
-                              {item.duration}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td className="px-5 py-4 font-bold text-primary font-mono text-base">
-                          {formatPrice(item.price)}
-                        </td>
-                        <td className="px-5 py-4 text-on-surface-variant">
-                          {isMine ? (
-                            <span className="rounded-full bg-secondary-container px-2 py-0.5 text-xs text-on-secondary-container">
-                              Riêng garage này
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-surface-container px-2 py-0.5 text-xs">
-                              Dùng chung
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          {isMine && (
-                            <button
-                              type="button"
-                              onClick={() => removeService(item)}
-                              disabled={deletingId === item.id}
-                              className="rounded-lg border border-error/30 px-3 py-1.5 text-xs font-semibold text-error hover:bg-error-container/10 disabled:opacity-60"
-                            >
-                              {deletingId === item.id ? "Đang xóa..." : "Xóa"}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                      );
-                    })}
+                  );
+                })}
 
-                    {visiblePricing.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-5 py-8 text-center text-on-surface-variant"
-                        >
-                          Không có dịch vụ nào phù hợp.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        </div>
-      </main>
+                {visiblePricing.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-5 py-8 text-center text-sm text-on-surface-variant"
+                    >
+                      Không tìm thấy dịch vụ nào phù hợp với tìm kiếm.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* Add New Pricing Modal */}
       {addOpen && (
@@ -382,83 +258,104 @@ export default function AdminPricingPage({
           role="dialog"
           aria-modal="true"
           aria-label="Thêm dịch vụ mới vào bảng giá"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-[fade-in_0.15s_ease-out]"
         >
-          <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl">
-            <h3 className="font-headline-md text-lg font-bold">
-              Thêm dịch vụ mới vào bảng giá
-            </h3>
-            <form onSubmit={submitNewPricing} className="mt-4 space-y-4">
+          <div className="w-full max-w-[30rem] rounded-2xl border border-outline-variant/50 bg-surface-container-lowest p-6 shadow-[0_18px_40px_-12px_rgba(25,28,29,0.4)]">
+            <div className="flex items-center gap-3 border-b border-outline-variant/40 pb-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary">
+                <span className="material-symbols-outlined">add_circle</span>
+              </span>
               <div>
-                <label htmlFor="pages-admin-adminpricingpage-field-1" className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                <h3 className="text-base font-bold text-on-surface">Thêm dịch vụ mới</h3>
+                <p className="text-xs text-on-surface-variant">
+                  Dịch vụ sẽ hiển thị trong bảng giá cho khách đặt lịch
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={submitNewPricing} className="mt-4 space-y-3.5">
+              <div>
+                <label
+                  htmlFor="new-service-name"
+                  className="mb-1 block text-xs font-semibold text-on-surface-variant"
+                >
                   Tên dịch vụ *
                 </label>
-                <input id="pages-admin-adminpricingpage-field-1"
+                <input
+                  id="new-service-name"
                   type="text"
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="Ví dụ: Thay bình ắc quy 12V phụ"
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label htmlFor="pages-admin-adminpricingpage-field-2" className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                <label
+                  htmlFor="new-service-price"
+                  className="mb-1 block text-xs font-semibold text-on-surface-variant"
+                >
                   Đơn giá (VNĐ) *
                 </label>
-                <input id="pages-admin-adminpricingpage-field-2"
+                <input
+                  id="new-service-price"
                   type="text"
                   required
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
                   placeholder="800000"
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label htmlFor="pages-admin-adminpricingpage-field-3" className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                <label
+                  htmlFor="new-service-duration"
+                  className="mb-1 block text-xs font-semibold text-on-surface-variant"
+                >
                   Thời gian thực hiện ước tính
                 </label>
-                <input id="pages-admin-adminpricingpage-field-3"
+                <input
+                  id="new-service-duration"
                   type="text"
                   value={form.duration}
-                  onChange={(e) =>
-                    setForm({ ...form, duration: e.target.value })
-                  }
-                  placeholder="60 phút"
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  onChange={(e) => setForm({ ...form, duration: e.target.value })}
+                  placeholder="Ví dụ: 60 phút"
+                  className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label htmlFor="pages-admin-adminpricingpage-field-4" className="block mb-1 text-xs font-semibold text-on-surface-variant">
+                <label
+                  htmlFor="new-service-desc"
+                  className="mb-1 block text-xs font-semibold text-on-surface-variant"
+                >
                   Mô tả dịch vụ
                 </label>
-                <textarea id="pages-admin-adminpricingpage-field-4"
+                <textarea
+                  id="new-service-desc"
                   rows={3}
                   value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
-                  placeholder="Mô tả ngắn về dịch vụ..."
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="Mô tả các hạng mục chi tiết trong quy trình..."
+                  className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
-              <div className="mt-6 flex justify-end gap-2">
+              <div className="mt-6 flex justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setAddOpen(false)}
-                  className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold hover:bg-surface-container-low"
+                  className="rounded-xl border border-outline-variant px-4 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container-low transition-colors"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90 disabled:opacity-60"
+                  className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-60"
                 >
                   {isSubmitting ? "Đang thêm..." : "Xác nhận thêm"}
                 </button>
@@ -467,27 +364,6 @@ export default function AdminPricingPage({
           </div>
         </div>
       )}
-
-      {/* Floating Notice Toast */}
-      {notice && (
-        <div
-          className={`fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-lg border px-4 py-3 text-body-sm shadow-lg animate-[toast-in_0.2s_ease-out] ${
-            notice.type === "success"
-              ? "border-tertiary/30 bg-surface-container-lowest text-on-surface"
-              : "border-error/30 bg-surface-container-lowest text-on-surface"
-          }`}
-          role="status"
-        >
-          <span
-            className={`material-symbols-outlined text-lg ${
-              notice.type === "success" ? "text-tertiary" : "text-error"
-            }`}
-          >
-            {notice.type === "success" ? "check_circle" : "error"}
-          </span>
-          {notice.message}
-        </div>
-      )}
-    </div>
+    </AdminShell>
   );
 }

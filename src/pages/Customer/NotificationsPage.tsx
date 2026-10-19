@@ -7,8 +7,10 @@ import {
   type AppNotification,
   type NotificationType,
 } from "../../services/api";
+import { MAINTENANCE_TITLE_OVERDUE, MAINTENANCE_TITLE_SOON } from "../../utils/maintenance";
 
 type NotificationsPageProps = {
+  onBookingClick: () => void;
   onHomeClick: () => void;
   onHistoryClick: () => void;
   onProfileClick: () => void;
@@ -83,6 +85,7 @@ function formatRelativeTime(isoDate: string): string {
 }
 
 export default function NotificationsPage({
+  onBookingClick,
   onHomeClick,
   onHistoryClick,
   onProfileClick,
@@ -342,6 +345,7 @@ export default function NotificationsPage({
                     key={notification.id}
                     item={notification}
                     onRead={() => markOneAsRead(notification.id)}
+                    onBook={onBookingClick}
                   />
                 ))}
               </section>
@@ -395,15 +399,31 @@ export default function NotificationsPage({
 function NotificationCard({
   item,
   onRead,
+  onBook,
 }: {
   item: AppNotification;
   onRead: () => void;
+  onBook: () => void;
 }) {
-  const meta = typeMeta[item.type] ?? typeMeta.SYSTEM;
+  const overdue = item.type === "VEHICLE" && item.title === MAINTENANCE_TITLE_OVERDUE;
+  const isMaintenance = overdue || (item.type === "VEHICLE" && item.title === MAINTENANCE_TITLE_SOON);
+  const meta: { icon: string; iconClassName: string } = isMaintenance
+    ? {
+        icon: overdue ? "warning" : "schedule",
+        iconClassName: overdue
+          ? "bg-error-container text-on-error-container"
+          : "bg-[#ffe9c7] text-[#6b4000]",
+      }
+    : (typeMeta[item.type] ?? typeMeta.SYSTEM);
+  const accent = isMaintenance
+    ? overdue
+      ? "border-l-4 border-l-error"
+      : "border-l-4 border-l-[#b36a00]"
+    : "";
 
   return (
     <article
-      className={`group relative flex cursor-pointer gap-lg rounded-xl border border-outline-variant bg-surface-container-lowest p-lg transition-all hover:bg-surface-container ${
+      className={`group relative flex cursor-pointer gap-lg rounded-xl border border-outline-variant bg-surface-container-lowest p-lg transition-all hover:bg-surface-container ${accent} ${
         item.isRead ? "opacity-80" : ""
       }`}
       onClick={onRead}
@@ -435,6 +455,21 @@ function NotificationCard({
         <p className="mt-1 font-body-md text-body-md leading-relaxed text-on-surface-variant">
           {item.message}
         </p>
+        {isMaintenance && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onRead();
+              onBook();
+            }}
+            className={`mt-3 min-h-11 rounded-lg px-lg font-label-md text-label-md text-white transition-all hover:shadow-lg active:scale-95 ${
+              overdue ? "bg-error" : "bg-primary"
+            }`}
+          >
+            Đặt lịch ngay
+          </button>
+        )}
       </div>
     </article>
   );

@@ -4,6 +4,7 @@ import {
   getMyProfile,
   type AdminCustomer,
 } from "../../services/api";
+import AdminShell, { FilterChip, StatusPill, type AdminNavProps } from "./AdminShell";
 
 export type Customer = {
   id: string;
@@ -21,7 +22,7 @@ export type Customer = {
   isBanned: boolean;
 };
 
-function mapApiCustomer(c: AdminCustomer): Customer {
+export function mapApiCustomer(c: AdminCustomer): Customer {
   const initials = c.username
     .split(" ")
     .map((s) => s[0])
@@ -46,41 +47,13 @@ function mapApiCustomer(c: AdminCustomer): Customer {
   };
 }
 
-const navItems = [
-  ["dashboard", "Dashboard"],
-  ["engineering", "Nhân viên"],
-  ["groups", "Khách hàng"],
-  ["history", "Lịch sử lịch hẹn"],
-  ["inventory_2", "Kho linh kiện"],
-  ["payments", "Bảng giá"],
-  ["storefront", "Thông tin garage"],
-  ["account_balance_wallet", "Ví garage"],
-];
-
-type AdminCustomersPageProps = {
-  onDashboardClick?: () => void;
-  onEngineersClick?: () => void;
-  onCustomersClick?: () => void;
-  onAppointmentsClick?: () => void;
-  onInventoryClick?: () => void;
-  onPricingClick?: () => void;
-  onGarageClick?: () => void;
-  onWalletClick?: () => void;
+export interface AdminCustomersPageProps extends AdminNavProps {
   onCustomerDetailClick?: (customer: Customer) => void;
-  onLogout?: () => void;
-};
+}
 
 export default function AdminCustomersPage({
-  onDashboardClick,
-  onEngineersClick,
-  onCustomersClick,
-  onAppointmentsClick,
-  onInventoryClick,
-  onPricingClick,
-  onGarageClick,
-  onWalletClick,
   onCustomerDetailClick,
-  onLogout,
+  ...navProps
 }: AdminCustomersPageProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filter, setFilter] = useState<Customer["state"]>("all");
@@ -105,7 +78,11 @@ export default function AdminCustomersPage({
         setLoading(false);
       })
       .catch((err) => {
-        setNotice(err instanceof Error ? err.message : "Không thể tải danh sách khách hàng");
+        setNotice(
+          err instanceof Error
+            ? err.message
+            : "Không thể tải danh sách khách hàng",
+        );
         setLoading(false);
       });
   }, []);
@@ -114,7 +91,11 @@ export default function AdminCustomersPage({
     const now = new Date();
     const newThisMonth = customers.filter((c) => {
       const d = new Date(c.createdAtRaw);
-      return !isNaN(d.getTime()) && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      return (
+        !isNaN(d.getTime()) &&
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth()
+      );
     }).length;
     return {
       total: customers.length,
@@ -129,357 +110,212 @@ export default function AdminCustomersPage({
       customers.filter(
         (customer) =>
           (filter === "all" || customer.state === filter) &&
-          `${customer.name} ${customer.plate}`
-            .toLocaleLowerCase()
-            .includes(query.toLocaleLowerCase()),
+          `${customer.name} ${customer.plate} ${customer.phone} ${customer.email}`
+            .toLowerCase()
+            .includes(query.trim().toLowerCase()),
       ),
     [filter, query, customers],
   );
 
   return (
-    <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-outline-variant bg-surface-container-lowest p-lg md:flex">
-        <div className="mb-xl">
-          <div className="flex items-center gap-2 text-primary">
-            <span className="material-symbols-outlined text-3xl">
-              electric_car
+    <AdminShell
+      activeTab="customers"
+      title="Quản lý khách hàng"
+      description="Xem và quản lý danh sách khách hàng và phương tiện tại garage."
+      garageName={garageName}
+      notice={notice}
+      maxWidthClass="max-w-7xl"
+      {...navProps}
+    >
+      {/* Top Metric Cards */}
+      <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <CustomerMetric
+          icon="groups"
+          tone="bg-primary-fixed text-on-primary-fixed-variant"
+          label="Tổng khách hàng"
+          value={String(stats.total)}
+          hint="Đã tạo tài khoản hoặc sử dụng dịch vụ"
+        />
+        <CustomerMetric
+          icon="directions_car"
+          tone="bg-[#d9f7dd] text-[#00531a]"
+          label="Xe đang đăng ký"
+          value={String(stats.totalVehicles)}
+          hint="Phương tiện trong hồ sơ khách"
+        />
+        <CustomerMetric
+          icon="person_add"
+          tone="bg-[#fff1cc] text-[#6b4200]"
+          label="Khách mới tháng này"
+          value={String(stats.newThisMonth)}
+          hint="Gia nhập trong tháng hiện tại"
+        />
+        <CustomerMetric
+          icon="block"
+          tone="bg-[#ffe4d6] text-[#7a2e00]"
+          label="Đang bị chặn"
+          value={String(stats.banned)}
+          hint="Tài khoản bị hạn chế"
+        />
+      </section>
+
+      {/* Filter and Search Bar */}
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <input
+          aria-label="Tìm kiếm khách hàng..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Tìm theo tên, biển số, SĐT, email..."
+          className="min-h-11 w-80 max-w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+        />
+
+        <div role="group" aria-label="Lọc theo trạng thái" className="flex flex-wrap gap-2">
+          <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
+            Tất cả
+          </FilterChip>
+          <FilterChip active={filter === "repair"} onClick={() => setFilter("repair")}>
+            <span aria-hidden="true" className="material-symbols-outlined text-base">
+              block
             </span>
-            <span className="font-headline-lg text-headline-lg font-bold">
-              Servio
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-on-surface-variant">
-            Quản trị garage
-          </p>
+            Đang bị chặn
+          </FilterChip>
         </div>
-        <nav className="space-y-1">
-          {navItems.map(([icon, label]) => (
-            <button
-              key={label}
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left font-body-md text-body-md transition-colors active:scale-[0.98] ${label === "Khách hàng" ? "bg-primary-container/15 font-semibold text-primary" : "text-on-surface-variant hover:bg-surface-container-low"}`}
-              type="button"
-              onClick={() => {
-                if (label === "Dashboard") onDashboardClick?.();
-                else if (label === "Nhân viên") onEngineersClick?.();
-                else if (label === "Khách hàng") onCustomersClick?.();
-                else if (label === "Lịch sử lịch hẹn") onAppointmentsClick?.();
-                else if (label === "Kho linh kiện") onInventoryClick?.();
-                else if (label === "Bảng giá") onPricingClick?.();
-                else if (label === "Thông tin garage") onGarageClick?.();
-                else if (label === "Ví garage") onWalletClick?.();
-              }}
-            >
-              <span className="material-symbols-outlined">{icon}</span>
-              {label}
-            </button>
-          ))}
-        </nav>
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
-            type="button"
-          >
-            <span className="material-symbols-outlined">logout</span>
-            Đăng xuất
-          </button>
-        )}
-      </aside>
-      <main className="min-h-[100dvh] md:ml-60">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-outline-variant bg-surface/95 px-margin-mobile backdrop-blur md:px-margin-desktop">
-          <button
-            className="rounded-full p-2 text-on-surface-variant md:hidden"
-            type="button"
-            aria-label="Mở menu"
-          >
-            <span className="material-symbols-outlined">menu</span>
-          </button>
-          <label className="relative hidden w-full max-w-[28rem] md:block">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-              search
-            </span>
-            <input
-              className="w-full rounded-full border border-outline-variant bg-surface-container-low px-4 py-2 pl-10 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-              placeholder="Tìm kiếm khách hàng hoặc biển số..."
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container"
-              type="button"
-              aria-label="Thông báo"
-            >
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
-            <div className="ml-2 flex items-center gap-2 border-l border-outline-variant pl-3">
-              <div className="hidden text-right sm:block">
-                <p className="font-label-md text-label-md">Quản trị viên</p>
-                <p className="text-[11px] text-on-surface-variant">
-                  {garageName}
-                </p>
-              </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
-                A
-              </div>
-            </div>
-          </div>
-        </header>
-        <div className="mx-auto max-w-[1440px] p-margin-mobile md:p-margin-desktop">
-          <section className="mb-xl flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="font-headline-lg text-headline-lg font-bold">
-                Quản lý khách hàng
-              </h1>
-              <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
-                Xem và quản lý danh sách khách hàng và phương tiện tại hệ thống.
-              </p>
-            </div>
-          </section>
-          <section className="mb-xl grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Metric
-              icon="groups"
-              label="Tổng khách hàng"
-              value={String(stats.total)}
-            />
-            <Metric
-              icon="directions_car"
-              label="Xe đang đăng ký"
-              value={String(stats.totalVehicles)}
-            />
-            <Metric
-              icon="handyman"
-              label="Khách mới tháng này"
-              value={String(stats.newThisMonth)}
-            />
-            <Metric
-              icon="block"
-              label="Đang bị cấm"
-              value={String(stats.banned)}
-            />
-          </section>
-          <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant p-lg">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex rounded-lg border border-outline-variant bg-surface-container-low p-1">
-                  {(
-                    [
-                      ["all", "Tất cả"],
-                      ["repair", "Đang bị cấm"],
-                    ] as const
-                  ).map(([value, label]) => (
+
+        <span className="ml-auto text-xs text-on-surface-variant">
+          {loading
+            ? "Đang tải dữ liệu..."
+            : `Hiển thị ${visibleCustomers.length} / ${customers.length} khách hàng`}
+        </span>
+      </div>
+
+      {/* Customers Table */}
+      <div className="overflow-hidden rounded-2xl border border-outline-variant/50 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-left text-sm">
+            <thead className="bg-surface-container-low text-[11px] uppercase tracking-wider text-on-surface-variant">
+              <tr>
+                <th className="px-5 py-3 font-bold">Khách hàng</th>
+                <th className="px-5 py-3 font-bold">Liên hệ</th>
+                <th className="px-5 py-3 font-bold">Phương tiện</th>
+                <th className="px-5 py-3 font-bold">Trạng thái</th>
+                <th className="px-5 py-3 font-bold">Ngày tham gia</th>
+                <th className="px-5 py-3 text-right font-bold">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-outline-variant/50">
+              {visibleCustomers.map((customer, index) => (
+                <tr
+                  key={customer.id}
+                  className="transition-colors hover:bg-surface-container-low"
+                >
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ${
+                          index % 2
+                            ? "bg-secondary-fixed text-on-secondary-fixed-variant"
+                            : "bg-primary-fixed text-on-primary-fixed-variant"
+                        }`}
+                      >
+                        {customer.initials}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-on-surface">
+                          {customer.name}
+                        </p>
+                        <p className="text-xs text-on-surface-variant">
+                          ID: #{customer.id}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5 text-xs text-on-surface-variant leading-5">
+                    <p className="font-medium text-on-surface">{customer.phone}</p>
+                    <p>{customer.email}</p>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-on-surface">
+                      <span className="material-symbols-outlined text-base text-primary">
+                        electric_car
+                      </span>
+                      {customer.vehicle}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    {customer.isBanned ? (
+                      <StatusPill tone="error">Bị chặn</StatusPill>
+                    ) : (
+                      <StatusPill tone="success">Hoạt động</StatusPill>
+                    )}
+                  </td>
+                  <td className="px-5 py-3.5 text-xs text-on-surface-variant">
+                    {customer.servicedAt}
+                  </td>
+                  <td className="px-5 py-3.5 text-right">
                     <button
-                      key={value}
-                      className={`rounded-md px-4 py-1.5 font-label-md text-label-md ${filter === value ? "bg-surface-container-lowest text-primary shadow-sm" : "text-on-surface-variant hover:text-primary"}`}
+                      className="inline-flex items-center gap-1 rounded-xl border border-outline-variant px-3 py-1.5 text-xs font-semibold text-on-surface transition-colors hover:border-primary hover:bg-primary-fixed/20 hover:text-primary"
                       type="button"
-                      onClick={() => setFilter(value)}
+                      onClick={() => onCustomerDetailClick?.(customer)}
                     >
-                      {label}
+                      <span className="material-symbols-outlined text-base">visibility</span>
+                      Chi tiết
                     </button>
-                  ))}
-                </div>
-              </div>
-              <p className="text-xs text-outline">
-                {loading ? "Đang tải..." : `Hiển thị ${visibleCustomers.length} khách hàng`}
-              </p>
-            </div>
-            <CustomerTable
-              customers={visibleCustomers}
-              onCustomerDetailClick={onCustomerDetailClick}
-            />
-          </section>
-          <section className="mt-xl grid gap-xl xl:grid-cols-3">
-            {/* <RecentActivity /> */}
-            {/* <SystemStatus /> */}
-          </section>
+                  </td>
+                </tr>
+              ))}
+
+              {loading && (
+                <tr>
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-on-surface-variant">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="material-symbols-outlined animate-spin text-primary">sync</span>
+                      <span>Đang tải danh sách khách hàng...</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {!loading && visibleCustomers.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-on-surface-variant">
+                    Không tìm thấy khách hàng nào phù hợp với bộ lọc.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </main>
-      {notice && (
-        <div
-          className="fixed bottom-5 right-5 z-50 rounded-lg bg-inverse-surface px-4 py-3 text-body-sm text-inverse-on-surface shadow-lg"
-          role="status"
-        >
-          {notice}
-        </div>
-      )}
-    </div>
+      </div>
+    </AdminShell>
   );
 }
 
-function Metric({
+function CustomerMetric({
   icon,
+  tone,
   label,
   value,
+  hint,
 }: {
   icon: string;
+  tone: string;
   label: string;
   value: string;
+  hint: string;
 }) {
   return (
-    <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg">
-      <span className="material-symbols-outlined rounded-lg bg-surface-container-high p-2 text-primary">
-        {icon}
+    <article className="flex items-center gap-3.5 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-4 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+      <span
+        aria-hidden="true"
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] ${tone}`}
+      >
+        <span className="material-symbols-outlined">{icon}</span>
       </span>
-      <p className="mt-3 font-label-md text-label-md text-outline">{label}</p>
-      <p className="mt-1 font-headline-lg text-headline-lg">{value}</p>
+      <div className="min-w-0">
+        <p className="text-xs text-on-surface-variant">{label}</p>
+        <p className="text-xl font-extrabold text-on-surface">{value}</p>
+        <p className="truncate text-[11px] text-on-surface-variant">{hint}</p>
+      </div>
     </article>
   );
 }
-function CustomerTable({
-  customers,
-  onCustomerDetailClick,
-}: {
-  customers: Customer[];
-  onCustomerDetailClick?: (customer: Customer) => void;
-}) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[1000px] text-left text-body-sm">
-        <thead className="bg-surface-container-low text-xs text-outline">
-          <tr>
-            {[
-              "Khách hàng",
-              "Liên hệ",
-              "Phương tiện",
-              "Biển số",
-              "Lần bảo dưỡng cuối",
-              "Thao tác",
-            ].map((label) => (
-              <th
-                key={label}
-                className={`px-lg py-4 font-semibold ${label === "Thao tác" ? "text-right" : ""}`}
-              >
-                {label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {customers.map((customer, index) => (
-            <tr
-              key={customer.id}
-              className="border-t border-outline-variant transition-colors hover:bg-surface-container-low"
-            >
-              <td className="px-lg py-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${index % 2 ? "bg-secondary-fixed text-secondary" : "bg-primary-fixed text-primary"}`}
-                  >
-                    {customer.initials}
-                  </div>
-                  <div>
-                    <p className="font-label-md text-label-md">
-                      {customer.name}
-                    </p>
-                    <p className="text-xs text-outline">ID: #{customer.id}</p>
-                  </div>
-                </div>
-              </td>
-              <td className="px-lg py-4 leading-5 text-on-surface-variant">
-                {customer.phone}
-                <br />
-                {customer.email}
-              </td>
-              <td className="px-lg py-4">
-                <span className="inline-flex items-center gap-2">
-                  <span className="material-symbols-outlined text-lg text-outline">
-                    electric_car
-                  </span>
-                  {customer.vehicle}
-                </span>
-              </td>
-              <td className="px-lg py-4 font-label-md text-label-md text-primary">
-                {customer.plate}
-              </td>
-              <td className="px-lg py-4 text-on-surface-variant">
-                {customer.servicedAt}
-              </td>
-              <td className="px-lg py-4 text-right">
-                <div className="flex justify-end gap-2">
-                  <button
-                    className="rounded-lg border border-outline-variant px-3 py-1.5 font-label-md text-label-md text-on-surface-variant hover:border-primary hover:bg-primary hover:text-on-primary"
-                    type="button"
-                    onClick={() => onCustomerDetailClick?.(customer)}
-                  >
-                    Chi tiết
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-// function RecentActivity() {
-//   const events = [
-//     [
-//       "build",
-//       "Bảo dưỡng định kỳ hoàn tất",
-//       "Xe 51H-12345 (Nguyễn Văn Minh) đã hoàn thành quy trình bảo dưỡng 10.000km.",
-//       "2 giờ trước",
-//     ],
-//     [
-//       "person_add",
-//       "Khách hàng mới đăng ký",
-//       "Trần Thị Mai (xe VinFast VF9) đã đăng ký thành công trên ứng dụng Servio.",
-//       "5 giờ trước",
-//     ],
-//     [
-//       "rate_review",
-//       "Đánh giá 5 sao mới",
-//       "Khách hàng Lê Văn Cường để lại phản hồi tốt về dịch vụ sửa chữa điều hòa.",
-//       "1 ngày trước",
-//     ],
-//   ];
-//   return (
-//     <article className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg xl:col-span-2">
-//       <h2 className="font-headline-md text-headline-md">Hoạt động gần đây</h2>
-//       <div className="mt-lg space-y-lg">
-//         {events.map(([icon, title, description, time]) => (
-//           <div key={title} className="flex gap-3">
-//             <span className="material-symbols-outlined flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-container/15 text-primary">
-//               {icon}
-//             </span>
-//             <div>
-//               <p className="font-label-md text-label-md">{title}</p>
-//               <p className="mt-1 text-body-sm text-on-surface-variant">
-//                 {description}
-//               </p>
-//               <p className="mt-1 text-xs text-outline">{time}</p>
-//             </div>
-//           </div>
-//         ))}
-//       </div>
-//     </article>
-//   );
-// }
-// function SystemStatus() {
-//   return (
-//     <article className="flex min-h-64 flex-col items-center justify-center overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest p-lg text-center">
-//       <span className="material-symbols-outlined text-5xl text-tertiary">
-//         electric_bolt
-//       </span>
-//       <h2 className="mt-3 font-headline-md text-headline-md">
-//         Tình trạng hệ thống
-//       </h2>
-//       <div className="my-4 flex h-24 w-24 items-center justify-center rounded-full border-4 border-tertiary font-headline-lg text-headline-lg text-tertiary">
-//         99%
-//       </div>
-//       <p className="max-w-[20rem] text-body-sm text-on-surface-variant">
-//         Mọi hệ thống đang hoạt động ổn định. Không có cảnh báo lỗi mới.
-//       </p>
-//       <button
-//         className="mt-4 inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:underline"
-//         type="button"
-//       >
-//         Xem chi tiết
-//         <span className="material-symbols-outlined text-base">
-//           arrow_forward
-//         </span>
-//       </button>
-//     </article>
-//   );
-// }

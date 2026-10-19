@@ -6,7 +6,6 @@ import {
   getAvailableSchedules,
   getGarages,
   getMyFleet,
-  getWalletBalance,
   type Garage,
   type MaintenanceService,
   type Schedule,
@@ -19,7 +18,6 @@ type BookingPageProps = {
   onNotificationsClick: () => void;
   onProfileClick: () => void;
   onTrackingClick: () => void;
-  onWalletClick?: () => void;
   garageId?: number | string | null;
   serviceId?: number | string | null;
 };
@@ -49,7 +47,6 @@ export default function BookingPage({
   onNotificationsClick,
   onProfileClick,
   onTrackingClick,
-  onWalletClick,
   garageId,
   serviceId,
 }: BookingPageProps) {
@@ -77,8 +74,6 @@ export default function BookingPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [bookedInfo, setBookedInfo] = useState<{ charged: number; balance: number | null } | null>(null);
 
   const handleNavigate = (section: AppSection) => {
     if (section === "home") onHomeClick();
@@ -87,19 +82,6 @@ export default function BookingPage({
     if (section === "tracking") onTrackingClick();
     if (section === "profile") onProfileClick();
   };
-
-  // Số dư ví chỉ để hiển thị và cảnh báo sớm; BE vẫn là nơi quyết định đủ tiền hay không.
-  useEffect(() => {
-    let cancelled = false;
-    getWalletBalance()
-      .then((balance) => {
-        if (!cancelled) setWalletBalance(balance);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -198,15 +180,12 @@ export default function BookingPage({
   );
 
   const servicePrice = selectedService?.price ?? 0;
-  const isInsufficient = walletBalance !== null && servicePrice > 0 && walletBalance < servicePrice;
-  const shortfall = isInsufficient ? servicePrice - (walletBalance ?? 0) : 0;
 
   const canSubmit =
     Boolean(selectedVehicleId) &&
     Boolean(selectedGarageId) &&
     Boolean(selectedServiceId) &&
     Boolean(selectedScheduleId) &&
-    !isInsufficient &&
     !isSubmitting;
 
   const handleSubmit = async () => {
@@ -222,12 +201,6 @@ export default function BookingPage({
         notes: notes.trim() || undefined,
       });
       setSubmitSuccess(true);
-      getWalletBalance()
-        .then((balance) => {
-          setWalletBalance(balance);
-          setBookedInfo({ charged: servicePrice, balance });
-        })
-        .catch(() => setBookedInfo({ charged: servicePrice, balance: null }));
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Đặt lịch không thành công. Vui lòng thử lại.",
@@ -360,12 +333,6 @@ export default function BookingPage({
                     </span>
                     <p className="font-body-md text-body-md text-on-surface">
                       Đặt lịch thành công! Bạn có thể theo dõi tiến độ ngay bây giờ.
-                      {bookedInfo && bookedInfo.charged > 0 && (
-                        <span className="mt-1 block text-on-surface-variant">
-                          Đã trừ {formatCurrency(bookedInfo.charged)} từ ví
-                          {bookedInfo.balance !== null ? `, số dư còn ${formatCurrency(bookedInfo.balance)}` : ""}.
-                        </span>
-                      )}
                     </p>
                   </div>
                   <button
@@ -572,48 +539,13 @@ export default function BookingPage({
                     <dt className="text-on-surface-variant">Giá dịch vụ</dt>
                     <dd>{formatCurrency(servicePrice)}</dd>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <dt className="text-on-surface-variant">Số dư ví Servio Pay</dt>
-                    <dd>{walletBalance === null ? "..." : formatCurrency(walletBalance)}</dd>
-                  </div>
-                  {walletBalance !== null && (
-                    <div className="flex items-center justify-between border-t border-outline-variant pt-3">
-                      <dt className="font-semibold">{isInsufficient ? "Còn thiếu" : "Số dư sau khi đặt"}</dt>
-                      <dd className={`font-semibold ${isInsufficient ? "text-error" : "text-primary"}`}>
-                        {formatCurrency(isInsufficient ? shortfall : walletBalance - servicePrice)}
-                      </dd>
-                    </div>
-                  )}
                 </dl>
-                {isInsufficient ? (
-                  <div className="mt-4 space-y-3">
-                    <p
-                      role="alert"
-                      className="flex items-start gap-2 rounded-lg bg-error-container/20 p-3 text-xs leading-relaxed text-error"
-                    >
-                      <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-                        error
-                      </span>
-                      Ví không đủ để đặt lịch. Nạp thêm ít nhất {formatCurrency(shortfall)} rồi quay lại.
-                    </p>
-                    {onWalletClick && (
-                      <button
-                        type="button"
-                        onClick={onWalletClick}
-                        className="w-full rounded-lg bg-primary py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90"
-                      >
-                        Nạp tiền vào ví
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="mt-4 flex items-start gap-2 rounded-lg bg-primary-container/10 p-3 text-xs leading-relaxed text-primary">
-                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-                      shield
-                    </span>
-                    Tiền được giữ an toàn trên Servio và chỉ chuyển cho garage khi bạn nhận xe. Huỷ lịch sẽ được hoàn lại.
-                  </p>
-                )}
+                <p className="mt-4 flex items-start gap-2 rounded-lg bg-primary-container/10 p-3 text-xs leading-relaxed text-primary">
+                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+                    qr_code_2
+                  </span>
+                  Bạn thanh toán bằng mã QR (PayOS) tại mục Lịch sử sau khi đặt lịch.
+                </p>
               </section>
             )}
 

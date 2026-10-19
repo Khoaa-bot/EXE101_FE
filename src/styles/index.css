@@ -188,7 +188,8 @@ button {
   }
 
   main {
-    animation: page-in 0.35s ease-out both;
+    /* `backwards` (not `both`): a lingering transform would make every fixed modal inside <main> position relative to <main> */
+    animation: page-in 0.35s ease-out backwards;
   }
 }
 

@@ -8,6 +8,7 @@ import AdminEngineersPage from "./pages/Admin/AdminEngineersPage";
 import AdminInventoryPage from "./pages/Admin/AdminInventoryPage";
 import AdminPricingPage from "./pages/Admin/AdminPricingPage";
 import AdminGaragePage from "./pages/Admin/AdminGaragePage";
+import AdminReviewsPage from "./pages/Admin/AdminReviewsPage";
 import SuperAdminDashboardPage from "./pages/SuperAdmin/SuperAdminDashboardPage";
 import AdminCustomerDetailPage, {
   type Customer,
@@ -32,7 +33,6 @@ import TrackingPage from "./pages/Customer/TrackingPage";
 import FindGaragePage from "./pages/Customer/FindGaragePage";
 import GarageDetailPage from "./pages/Customer/GarageDetailPage";
 import PaymentResultPage from "./pages/Customer/PaymentResultPage";
-import WalletPage from "./pages/Customer/WalletPage";
 import AdminWalletPage from "./pages/Admin/AdminWalletPage";
 import AdminAppointmentsPage from "./pages/Admin/AdminAppointmentsPage";
 import ReceptionDashboardPage from "./pages/Reception/ReceptionDashboardPage";
@@ -58,7 +58,6 @@ const appRoutes = new Set([
   "/find-garage",
   "/garage-detail",
   "/payment-result",
-  "/wallet",
   "/admin",
   "/admin/customers",
   "/admin/engineers",
@@ -67,6 +66,7 @@ const appRoutes = new Set([
   "/admin/garage",
   "/admin/wallet",
   "/admin/appointments",
+  "/admin/reviews",
   "/super-admin",
   "/engineer",
   "/engineer/schedule",
@@ -113,7 +113,7 @@ const roleRoutes: Record<string, Set<string>> = {
   // "garage_owner" = admin của 1 garage (trước đây gọi là "admin" bên
   // backend, đã đổi tên). "admin" giờ là Super Admin toàn hệ thống.
   GARAGE_OWNER: new Set([
-    "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing", "/admin/garage", "/admin/wallet", "/admin/appointments",
+    "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing", "/admin/garage", "/admin/wallet", "/admin/reviews", "/admin/appointments",
   ]),
   ADMIN: new Set(["/super-admin"]),
   ENGINEER: new Set([
@@ -126,7 +126,7 @@ const roleRoutes: Record<string, Set<string>> = {
   ]),
   CUSTOMER: new Set([
     "/home", "/history", "/notifications", "/tracking", "/profile",
-    "/add-vehicle", "/booking", "/find-garage", "/garage-detail", "/payment-result", "/wallet",
+    "/add-vehicle", "/booking", "/find-garage", "/garage-detail", "/payment-result",
   ]),
 };
 
@@ -174,6 +174,11 @@ function App() {
   );
   const [selectedGarageId, setSelectedGarageId] = useState<string | null>(null);
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  const openBooking = () => {
+    setSelectedGarageId(null);
+    setSelectedServiceId(null);
+    navigate("/booking");
+  };
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const routePath = getRoutePath(isAuthenticated, pathname, role);
 
@@ -379,7 +384,6 @@ function App() {
     onNotificationsClick: () => navigate("/notifications"),
     onProfileClick: () => navigate("/profile"),
     onTrackingClick: () => navigate("/tracking"),
-    onWalletClick: () => navigate("/wallet"),
     onLogout: () => {
       localStorage.removeItem("auth_session");
       setIsAuthenticated(false);
@@ -397,6 +401,7 @@ function App() {
     onGarageClick: () => navigate("/admin/garage"),
     onWalletClick: () => navigate("/admin/wallet"),
     onAppointmentsClick: () => navigate("/admin/appointments"),
+    onReviewsClick: () => navigate("/admin/reviews"),
     onCustomerDetailClick: (customer: Customer) => {
       setSelectedCustomer(customer);
       navigate(`/admin/customers/${customer.id}`);
@@ -470,8 +475,13 @@ function App() {
   }
 
   if (routePath === "/admin/wallet") {
-    return <AdminWalletPage onDashboardClick={() => navigate("/admin")} onLogout={shellProps.onLogout} />;
+    return <AdminWalletPage {...adminProps} />;
   }
+
+  if (routePath === "/admin/reviews") {
+    return <AdminReviewsPage {...adminProps} />;
+  }
+
 
   if (routePath === "/super-admin") {
     return <SuperAdminDashboardPage onLogout={shellProps.onLogout} />;
@@ -564,6 +574,7 @@ function App() {
     return (
       <AppShell active="notifications" title="Thông báo" {...shellProps}>
         <NotificationsPage
+          onBookingClick={openBooking}
           onHomeClick={shellProps.onHomeClick}
           onHistoryClick={shellProps.onHistoryClick}
           onTrackingClick={shellProps.onTrackingClick}
@@ -596,6 +607,7 @@ function App() {
         <ProfilePage
           onHomeClick={shellProps.onHomeClick}
           onAddVehicleClick={() => navigate("/add-vehicle")}
+          onBookingClick={openBooking}
           onHistoryClick={shellProps.onHistoryClick}
           onTrackingClick={shellProps.onTrackingClick}
           onNotificationsClick={shellProps.onNotificationsClick}
@@ -621,7 +633,6 @@ function App() {
           onNotificationsClick={shellProps.onNotificationsClick}
           onTrackingClick={shellProps.onTrackingClick}
           onProfileClick={shellProps.onProfileClick}
-          onWalletClick={shellProps.onWalletClick}
           garageId={selectedGarageId}
           serviceId={selectedServiceId}
         />
@@ -663,16 +674,7 @@ function App() {
       <PaymentResultPage
         onHomeClick={() => navigate("/home", true)}
         onTrackingClick={() => navigate("/tracking", true)}
-        onWalletClick={() => navigate("/wallet", true)}
       />
-    );
-  }
-
-  if (routePath === "/wallet") {
-    return (
-      <AppShell active="wallet" title="Ví Servio" {...shellProps}>
-        <WalletPage />
-      </AppShell>
     );
   }
 
@@ -692,7 +694,6 @@ function App() {
         onNotificationsClick={shellProps.onNotificationsClick}
         onTrackingClick={shellProps.onTrackingClick}
         onProfileClick={shellProps.onProfileClick}
-        onWalletClick={() => navigate("/wallet")}
       />
     </AppShell>
   );

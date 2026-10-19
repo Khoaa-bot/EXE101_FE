@@ -69,7 +69,7 @@ export default function EngineerExtrasForm({
         <select id="components-engineerextrasform-field-1"
           value={choice}
           onChange={(event) => setChoice(event.target.value)}
-          className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          className="w-full min-h-11 rounded-2xl border border-outline-variant bg-surface-container-lowest px-3.5 py-2 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
         >
           <option value="">Chọn từ danh mục dịch vụ...</option>
           {services.map((service) => (
@@ -88,14 +88,14 @@ export default function EngineerExtrasForm({
             onChange={(event) => setName(event.target.value)}
             maxLength={150}
             placeholder="Tên hạng mục"
-            className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="min-h-11 rounded-2xl border border-outline-variant bg-surface-container-lowest px-3.5 py-2 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
           />
           <input aria-label="Giá (đ)"
             value={price}
             onChange={(event) => setPrice(event.target.value)}
             inputMode="numeric"
             placeholder="Giá (đ)"
-            className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="min-h-11 rounded-2xl border border-outline-variant bg-surface-container-lowest px-3.5 py-2 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
           />
         </div>
       )}
@@ -106,7 +106,7 @@ export default function EngineerExtrasForm({
         onChange={(event) => setReason(event.target.value)}
         maxLength={500}
         placeholder="Lý do cần làm thêm (khách sẽ đọc phần này)..."
-        className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+        className="w-full min-h-11 rounded-2xl border border-outline-variant bg-surface-container-lowest px-3.5 py-2 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
       />
 
       {error && <p className="text-sm text-error">{error}</p>}
@@ -114,7 +114,7 @@ export default function EngineerExtrasForm({
       <button
         type="submit"
         disabled={!canSubmit}
-        className="w-full rounded-lg bg-primary py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full min-h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-container text-sm font-bold text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isSubmitting ? "Đang gửi..." : "Gửi đề xuất cho khách"}
       </button>

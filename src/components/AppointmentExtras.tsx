@@ -2,9 +2,9 @@ import type { AppointmentDto, AppointmentExtra } from "../services/api";
 import { formatVnd } from "../utils/format";
 
 const EXTRA_STATUS: Record<AppointmentExtra["status"], { label: string; cls: string }> = {
-  proposed: { label: "Chờ khách duyệt", cls: "bg-tertiary-container/20 text-tertiary" },
-  approved: { label: "Đã đồng ý", cls: "bg-primary-container/15 text-primary" },
-  rejected: { label: "Đã từ chối", cls: "bg-error-container/20 text-error" },
+  proposed: { label: "Chờ khách duyệt", cls: "bg-[#fff1cc] text-[#6b4200]" },
+  approved: { label: "Đã đồng ý", cls: "bg-[#d9f7dd] text-[#00531a]" },
+  rejected: { label: "Đã từ chối", cls: "bg-[#e9eaeb] text-[#3a3f4b]" },
 };
 
 type ExtrasListProps = {
@@ -25,7 +25,7 @@ export function ExtrasList({ extras, busyId = null, onDecide }: ExtrasListProps)
         return (
           <li
             key={extra.id}
-            className="rounded-lg border border-outline-variant bg-surface-container-low p-4"
+            className="rounded-[18px] border-[1.5px] border-outline-variant/40 bg-surface-container-lowest p-4"
           >
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
@@ -35,9 +35,9 @@ export function ExtrasList({ extras, busyId = null, onDecide }: ExtrasListProps)
                 )}
               </div>
               <div className="text-right">
-                <p className="font-bold text-primary">{formatVnd(extra.price)}</p>
+                <p className={`font-extrabold ${extra.status === "rejected" ? "text-outline line-through" : "text-on-primary-fixed-variant"}`}>{formatVnd(extra.price)}</p>
                 <span
-                  className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${status.cls}`}
+                  className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-bold ${status.cls}`}
                 >
                   {status.label}
                 </span>
@@ -50,7 +50,7 @@ export function ExtrasList({ extras, busyId = null, onDecide }: ExtrasListProps)
                   type="button"
                   disabled={busyId === extra.id}
                   onClick={() => onDecide?.(extra, true)}
-                  className="flex-1 rounded-lg bg-primary py-2 text-sm font-medium text-on-primary transition hover:opacity-90 disabled:opacity-50"
+                  className="min-h-11 flex-1 rounded-xl bg-gradient-to-br from-primary to-primary-container text-sm font-bold text-on-primary transition hover:opacity-90 disabled:opacity-50"
                 >
                   Đồng ý
                 </button>
@@ -58,7 +58,7 @@ export function ExtrasList({ extras, busyId = null, onDecide }: ExtrasListProps)
                   type="button"
                   disabled={busyId === extra.id}
                   onClick={() => onDecide?.(extra, false)}
-                  className="flex-1 rounded-lg border border-error py-2 text-sm font-medium text-error transition hover:bg-error-container/10 disabled:opacity-50"
+                  className="min-h-11 flex-1 rounded-xl border-[1.5px] border-error text-sm font-bold text-error transition hover:bg-error-container/10 disabled:opacity-50"
                 >
                   Từ chối
                 </button>
@@ -101,10 +101,10 @@ export function CostBreakdown({ appointment }: { appointment: AppointmentDto }) 
       ))}
 
       <div className="mt-3 flex items-center justify-between border-t border-outline-variant pt-3">
-        <span className="font-headline-md text-headline-md">
+        <span className="text-base font-extrabold">
           Tổng cộng{isEstimate ? " (tạm tính)" : ""}
         </span>
-        <span className="font-headline-md text-headline-md text-primary">{formatVnd(total)}</span>
+        <span className="text-2xl font-extrabold text-on-primary-fixed-variant">{formatVnd(total)}</span>
       </div>
 
       {appointment.invoicePaymentStatus && (
