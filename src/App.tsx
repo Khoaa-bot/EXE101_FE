@@ -34,6 +34,7 @@ import FindGaragePage from "./pages/Customer/FindGaragePage";
 import GarageDetailPage from "./pages/Customer/GarageDetailPage";
 import PaymentResultPage from "./pages/Customer/PaymentResultPage";
 import AdminWalletPage from "./pages/Admin/AdminWalletPage";
+import AdminAppointmentsPage from "./pages/Admin/AdminAppointmentsPage";
 import ReceptionDashboardPage from "./pages/Reception/ReceptionDashboardPage";
 import ReceptionSchedulePage from "./pages/Reception/ReceptionSchedulePage";
 import ReceptionAppointmentsPage from "./pages/Reception/ReceptionAppointmentsPage";
@@ -64,6 +65,7 @@ const appRoutes = new Set([
   "/admin/pricing",
   "/admin/garage",
   "/admin/wallet",
+  "/admin/appointments",
   "/admin/reviews",
   "/super-admin",
   "/engineer",
@@ -111,7 +113,7 @@ const roleRoutes: Record<string, Set<string>> = {
   // "garage_owner" = admin của 1 garage (trước đây gọi là "admin" bên
   // backend, đã đổi tên). "admin" giờ là Super Admin toàn hệ thống.
   GARAGE_OWNER: new Set([
-    "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing", "/admin/garage", "/admin/wallet", "/admin/reviews",
+    "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing", "/admin/garage", "/admin/wallet", "/admin/reviews", "/admin/appointments",
   ]),
   ADMIN: new Set(["/super-admin"]),
   ENGINEER: new Set([
@@ -398,6 +400,7 @@ function App() {
     onPricingClick: () => navigate("/admin/pricing"),
     onGarageClick: () => navigate("/admin/garage"),
     onWalletClick: () => navigate("/admin/wallet"),
+    onAppointmentsClick: () => navigate("/admin/appointments"),
     onReviewsClick: () => navigate("/admin/reviews"),
     onCustomerDetailClick: (customer: Customer) => {
       setSelectedCustomer(customer);
@@ -465,6 +468,10 @@ function App() {
 
   if (routePath === "/admin/garage") {
     return <AdminGaragePage {...adminProps} />;
+  }
+
+  if (routePath === "/admin/appointments") {
+    return <AdminAppointmentsPage {...adminProps} />;
   }
 
   if (routePath === "/admin/wallet") {

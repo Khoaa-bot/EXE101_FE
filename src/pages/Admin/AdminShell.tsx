@@ -5,6 +5,7 @@ export type AdminTabKey =
   | "dashboard"
   | "engineers"
   | "customers"
+  | "appointments"
   | "reviews"
   | "inventory"
   | "pricing"
@@ -15,6 +16,7 @@ export interface AdminNavProps {
   onDashboardClick?: () => void;
   onEngineersClick?: () => void;
   onCustomersClick?: () => void;
+  onAppointmentsClick?: () => void;
   onReviewsClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
@@ -67,6 +69,12 @@ export const ADMIN_TABS: {
     icon: "groups",
     label: "Khách hàng",
     description: "Xem và quản lý danh sách khách hàng và phương tiện đã ghé garage.",
+  },
+  {
+    key: "appointments",
+    icon: "history",
+    label: "Lịch sử lịch hẹn",
+    description: "Toàn bộ lịch hẹn của garage, kể cả đã huỷ và đã bàn giao (chỉ xem).",
   },
   {
     key: "reviews",
@@ -169,6 +177,7 @@ export default function AdminShell({
   onDashboardClick,
   onEngineersClick,
   onCustomersClick,
+  onAppointmentsClick,
   onReviewsClick,
   onInventoryClick,
   onPricingClick,
@@ -205,6 +214,9 @@ export default function AdminShell({
         break;
       case "customers":
         onCustomersClick?.();
+        break;
+      case "appointments":
+        onAppointmentsClick?.();
         break;
       case "reviews":
         onReviewsClick?.();
