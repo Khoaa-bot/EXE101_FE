@@ -165,16 +165,16 @@ export default function AppointmentChat({
   };
 
   return (
-    <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-lg">
+    <section className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-5 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
       <div className="mb-md flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 font-headline-md text-headline-md">
+        <h3 className="flex items-center gap-2 text-lg font-extrabold">
           <span className="material-symbols-outlined text-primary">chat</span>
           Trao đổi về lịch hẹn
         </h3>
         {callPhone && (
           <a
             href={`tel:${callPhone}`}
-            className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 text-sm font-medium text-primary transition hover:bg-primary-container/10"
+            className="inline-flex min-h-10 items-center gap-1 rounded-xl bg-[#d9f7dd] px-3.5 text-sm font-bold text-[#00531a] transition hover:opacity-90"
           >
             <span className="material-symbols-outlined text-[18px]">call</span>
             {callLabel}: {callPhone}
@@ -184,7 +184,7 @@ export default function AppointmentChat({
 
       <div
         ref={listRef}
-        className="mb-md max-h-72 space-y-2 overflow-y-auto rounded-lg bg-surface-container-low p-3"
+        className="mb-md max-h-72 space-y-2 overflow-y-auto rounded-2xl bg-surface-container-low p-3.5"
       >
         {messages.length === 0 && (
           <p className="py-4 text-center text-sm text-on-surface-variant">
@@ -196,7 +196,7 @@ export default function AppointmentChat({
           return (
             <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+                className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm ${
                   mine
                     ? "bg-primary text-on-primary"
                     : "border border-outline-variant bg-surface-container-lowest"
@@ -237,12 +237,12 @@ export default function AppointmentChat({
             onChange={(event) => setDraft(event.target.value)}
             maxLength={MAX_LENGTH}
             placeholder="Nhập tin nhắn..."
-            className="flex-1 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="min-h-11 flex-1 rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
           />
           <button
             type="submit"
             disabled={isSending || draft.trim().length === 0}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary transition hover:opacity-90 disabled:opacity-50"
+            className="min-h-11 rounded-2xl bg-gradient-to-br from-primary to-primary-container px-5 text-sm font-bold text-on-primary transition hover:opacity-90 disabled:opacity-50"
           >
             {isSending ? "Đang gửi..." : "Gửi"}
           </button>

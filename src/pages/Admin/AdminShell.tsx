@@ -233,7 +233,7 @@ export default function AdminShell({
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
       {/* Mobile Header */}
-      <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-outline-variant bg-surface-container-lowest px-margin-mobile md:hidden">
+      <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-outline-variant/60 bg-surface/80 px-margin-mobile backdrop-blur-md md:hidden">
         <button
           type="button"
           aria-label="Mở menu"
@@ -315,7 +315,7 @@ export default function AdminShell({
           <div className="border-b border-outline-variant pb-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h1 className="font-headline-lg text-headline-lg font-bold">{title}</h1>
+                <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
                 <p className="mt-1 text-body-sm text-on-surface-variant">
                   {description}
                 </p>
@@ -332,7 +332,7 @@ export default function AdminShell({
       {/* Floating Toast Notification */}
       {noticeMessage && (
         <div
-          className="fixed bottom-5 right-5 z-50 flex max-w-[24rem] animate-[toast-in_0.2s_ease-out] items-start gap-3 rounded-xl border bg-surface-container-lowest px-4 py-3 text-body-sm shadow-lg"
+          className="fixed bottom-5 right-5 z-50 flex max-w-[24rem] animate-[toast-in_0.2s_ease-out] items-start gap-3 rounded-2xl border bg-surface-container-lowest px-4 py-3 text-body-sm shadow-lg"
           style={{
             borderColor:
               noticeType === "error"

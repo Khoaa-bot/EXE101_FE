@@ -70,7 +70,7 @@ export default function AppSidebar({
         aria-modal={isOpen}
         aria-label="Menu điều hướng"
         inert={!isOpen}
-        className="fixed left-0 top-0 z-[70] flex h-full w-[280px] flex-col bg-surface-container-lowest shadow-2xl transition-transform duration-300 ease-in-out"
+        className="fixed left-0 top-0 z-[70] flex h-full w-[300px] flex-col rounded-r-[28px] bg-surface-container-lowest shadow-2xl transition-transform duration-300 ease-in-out"
         style={{ transform: isOpen ? "translateX(0)" : "translateX(-100%)" }}
       >
         <div className="flex items-center gap-3 border-b border-outline-variant p-lg">
@@ -95,7 +95,7 @@ export default function AppSidebar({
                     onNavigate(item.section);
                   }}
                   aria-current={isActive ? "page" : undefined}
-                  className={`relative flex w-full items-center gap-4 rounded-xl p-md text-left transition-colors ${
+                  className={`relative flex min-h-[52px] w-full items-center gap-4 rounded-2xl px-4 text-left transition-colors ${
                     isActive
                       ? "bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-lg shadow-primary/30"
                       : "text-on-surface-variant hover:bg-surface-container"
@@ -111,7 +111,7 @@ export default function AppSidebar({
                   </span>
                   <span className="font-label-md">{item.label}</span>
                   {item.section === "notifications" && unreadCount > 0 && (
-                    <span className="ml-auto h-2 w-2 rounded-full bg-error" />
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[11px] font-bold text-on-error">{unreadCount > 99 ? "99+" : unreadCount}</span>
                   )}
                 </button>
               </div>
@@ -125,9 +125,9 @@ export default function AppSidebar({
                 onClose();
                 onNavigate("profile");
               }}
-              className={`flex w-full items-center gap-4 rounded-xl p-md text-left transition-colors ${
+              className={`flex min-h-[52px] w-full items-center gap-4 rounded-2xl px-4 text-left transition-colors ${
                 active === "profile"
-                  ? "bg-secondary-container text-on-secondary-container"
+                  ? "bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-lg shadow-primary/30"
                   : "text-on-surface-variant hover:bg-surface-container"
               }`}
             >
@@ -160,7 +160,7 @@ export default function AppSidebar({
               onClose();
               onLogout?.();
             }}
-            className="flex w-full items-center gap-4 rounded-xl p-md text-error transition-colors hover:bg-error-container/10"
+            className="flex min-h-[52px] w-full items-center gap-4 rounded-2xl bg-error-container/20 px-4 text-error transition-colors hover:bg-error-container/40"
           >
             <span className="material-symbols-outlined">logout</span>
             <span className="font-label-md">Đăng xuất</span>

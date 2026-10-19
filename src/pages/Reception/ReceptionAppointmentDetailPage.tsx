@@ -1,3 +1,4 @@
+import StaffShell from "../../components/StaffShell";
 import { useEffect, useState } from "react";
 import AppointmentChat from "../../components/AppointmentChat";
 import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
@@ -10,13 +11,6 @@ import {
   type AppointmentExtra,
 } from "../../services/api";
 import { mapStatus, STATUS_MAP, type Appt } from "./ReceptionAppointmentsPage";
-
-const navItems = [
-  ["dashboard", "Dashboard"],
-  ["calendar_today", "Schedule"],
-  ["event_note", "Appointments"],
-  ["person", "Customers"],
-];
 
 const FINAL_STATUSES: Appt["status"][] = ["done", "handed_over", "canceled", "no_show"];
 
@@ -157,71 +151,14 @@ export default function ReceptionAppointmentDetailPage({
 
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-outline-variant bg-surface-container-lowest p-lg md:flex">
-        <div className="mb-xl">
-          <div className="flex items-center gap-2 text-primary">
-            <span className="material-symbols-outlined text-3xl">electric_car</span>
-            <span className="font-headline-lg text-headline-lg font-bold">Servio</span>
-          </div>
-          <p className="mt-1 text-xs text-on-surface-variant">Garage Lễ tân</p>
-        </div>
-        <nav className="space-y-1">
-          {navItems.map(([icon, label]) => {
-            const isCurrent = label === "Appointments";
-            return (
-              <button
-                key={label}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left font-body-md text-body-md transition-colors active:scale-[0.98] ${
-                  isCurrent
-                    ? "bg-primary-container/15 font-semibold text-primary"
-                    : "text-on-surface-variant hover:bg-surface-container-low"
-                }`}
-                type="button"
-                onClick={() => {
-                  if (label === "Dashboard") onDashboardClick?.();
-                  else if (label === "Schedule") onScheduleClick?.();
-                  else if (label === "Appointments") onAppointmentsClick?.();
-                  else if (label === "Customers") onCustomersClick?.();
-                }}
-              >
-                <span className="material-symbols-outlined">{icon}</span>
-                {label}
-              </button>
-            );
-          })}
-        </nav>
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
-            type="button"
-          >
-            <span className="material-symbols-outlined">logout</span>
-            Đăng xuất
-          </button>
-        )}
-      </aside>
-
-      <main className="min-h-[100dvh] md:ml-60">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-outline-variant bg-surface/95 px-4 backdrop-blur md:px-8">
-          <button className="rounded-full p-2 text-on-surface-variant md:hidden" type="button" aria-label="Mở menu">
-            <span className="material-symbols-outlined">menu</span>
-          </button>
-          <div className="ml-auto flex items-center gap-2">
-            <button className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container" type="button" aria-label="Thông báo">
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
-            <div className="ml-2 flex items-center gap-2 border-l border-outline-variant pl-3">
-              <div className="hidden text-right sm:block">
-                <p className="font-label-md text-label-md">Nguyễn Lễ Tân</p>
-                <p className="text-[11px] text-on-surface-variant">Lễ tân</p>
-              </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed font-bold text-on-primary-fixed">
-                L
-              </div>
-            </div>
-          </div>
-        </header>
+      <StaffShell
+        role="reception"
+        active="appointments"
+        handlers={{ dashboard: onDashboardClick, schedule: onScheduleClick, appointments: onAppointmentsClick, customers: onCustomersClick }}
+        userName={"Nguyễn Lễ Tân"}
+        userDetail={"Lễ tân"}
+        onLogout={onLogout}
+      >
 
         <div className="mx-auto max-w-[1440px] p-4 md:p-8">
           {notice && (
@@ -241,7 +178,7 @@ export default function ReceptionAppointmentDetailPage({
           )}
 
           {loadError && !isLoading && (
-            <article className="rounded-xl border border-outline-variant bg-surface-container-lowest">
+            <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
               <div className="p-8">
                 <p className="text-error">{loadError}</p>
                 <button
@@ -255,7 +192,7 @@ export default function ReceptionAppointmentDetailPage({
           )}
 
           {!isLoading && !loadError && !appt ? (
-            <article className="rounded-xl border border-outline-variant bg-surface-container-lowest">
+            <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
               <div className="p-8">
                 <p className="text-on-surface-variant">Không tìm thấy lịch hẹn.</p>
                 <button
@@ -268,7 +205,7 @@ export default function ReceptionAppointmentDetailPage({
             </article>
           ) : (
             !isLoading && !loadError && appt && (
-            <article className="rounded-xl border border-outline-variant bg-surface-container-lowest">
+            <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
               <div className="p-6 md:p-8">
                 <div className="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant pb-6">
                   <div>
@@ -387,7 +324,7 @@ export default function ReceptionAppointmentDetailPage({
                         type="button"
                         onClick={() => void updateStatus("successful", `Đã bàn giao xe cho lịch #${appointmentId}`)}
                         disabled={isUpdating || appt.invoicePaymentStatus !== "paid"}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <span className="material-symbols-outlined text-lg">key</span>
                         Bàn giao xe
@@ -420,7 +357,7 @@ export default function ReceptionAppointmentDetailPage({
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                     <button
-                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-2.5 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={onConfirm}
                       disabled={isUpdating || status !== "pending"}
                     >
@@ -442,7 +379,7 @@ export default function ReceptionAppointmentDetailPage({
             )
           )}
         </div>
-      </main>
+      </StaffShell>
 
       {notice && (
         <div

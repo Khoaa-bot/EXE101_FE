@@ -1,3 +1,4 @@
+import StaffShell from "../../components/StaffShell";
 import { useEffect, useState } from "react";
 import {
   getAllServices,
@@ -16,15 +17,6 @@ import EngineerExtrasForm from "../../components/EngineerExtrasForm";
 import EngineerPartsPanel from "../../components/EngineerPartsPanel";
 import { MAX_ODOMETER_KM } from "../../utils/maintenance";
 import { isTerminalStatus, statusBadgeClass, statusLabel } from "./engineerStatus";
-
-const navItems = [
-  ["dashboard", "Tổng quan"],
-  ["calendar_today", "Lịch làm việc"],
-  ["event_note", "Lịch hẹn"],
-  ["engineering", "Kỹ thuật viên"],
-  ["person", "Khách hàng"],
-  ["settings", "Cài đặt"],
-];
 
 type EngineerJobDetailPageProps = {
   appointmentId?: string;
@@ -178,75 +170,13 @@ export default function EngineerJobDetailPage({
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
       {/* Sidebar Navigation */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-outline-variant bg-surface-container-lowest p-lg md:flex">
-        <div className="mb-xl">
-          <div className="flex items-center gap-2 text-primary">
-            <span className="material-symbols-outlined text-3xl">
-              electric_car
-            </span>
-            <span className="font-headline-lg text-headline-lg font-bold">
-              Servio
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-on-surface-variant">
-            Garage Kỹ thuật viên
-          </p>
-        </div>
-        <nav className="space-y-1">
-          {navItems.map(([icon, label]) => {
-            return (
-              <button
-                key={label}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left font-body-md text-body-md text-on-surface-variant transition-colors hover:bg-surface-container-low active:scale-[0.98]"
-                type="button"
-                onClick={() => {
-                  if (label === "Tổng quan") onDashboardClick?.();
-                  else if (label === "Lịch làm việc") onScheduleClick?.();
-                  else if (label === "Lịch hẹn") onAppointmentsClick?.();
-                  else if (label === "Kỹ thuật viên") onTechniciansClick?.();
-                  else if (label === "Khách hàng") onCustomersClick?.();
-                  else if (label === "Cài đặt") onSettingsClick?.();
-                }}
-              >
-                <span className="material-symbols-outlined">{icon}</span>
-                {label}
-              </button>
-            );
-          })}
-        </nav>
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-error hover:bg-error-container/10 transition-colors"
-            type="button"
-          >
-            <span className="material-symbols-outlined">logout</span>
-            Đăng xuất
-          </button>
-        )}
-      </aside>
-
-      {/* Main Content Area */}
-      <main className="min-h-[100dvh] md:ml-60">
-        {/* Header Bar */}
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-outline-variant bg-surface/95 px-margin-mobile backdrop-blur md:px-margin-desktop">
-          <button
-            className="rounded-full p-2 text-on-surface-variant md:hidden"
-            type="button"
-            aria-label="Mở menu"
-          >
-            <span className="material-symbols-outlined">menu</span>
-          </button>
-          <label className="relative hidden w-full max-w-[28rem] md:block">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-              search
-            </span>
-            <input
-              className="w-full rounded-full border border-outline-variant bg-surface-container-low px-4 py-2 pl-10 text-body-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-              placeholder="Tìm kiếm..."
-            />
-          </label>
-        </header>
+      <StaffShell
+        role="engineer"
+        active="appointments"
+        handlers={{ dashboard: onDashboardClick, schedule: onScheduleClick, appointments: onAppointmentsClick, technicians: onTechniciansClick, customers: onCustomersClick, settings: onSettingsClick }}
+        userName={"Kỹ thuật viên"}
+        onLogout={onLogout}
+      >
 
         {/* Page Content */}
         <div className="mx-auto max-w-[1440px] p-margin-mobile md:p-margin-desktop">
@@ -277,7 +207,7 @@ export default function EngineerJobDetailPage({
               {/* Title Banner */}
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant pb-5">
                 <div>
-                  <h1 className="font-headline-lg text-headline-lg font-bold">
+                  <h1 className="text-3xl font-extrabold tracking-tight">
                     Chi tiết công việc{" "}
                     <span className="text-primary">#{appointment.id}</span>
                   </h1>
@@ -492,7 +422,7 @@ export default function EngineerJobDetailPage({
                           type="button"
                           onClick={startProcessing}
                           disabled={isSaving}
-                          className="w-full rounded-lg bg-primary py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+                          className="w-full rounded-xl bg-gradient-to-br from-primary to-primary-container py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
                         >
                           {isSaving ? "Đang xử lý..." : "Bắt đầu xử lý"}
                         </button>
@@ -510,7 +440,7 @@ export default function EngineerJobDetailPage({
                             value={engineerNotes}
                             onChange={(e) => setEngineerNotes(e.target.value)}
                             placeholder="Chẩn đoán, tình trạng xe, hướng xử lý..."
-                            className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                            className="w-full rounded-2xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                           />
                         </div>
 
@@ -523,7 +453,7 @@ export default function EngineerJobDetailPage({
                             value={partsUsed}
                             onChange={(e) => setPartsUsed(e.target.value)}
                             placeholder="Ví dụ: má phanh trước, dầu động cơ 4L..."
-                            className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                            className="w-full rounded-2xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                           />
                         </div>
 
@@ -538,7 +468,7 @@ export default function EngineerJobDetailPage({
                             value={odometerAtService}
                             onChange={(e) => setOdometerAtService(e.target.value)}
                             placeholder="Ví dụ: 41250 — dùng để tính hạn bảo dưỡng tiếp theo"
-                            className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                            className="w-full rounded-2xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                           />
                         </div>
 
@@ -594,7 +524,7 @@ export default function EngineerJobDetailPage({
             </>
           )}
         </div>
-      </main>
+      </StaffShell>
 
       {/* Notice Toast */}
       {notice && (
