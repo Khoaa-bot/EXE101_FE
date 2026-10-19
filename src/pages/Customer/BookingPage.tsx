@@ -73,7 +73,6 @@ export default function BookingPage({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const handleNavigate = (section: AppSection) => {
     if (section === "home") onHomeClick();
@@ -194,20 +193,28 @@ export default function BookingPage({
     setSubmitError(null);
 
     try {
-      await createAppointment({
+      const booking = await createAppointment({
         vehicleId: Number(selectedVehicleId),
         serviceId: Number(selectedServiceId),
         scheduleId: Number(selectedScheduleId),
         notes: notes.trim() || undefined,
       });
-      setSubmitSuccess(true);
+      if (servicePrice > 0) {
+        // Dịch vụ có phí: chuyển sang PayOS để trả ngay; kết quả được xử lý ở trang /payment-result.
+        if (!booking.paymentUrl) {
+          throw new Error("Không nhận được liên kết thanh toán. Vui lòng thử lại.");
+        }
+        window.location.href = booking.paymentUrl;
+        return;
+      }
+      onTrackingClick();
+      return;
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Đặt lịch không thành công. Vui lòng thử lại.",
       );
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   return (
@@ -325,26 +332,6 @@ export default function BookingPage({
                 </div>
               )}
 
-              {!isLoadingOptions && !optionsError && submitSuccess && (
-                <div className="mb-lg flex items-center justify-between gap-md rounded-lg border border-tertiary/30 bg-tertiary-container/20 p-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-tertiary">
-                      check_circle
-                    </span>
-                    <p className="font-body-md text-body-md text-on-surface">
-                      Đặt lịch thành công! Bạn có thể theo dõi tiến độ ngay bây giờ.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={onTrackingClick}
-                    className="shrink-0 rounded-lg bg-primary px-4 py-2 font-label-md text-label-md text-white transition-colors hover:bg-blue-700"
-                  >
-                    Theo dõi
-                  </button>
-                </div>
-              )}
-
               {!isLoadingOptions && !optionsError && vehicles.length === 0 && (
                 <div className="mb-lg rounded-lg border border-outline-variant bg-surface-container-low p-lg font-body-md text-body-md text-on-surface-variant">
                   Bạn chưa có phương tiện nào. Vui lòng thêm xe trước khi đặt lịch.
@@ -456,7 +443,13 @@ export default function BookingPage({
                       type="submit"
                       disabled={!canSubmit}
                     >
-                      {isSubmitting ? "Đang gửi..." : "Xác nhận đặt lịch"}
+                      {isSubmitting
+                        ? servicePrice > 0
+                          ? "Đang chuyển sang PayOS..."
+                          : "Đang gửi..."
+                        : servicePrice > 0
+                          ? "Xác nhận và thanh toán"
+                          : "Xác nhận đặt lịch"}
                       <span className="material-symbols-outlined">arrow_forward</span>
                     </button>
                   </div>
@@ -544,7 +537,7 @@ export default function BookingPage({
                   <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
                     qr_code_2
                   </span>
-                  Bạn thanh toán bằng mã QR (PayOS) tại mục Lịch sử sau khi đặt lịch.
+                  Sau khi bấm "Xác nhận và thanh toán", bạn được chuyển sang PayOS để trả {formatCurrency(servicePrice)}. Lịch chỉ được giữ khi thanh toán thành công; bạn có 15 phút để hoàn tất.
                 </p>
               </section>
             )}

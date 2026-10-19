@@ -11,6 +11,8 @@ type PaymentResultPageProps = {
 const MAX_ATTEMPTS = 5;
 const RETRY_DELAY_MS = 2000;
 
+const REDIRECT_SECONDS = 3;
+
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 type Outcome = "loading" | "success" | "cancelled" | "pending" | "error";
@@ -75,6 +77,31 @@ export default function PaymentResultPage({
     };
   }, [attemptKey, hasOrderCode, search, wasCancelledAtPayos]);
 
+  // Hóa đơn đặt lịch: thành công thì sang Theo dõi; không thành công (lịch bị huỷ) thì về trang chủ. Tự chuyển sau vài giây.
+  const redirectTo: "tracking" | "home" | null =
+    result?.type === "INVOICE"
+      ? outcome === "success"
+        ? "tracking"
+        : outcome === "cancelled"
+          ? result.bookingCancelled
+            ? "home"
+            : "tracking"
+          : null
+      : null;
+  const [secondsLeft, setSecondsLeft] = useState(REDIRECT_SECONDS);
+
+  useEffect(() => {
+    if (!redirectTo) return;
+    const id = window.setInterval(() => setSecondsLeft((value) => value - 1), 1000);
+    return () => window.clearInterval(id);
+  }, [redirectTo]);
+
+  useEffect(() => {
+    if (redirectTo && secondsLeft <= 0) {
+      (redirectTo === "home" ? onHomeClick : onTrackingClick)();
+    }
+  }, [redirectTo, secondsLeft, onHomeClick, onTrackingClick]);
+
   const retry = () => {
     setOutcome("loading");
     setError(null);
@@ -86,7 +113,9 @@ export default function PaymentResultPage({
 
   // Nút chính đưa khách về nơi hợp lý nhất theo loại giao dịch.
   const primaryAction = isInvoice
-    ? { label: "Xem lịch hẹn của tôi", onClick: onTrackingClick }
+    ? result?.bookingCancelled
+      ? { label: "Về trang chủ", onClick: onHomeClick }
+      : { label: "Xem lịch hẹn của tôi", onClick: onTrackingClick }
     : { label: "Về trang chủ", onClick: onHomeClick };
 
   return (
@@ -128,7 +157,7 @@ export default function PaymentResultPage({
           <>
             <span className="material-symbols-outlined text-5xl text-tertiary">check_circle</span>
             <h1 className="mt-4 font-headline-md text-headline-md">
-              {isInvoice ? "Thanh toán hoá đơn thành công!" : "Nạp tiền thành công!"}
+              {isInvoice ? "Thanh toán thành công" : "Nạp tiền thành công!"}
             </h1>
             <p className="mt-2 font-body-md text-body-md text-on-surface-variant">
               {result.message}
@@ -141,7 +170,12 @@ export default function PaymentResultPage({
             )}
             {isInvoice && (
               <p className="mt-1 font-body-sm text-body-sm text-on-surface-variant">
-                Lịch hẹn của bạn đã được ghi nhận thanh toán.
+                Lịch hẹn của bạn đã được ghi nhận.
+              </p>
+            )}
+            {redirectTo === "tracking" && (
+              <p className="mt-4 text-xs text-on-surface-variant" role="status">
+                Tự chuyển sang màn Theo dõi sau {Math.max(0, secondsLeft)} giây
               </p>
             )}
           </>
@@ -150,12 +184,22 @@ export default function PaymentResultPage({
         {outcome === "cancelled" && (
           <>
             <span className="material-symbols-outlined text-5xl text-error">cancel</span>
-            <h1 className="mt-4 font-headline-md text-headline-md">Bạn đã huỷ thanh toán</h1>
+            <h1 className="mt-4 font-headline-md text-headline-md">
+              {result?.bookingCancelled ? "Đặt lịch không thành công" : "Bạn đã huỷ thanh toán"}
+            </h1>
             <p className="mt-2 font-body-md text-body-md text-on-surface-variant">
-              {isInvoice
-                ? "Hoá đơn vẫn chưa được thanh toán. Bạn có thể thanh toán lại trong mục Theo dõi."
-                : "Chưa có khoản tiền nào được nạp vào ví."}
+              {result?.bookingCancelled
+                ? "Bạn chưa hoàn tất thanh toán nên lịch hẹn không được giữ. Bạn có thể đặt lại bất cứ lúc nào."
+                : isInvoice
+                  ? "Hoá đơn vẫn chưa được thanh toán. Bạn có thể thanh toán lại trong mục Theo dõi."
+                  : "Chưa có khoản tiền nào được nạp vào ví."}
             </p>
+            {redirectTo && (
+              <p className="mt-4 text-xs text-on-surface-variant" role="status">
+                {redirectTo === "home" ? "Tự về trang chủ" : "Tự chuyển sang màn Theo dõi"} sau{" "}
+                {Math.max(0, secondsLeft)} giây
+              </p>
+            )}
           </>
         )}
 

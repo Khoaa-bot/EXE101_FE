@@ -352,14 +352,20 @@ export default function ReceptionAppointmentDetailPage({
                   <div className="flex items-start gap-3 flex-1">
                     <span className="material-symbols-outlined text-primary shrink-0 mt-0.5">info</span>
                     <p className="text-sm text-on-surface-variant">
-                      Xác nhận lịch khi khách đã đồng ý, hoặc hủy giúp khách nếu họ gọi báo bận.
+                      {appt.paymentExpiresAt && appt.invoicePaymentStatus === "unpaid"
+                        ? "Khách chưa thanh toán nên chưa thể xác nhận. Lịch tự huỷ nếu quá hạn thanh toán."
+                        : "Xác nhận lịch khi khách đã đồng ý, hoặc hủy giúp khách nếu họ gọi báo bận."}
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                     <button
                       className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-2.5 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={onConfirm}
-                      disabled={isUpdating || status !== "pending"}
+                      disabled={
+                        isUpdating ||
+                        status !== "pending" ||
+                        (Boolean(appt.paymentExpiresAt) && appt.invoicePaymentStatus === "unpaid")
+                      }
                     >
                       <span className="material-symbols-outlined text-lg">check_circle</span>
                       {isUpdating ? "Đang cập nhật..." : "Xác nhận lịch hẹn"}

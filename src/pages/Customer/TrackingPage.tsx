@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import AppointmentChat from "../../components/AppointmentChat";
 import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
+import PaymentCountdown from "../../components/PaymentCountdown";
 import { formatVnd } from "../../utils/format";
 import {
   cancelAppointment,
@@ -471,6 +472,12 @@ export default function TrackingPage({
 
                 {appointment.invoiceId && appointment.invoicePaymentStatus === "unpaid" && (
                   <div className="mt-lg space-y-sm">
+                    <PaymentCountdown
+                      expiresAt={appointment.paymentExpiresAt}
+                      onExpired={() => {
+                        void getActiveAppointments().then(setAppointments);
+                      }}
+                    />
                     <button
                       type="button"
                       onClick={() => void handlePay(appointment)}
@@ -481,9 +488,11 @@ export default function TrackingPage({
                         ? "Đang chuyển sang trang thanh toán..."
                         : `Thanh toán online${appointment.amountDue ? ` ${formatVnd(appointment.amountDue)}` : ""}`}
                     </button>
-                    <p className="text-center text-xs text-on-surface-variant">
-                      Hoặc thanh toán tiền mặt tại quầy lễ tân khi nhận xe.
-                    </p>
+                    {!appointment.paymentExpiresAt && (
+                      <p className="text-center text-xs text-on-surface-variant">
+                        Hoặc thanh toán tiền mặt tại quầy lễ tân khi nhận xe.
+                      </p>
+                    )}
                   </div>
                 )}
 

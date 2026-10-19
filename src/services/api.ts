@@ -486,12 +486,17 @@ export type AppointmentDto = {
   partsUsed: string | null;
   createdAt: string;
   invoiceId: number | null;
-  invoicePaymentStatus: "unpaid" | "paid" | null;
+  invoicePaymentStatus: "unpaid" | "paid" | "cancelled" | "refunded" | null;
   extras?: AppointmentExtra[];
   parts?: AppointmentPart[];
   totalAmount?: number;
   amountPaid?: number;
   amountDue?: number;
+  // Chỉ có ngay sau khi đặt lịch: liên kết/QR PayOS để thanh toán; paymentExpiresAt = hạn trả (lịch tự huỷ nếu quá hạn).
+  paymentUrl?: string | null;
+  qrCode?: string | null;
+  orderCode?: number | null;
+  paymentExpiresAt?: string | null;
   garagePhone?: string | null;
   // Đánh giá khách đã gửi cho lịch hẹn này (null nếu chưa đánh giá). BE trả `review`
   // lồng; api.ts tách sang các trường review* bên dưới.
@@ -1598,6 +1603,7 @@ export type PaymentReturnResult = {
   success: boolean;
   message: string;
   orderCode?: number;
+  bookingCancelled?: boolean;
   // INVOICE: thanh toán hoá đơn dịch vụ; TOPUP: nạp tiền vào ví.
   type?: "INVOICE" | "TOPUP" | string;
   amount?: number;
