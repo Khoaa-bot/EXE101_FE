@@ -6,6 +6,7 @@ const navItems = [
   ["dashboard", "Dashboard"],
   ["engineering", "Nhân viên"],
   ["groups", "Khách hàng"],
+  ["history", "Lịch sử lịch hẹn"],
   ["inventory_2", "Kho linh kiện"],
   ["payments", "Bảng giá"],
   ["storefront", "Thông tin garage"],
@@ -18,6 +19,7 @@ type AdminCustomerDetailPageProps = {
   onDashboardClick?: () => void;
   onEngineersClick?: () => void;
   onCustomersClick?: () => void;
+  onAppointmentsClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
   onGarageClick?: () => void;
@@ -31,6 +33,7 @@ export default function AdminCustomerDetailPage({
   onDashboardClick,
   onEngineersClick,
   onCustomersClick,
+  onAppointmentsClick,
   onInventoryClick,
   onPricingClick,
   onGarageClick,
@@ -43,6 +46,7 @@ export default function AdminCustomerDetailPage({
     if (label === "Dashboard") onDashboardClick?.();
     else if (label === "Nhân viên") onEngineersClick?.();
     else if (label === "Khách hàng") onCustomersClick?.();
+    else if (label === "Lịch sử lịch hẹn") onAppointmentsClick?.();
     else if (label === "Kho linh kiện") onInventoryClick?.();
     else if (label === "Bảng giá") onPricingClick?.();
     else if (label === "Thông tin garage") onGarageClick?.();

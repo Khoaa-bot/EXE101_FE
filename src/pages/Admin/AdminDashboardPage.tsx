@@ -13,6 +13,7 @@ const navItems = [
   ["dashboard", "Dashboard"],
   ["engineering", "Nhân viên"],
   ["groups", "Khách hàng"],
+  ["history", "Lịch sử lịch hẹn"],
   ["inventory_2", "Kho linh kiện"],
   ["payments", "Bảng giá"],
   ["storefront", "Thông tin garage"],
@@ -21,6 +22,7 @@ const navItems = [
 
 type AdminDashboardPageProps = {
   onCustomersClick?: () => void;
+  onAppointmentsClick?: () => void;
   onEngineersClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
@@ -42,6 +44,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function AdminDashboardPage({
   onCustomersClick,
+  onAppointmentsClick,
   onEngineersClick,
   onInventoryClick,
   onPricingClick,
@@ -141,6 +144,7 @@ export default function AdminDashboardPage({
               type="button"
               onClick={() => {
                 if (label === "Khách hàng") onCustomersClick?.();
+                else if (label === "Lịch sử lịch hẹn") onAppointmentsClick?.();
                 else if (label === "Nhân viên") onEngineersClick?.();
                 else if (label === "Kho linh kiện") onInventoryClick?.();
                 else if (label === "Bảng giá") onPricingClick?.();

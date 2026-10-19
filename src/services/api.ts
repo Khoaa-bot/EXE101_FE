@@ -1284,6 +1284,20 @@ export function getAdminAppointments(filters: AdminAppointmentFilters = {}) {
   });
 }
 
+// GET /api/garage-owner/appointments — lịch sử lịch hẹn của garage mình (chỉ xem); BE luôn giới hạn theo garage của chủ garage.
+export function getGarageAppointments(filters: Omit<AdminAppointmentFilters, "customerId" | "garageId"> = {}) {
+  return apiRequest<AdminAppointmentPage>("/garage-owner/appointments", {
+    query: {
+      status: filters.status || undefined,
+      fromDate: filters.fromDate || undefined,
+      toDate: filters.toDate || undefined,
+      q: filters.q || undefined,
+      page: filters.page,
+      size: filters.size,
+    },
+  });
+}
+
 // POST /api/admin/garage-owners — tạo tài khoản admin cho 1 garage.
 export function createGarageOwner(payload: CreateGarageOwnerPayload) {
   return apiRequest<SuperAdminUser>("/admin/garage-owners", {

@@ -50,6 +50,7 @@ const navItems = [
   ["dashboard", "Dashboard"],
   ["engineering", "Nhân viên"],
   ["groups", "Khách hàng"],
+  ["history", "Lịch sử lịch hẹn"],
   ["inventory_2", "Kho linh kiện"],
   ["payments", "Bảng giá"],
   ["storefront", "Thông tin garage"],
@@ -73,6 +74,7 @@ const ROLE_OPTIONS: { value: string; label: string }[] = [
 type AdminEngineersPageProps = {
   onDashboardClick?: () => void;
   onCustomersClick?: () => void;
+  onAppointmentsClick?: () => void;
   onEngineersClick?: () => void;
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
@@ -85,6 +87,7 @@ type AdminEngineersPageProps = {
 export default function AdminEngineersPage({
   onDashboardClick,
   onCustomersClick,
+  onAppointmentsClick,
   onEngineersClick,
   onInventoryClick,
   onPricingClick,
@@ -279,6 +282,7 @@ export default function AdminEngineersPage({
                   if (label === "Dashboard") onDashboardClick?.();
                   else if (label === "Nhân viên") onEngineersClick?.();
                   else if (label === "Khách hàng") onCustomersClick?.();
+                  else if (label === "Lịch sử lịch hẹn") onAppointmentsClick?.();
                   else if (label === "Kho linh kiện") onInventoryClick?.();
                   else if (label === "Bảng giá") onPricingClick?.();
                   else if (label === "Thông tin garage") onGarageClick?.();
