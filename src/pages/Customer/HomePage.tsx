@@ -89,6 +89,7 @@ function timeAgo(isoDate: string) {
 
 type HomeProps = {
   onBookingClick: () => void;
+  onDiagnoseClick: () => void;
   onHistoryClick: () => void;
   onNotificationsClick: () => void;
   onProfileClick: () => void;
@@ -97,6 +98,7 @@ type HomeProps = {
 
 export default function Home({
   onBookingClick,
+  onDiagnoseClick,
   onHistoryClick,
   onNotificationsClick,
   onProfileClick,
@@ -190,7 +192,7 @@ export default function Home({
     { label: "Đặt lịch hẹn", icon: "calendar_add_on", onClick: onBookingClick },
     { label: "Theo dõi xe", icon: "location_on", onClick: onTrackingClick },
     { label: "Lịch sử dịch vụ", icon: "receipt_long", onClick: onHistoryClick },
-    { label: "Hỗ trợ 24/7", icon: "support_agent" },
+    { label: "Chẩn đoán AI", icon: "auto_awesome", onClick: onDiagnoseClick },
   ];
 
   return (

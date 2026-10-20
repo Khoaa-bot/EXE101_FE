@@ -21,6 +21,7 @@ import { MAX_ODOMETER_KM, worstStage } from "../../utils/maintenance";
 type ProfilePageProps = {
   onAddVehicleClick: () => void;
   onBookingClick: () => void;
+  onDiagnoseClick: (vehicleId: number) => void;
   onHomeClick: () => void;
   onHistoryClick: () => void;
   onTrackingClick: () => void;
@@ -35,6 +36,7 @@ const topAvatarImage =
 export default function ProfilePage({
   onAddVehicleClick,
   onBookingClick,
+  onDiagnoseClick,
   onHomeClick,
   onHistoryClick,
   onTrackingClick,
@@ -543,6 +545,7 @@ export default function ProfilePage({
                     onUploadImage={(file) => handleUploadImage(vehicle.id, file)}
                     maintenance={maintenance.filter((item) => item.vehicleId === vehicle.id)}
                     onBook={onBookingClick}
+                    onDiagnose={() => onDiagnoseClick(vehicle.id)}
                     onUpdateOdometer={(odometer) => handleQuickOdometer(vehicle.id, odometer)}
                   />
                 ))}
@@ -664,6 +667,7 @@ function VehicleCard({
   onUploadImage,
   maintenance,
   onBook,
+  onDiagnose,
   onUpdateOdometer,
 }: {
   vehicle: Vehicle;
@@ -683,6 +687,7 @@ function VehicleCard({
   onUploadImage: (file: File) => void;
   maintenance: MaintenanceStatus[];
   onBook: () => void;
+  onDiagnose: () => void;
   // Trả về thông báo lỗi, hoặc null nếu lưu thành công.
   onUpdateOdometer: (odometer: number) => Promise<string | null>;
 }) {
@@ -987,6 +992,17 @@ function VehicleCard({
             </button>
           </div>
         )}
+
+        <button
+          type="button"
+          onClick={onDiagnose}
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-primary bg-primary-fixed/40 px-4 font-label-md text-label-md text-primary transition-colors hover:bg-primary-fixed"
+        >
+          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+            auto_awesome
+          </span>
+          Chẩn đoán AI cho xe này
+        </button>
       </div>
     </article>
   );

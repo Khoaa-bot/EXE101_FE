@@ -440,6 +440,76 @@ export async function uploadVehicleImage(
 }
 
 // ---------------------------------------------------------------------------
+// AI chẩn đoán xe — AiDiagnosisController (@RequestMapping("/api/ai")) bên
+// backend. Chỉ role customer dùng được; backend tự giới hạn số lượt mỗi ngày.
+// ---------------------------------------------------------------------------
+
+export type DiagnosisSeverity = "LOW" | "MEDIUM" | "URGENT";
+export type DiagnosisLikelihood = "LOW" | "MEDIUM" | "HIGH";
+
+export type DiagnosisCause = {
+  name: string;
+  likelihood: DiagnosisLikelihood;
+  explanation: string;
+};
+
+export type DiagnosisResult = {
+  summary: string;
+  causes: DiagnosisCause[];
+  severity: DiagnosisSeverity;
+  stopDriving: boolean;
+  advice: string;
+  recommendedServiceIds: number[];
+};
+
+export type DiagnosisSuggestedService = {
+  id: number;
+  name: string;
+  price: number | null;
+};
+
+export type AiDiagnosis = {
+  id: number;
+  vehicleId: number;
+  vehicleLabel: string;
+  symptoms: string;
+  result: DiagnosisResult;
+  suggestedServices: DiagnosisSuggestedService[];
+  createdAt: string | null;
+  // null = khách chưa đánh giá kết quả.
+  helpful: boolean | null;
+};
+
+export type AiQuota = { used: number; limit: number };
+
+// POST /api/ai/diagnose — AI đánh giá sơ bộ triệu chứng của một xe của khách.
+// Có thể mất vài chục giây vì phải chờ mô hình AI trả lời.
+export function diagnoseVehicle(vehicleId: number, symptoms: string) {
+  return apiRequest<AiDiagnosis>("/ai/diagnose", {
+    method: "POST",
+    body: { vehicleId, symptoms },
+  });
+}
+
+// GET /api/ai/diagnoses — 20 lần chẩn đoán gần nhất của khách đang đăng nhập.
+export function getMyDiagnoses() {
+  return apiRequest<AiDiagnosis[]>("/ai/diagnoses");
+}
+
+// GET /api/ai/quota — số lượt đã dùng hôm nay và giới hạn mỗi ngày.
+export function getAiQuota() {
+  return apiRequest<AiQuota>("/ai/quota");
+}
+
+// POST /api/ai/diagnoses/{id}/feedback — khách đánh giá kết quả có hữu ích hay không.
+export function sendDiagnosisFeedback(diagnosisId: number, helpful: boolean) {
+  return apiRequest<AiDiagnosis>(`/ai/diagnoses/${diagnosisId}/feedback`, {
+    method: "POST",
+    body: { helpful },
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Appointments & Reviews — CustomerController (@RequestMapping("/api")) bên
 // backend. Tất cả endpoint này đều cần đăng nhập (role customer) và backend
 // tự xác định khách hàng qua principal, không cần truyền customerId.
