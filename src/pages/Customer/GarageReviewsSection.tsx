@@ -99,7 +99,7 @@ export default function GarageReviewsSection({ garageId }: { garageId: number | 
   const maxCount = summary ? Math.max(1, ...summary.distribution) : 1;
 
   return (
-    <section aria-labelledby="garage-reviews-title" className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[21.25rem_1fr]">
+    <section aria-labelledby="garage-reviews-title" className="grid grid-cols-1 items-start gap-5">
       <div className={`${cardClass} space-y-3.5 p-[22px]`}>
         <h2 id="garage-reviews-title" className="text-lg font-extrabold">
           Điểm trung bình

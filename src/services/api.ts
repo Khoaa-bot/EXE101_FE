@@ -440,6 +440,109 @@ export async function uploadVehicleImage(
 }
 
 // ---------------------------------------------------------------------------
+// AI chẩn đoán xe dạng chat — AiChatController (@RequestMapping("/api/ai/chat"))
+// bên backend. Chỉ role customer dùng được; backend tự giới hạn số tin nhắn mỗi ngày.
+// ---------------------------------------------------------------------------
+
+export type DiagnosisSeverity = "LOW" | "MEDIUM" | "URGENT";
+export type DiagnosisLikelihood = "LOW" | "MEDIUM" | "HIGH";
+
+export type DiagnosisCause = {
+  name: string;
+  likelihood: DiagnosisLikelihood;
+  explanation: string;
+};
+
+export type DiagnosisResult = {
+  summary: string;
+  causes: DiagnosisCause[];
+  severity: DiagnosisSeverity;
+  stopDriving: boolean;
+  advice: string;
+  recommendedServiceIds: number[];
+};
+
+export type DiagnosisSuggestedService = {
+  id: number;
+  name: string;
+  price: number | null;
+};
+
+// Số tin nhắn chat đã gửi hôm nay và giới hạn mỗi ngày.
+export type AiQuota = { used: number; limit: number };
+
+export type ChatRole = "USER" | "ASSISTANT";
+
+export type ChatMessage = {
+  id: number;
+  role: ChatRole;
+  content: string;
+  // Gợi ý trả lời nhanh cho câu hỏi thêm của AI; rỗng với tin nhắn của khách hoặc khi đã kết luận.
+  quickReplies: string[];
+  // Chỉ có ở tin nhắn kết luận của AI.
+  diagnosis: DiagnosisResult | null;
+  suggestedServices: DiagnosisSuggestedService[];
+  createdAt: string | null;
+};
+
+export type ChatConversation = {
+  id: number;
+  vehicleId: number;
+  vehicleLabel: string;
+  title: string;
+  // null cho tới khi AI đưa ra kết luận.
+  severity: DiagnosisSeverity | null;
+  // null = khách chưa đánh giá kết quả.
+  helpful: boolean | null;
+  messageCount: number;
+  createdAt: string | null;
+  updatedAt: string | null;
+  // null trong danh sách; có đầy đủ khi xem một cuộc trò chuyện hoặc sau khi gửi tin.
+  messages: ChatMessage[] | null;
+};
+
+export type ChatSendPayload = {
+  // Bỏ trống để mở cuộc trò chuyện mới (khi đó bắt buộc có vehicleId).
+  conversationId?: number;
+  vehicleId?: number;
+  message: string;
+};
+
+export type ChatSendResponse = {
+  conversation: ChatConversation;
+  quota: AiQuota;
+};
+
+// POST /api/ai/chat — gửi một tin nhắn cho trợ lý AI. Có thể mất vài chục giây
+// vì phải chờ mô hình AI trả lời.
+export function sendChatMessage(payload: ChatSendPayload) {
+  return apiRequest<ChatSendResponse>("/ai/chat", { method: "POST", body: payload });
+}
+
+// GET /api/ai/chat/quota — số tin nhắn đã gửi hôm nay và giới hạn mỗi ngày.
+export function getChatQuota() {
+  return apiRequest<AiQuota>("/ai/chat/quota");
+}
+
+// GET /api/ai/chat/conversations — 20 cuộc trò chuyện gần nhất (không kèm tin nhắn).
+export function getChatConversations() {
+  return apiRequest<ChatConversation[]>("/ai/chat/conversations");
+}
+
+// GET /api/ai/chat/conversations/{id} — một cuộc trò chuyện đầy đủ tin nhắn.
+export function getChatConversation(conversationId: number) {
+  return apiRequest<ChatConversation>(`/ai/chat/conversations/${conversationId}`);
+}
+
+// POST /api/ai/chat/conversations/{id}/feedback — khách đánh giá kết quả có hữu ích hay không.
+export function sendChatFeedback(conversationId: number, helpful: boolean) {
+  return apiRequest<ChatConversation>(`/ai/chat/conversations/${conversationId}/feedback`, {
+    method: "POST",
+    body: { helpful },
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Appointments & Reviews — CustomerController (@RequestMapping("/api")) bên
 // backend. Tất cả endpoint này đều cần đăng nhập (role customer) và backend
 // tự xác định khách hàng qua principal, không cần truyền customerId.

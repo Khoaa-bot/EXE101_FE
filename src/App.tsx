@@ -22,6 +22,7 @@ import ForgotPasswordPage from "./Auth/pages/ForgotPasswordPage";
 import NotificationsPage from "./pages/Customer/NotificationsPage";
 import ProfilePage from "./pages/Customer/ProfilePage";
 import WalletPage from "./pages/Customer/WalletPage";
+import DiagnosePage from "./pages/Customer/DiagnosePage";
 import RegisterPage from "./Auth/pages/RegisterPage";
 import EngineerDashboardPage from "./pages/Engineer/EngineerDashboardPage";
 import EngineerSchedulePage from "./pages/Engineer/EngineerSchedulePage";
@@ -56,6 +57,7 @@ const appRoutes = new Set([
   "/profile",
   "/wallet",
   "/add-vehicle",
+  "/diagnose",
   "/booking",
   "/find-garage",
   "/garage-detail",
@@ -128,7 +130,7 @@ const roleRoutes: Record<string, Set<string>> = {
   ]),
   CUSTOMER: new Set([
     "/home", "/history", "/notifications", "/tracking", "/profile", "/wallet",
-    "/add-vehicle", "/booking", "/find-garage", "/garage-detail", "/payment-result",
+    "/add-vehicle", "/diagnose", "/booking", "/find-garage", "/garage-detail", "/payment-result",
   ]),
 };
 
@@ -176,6 +178,7 @@ function App() {
   );
   const [selectedGarageId, setSelectedGarageId] = useState<string | null>(null);
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  const [diagnoseVehicleId, setDiagnoseVehicleId] = useState<number | null>(null);
   const openBooking = () => {
     setSelectedGarageId(null);
     setSelectedServiceId(null);
@@ -329,6 +332,7 @@ function App() {
     return (
       <Home
         onBookingClick={() => navigate("/booking")}
+        onDiagnoseClick={() => navigate("/diagnose")}
         onHistoryClick={() => navigate("/history")}
         onNotificationsClick={() => navigate("/notifications")}
         onTrackingClick={() => navigate("/tracking")}
@@ -611,6 +615,10 @@ function App() {
           onAddVehicleClick={() => navigate("/add-vehicle")}
           onWalletClick={() => navigate("/wallet")}
           onBookingClick={openBooking}
+          onDiagnoseClick={(vehicleId) => {
+            setDiagnoseVehicleId(vehicleId);
+            navigate("/diagnose");
+          }}
           onHistoryClick={shellProps.onHistoryClick}
           onTrackingClick={shellProps.onTrackingClick}
           onNotificationsClick={shellProps.onNotificationsClick}
@@ -631,6 +639,22 @@ function App() {
     return (
       <AppShell active="profile" title="Thêm phương tiện mới" {...shellProps}>
         <AddVehiclePage onBackClick={() => navigate("/profile")} />
+      </AppShell>
+    );
+  }
+
+  if (routePath === "/diagnose") {
+    return (
+      <AppShell active="home" title="Chẩn đoán AI" {...shellProps}>
+        <DiagnosePage
+          initialVehicleId={diagnoseVehicleId}
+          onBookServiceClick={(serviceId) => {
+            setSelectedGarageId(null);
+            setSelectedServiceId(serviceId);
+            navigate("/booking");
+          }}
+          onAddVehicleClick={() => navigate("/add-vehicle")}
+        />
       </AppShell>
     );
   }
@@ -705,6 +729,10 @@ function App() {
         onNotificationsClick={shellProps.onNotificationsClick}
         onTrackingClick={shellProps.onTrackingClick}
         onProfileClick={shellProps.onProfileClick}
+        onDiagnoseClick={() => {
+          setDiagnoseVehicleId(null);
+          navigate("/diagnose");
+        }}
       />
     </AppShell>
   );

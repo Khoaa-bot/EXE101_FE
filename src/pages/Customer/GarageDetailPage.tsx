@@ -125,7 +125,8 @@ export default function GarageDetailPage({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_21.25rem]">
+          <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
+            <div className="space-y-5">
             <section aria-labelledby="garage-services-title" className={`${cardClass} p-[22px]`}>
               <h2 id="garage-services-title" className="mb-1 text-lg font-extrabold">
                 Dịch vụ &amp; bảng giá
@@ -167,7 +168,6 @@ export default function GarageDetailPage({
               </ul>
             </section>
 
-            <aside className="space-y-5 lg:sticky lg:top-24">
               <section className={`${cardClass} p-[22px]`} aria-labelledby="garage-about-title">
                 <h2 id="garage-about-title" className="mb-2 text-base font-extrabold">
                   Về garage
@@ -193,11 +193,8 @@ export default function GarageDetailPage({
                   )}
                 </div>
               </section>
+            </div>
 
-            </aside>
-          </div>
-
-          <div className="mt-6">
             <GarageReviewsSection garageId={garage.id} />
           </div>
         </>
