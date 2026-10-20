@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import AppointmentChat from "../../components/AppointmentChat";
+import CancelBookingDialog from "../../components/CancelBookingDialog";
 import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
 import PaymentCountdown from "../../components/PaymentCountdown";
 import { formatVnd } from "../../utils/format";
@@ -85,6 +86,7 @@ export default function TrackingPage({
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<AppointmentDto | null>(null);
   const [cancelMessage, setCancelMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [busyExtraId, setBusyExtraId] = useState<number | null>(null);
   const [isPaying, setIsPaying] = useState(false);
@@ -127,11 +129,6 @@ export default function TrackingPage({
 
   const handleCancel = async (target: AppointmentDto) => {
     if (isCancelling) return;
-    const confirmed = window.confirm(
-      `Bạn chắc chắn muốn huỷ lịch hẹn #${target.id} (${target.scheduleDate} - ${target.timeFrame})?`,
-    );
-    if (!confirmed) return;
-
     setIsCancelling(true);
     setCancelMessage(null);
     try {
@@ -153,6 +150,7 @@ export default function TrackingPage({
       });
     } finally {
       setIsCancelling(false);
+      setCancelTarget(null);
     }
   };
 
@@ -363,7 +361,7 @@ export default function TrackingPage({
                     {canCancel && (
                       <button
                         type="button"
-                        onClick={() => void handleCancel(appointment)}
+                        onClick={() => setCancelTarget(appointment)}
                         disabled={isCancelling}
                         className="mt-auto flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-error text-sm font-bold text-error transition-colors hover:bg-error-container/10 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -513,6 +511,15 @@ export default function TrackingPage({
           <span className="font-label-sm text-label-sm">Cá nhân</span>
         </button>
       </nav>
+
+      {cancelTarget && (
+        <CancelBookingDialog
+          appointment={cancelTarget}
+          isCancelling={isCancelling}
+          onKeep={() => setCancelTarget(null)}
+          onConfirm={() => void handleCancel(cancelTarget)}
+        />
+      )}
     </div>
   );
 }
