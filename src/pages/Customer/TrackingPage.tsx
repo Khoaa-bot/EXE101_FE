@@ -138,7 +138,14 @@ export default function TrackingPage({
       await cancelAppointment(target.id);
       setAppointments((current) => current.filter((item) => item.id !== target.id));
       setSelectedId(null);
-      setCancelMessage({ type: "success", text: "Khách hàng đã huỷ lịch thành công." });
+      const paid = target.amountPaid ?? 0;
+      setCancelMessage({
+        type: "success",
+        text:
+          paid > 0
+            ? `Đã huỷ lịch. ${formatVnd(paid)} đã được hoàn vào Ví Servio của bạn. Bạn có thể rút tại Cá nhân > Ví Servio.`
+            : "Khách hàng đã huỷ lịch thành công.",
+      });
     } catch (err) {
       setCancelMessage({
         type: "error",

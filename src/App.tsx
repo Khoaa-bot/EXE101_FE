@@ -21,6 +21,7 @@ import LandingPage from "./Landing/pages/LandingPage";
 import ForgotPasswordPage from "./Auth/pages/ForgotPasswordPage";
 import NotificationsPage from "./pages/Customer/NotificationsPage";
 import ProfilePage from "./pages/Customer/ProfilePage";
+import WalletPage from "./pages/Customer/WalletPage";
 import RegisterPage from "./Auth/pages/RegisterPage";
 import EngineerDashboardPage from "./pages/Engineer/EngineerDashboardPage";
 import EngineerSchedulePage from "./pages/Engineer/EngineerSchedulePage";
@@ -53,6 +54,7 @@ const appRoutes = new Set([
   "/notifications",
   "/tracking",
   "/profile",
+  "/wallet",
   "/add-vehicle",
   "/booking",
   "/find-garage",
@@ -125,7 +127,7 @@ const roleRoutes: Record<string, Set<string>> = {
     "/reception/appointments/new", "/reception/appointments/detail", "/reception/customers",
   ]),
   CUSTOMER: new Set([
-    "/home", "/history", "/notifications", "/tracking", "/profile",
+    "/home", "/history", "/notifications", "/tracking", "/profile", "/wallet",
     "/add-vehicle", "/booking", "/find-garage", "/garage-detail", "/payment-result",
   ]),
 };
@@ -607,11 +609,20 @@ function App() {
         <ProfilePage
           onHomeClick={shellProps.onHomeClick}
           onAddVehicleClick={() => navigate("/add-vehicle")}
+          onWalletClick={() => navigate("/wallet")}
           onBookingClick={openBooking}
           onHistoryClick={shellProps.onHistoryClick}
           onTrackingClick={shellProps.onTrackingClick}
           onNotificationsClick={shellProps.onNotificationsClick}
         />
+      </AppShell>
+    );
+  }
+
+  if (routePath === "/wallet") {
+    return (
+      <AppShell active="profile" title="Ví Servio" {...shellProps}>
+        <WalletPage />
       </AppShell>
     );
   }

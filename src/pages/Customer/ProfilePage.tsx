@@ -7,6 +7,7 @@ import {
   getFleetMaintenanceStatus,
   getMyFleet,
   getMyProfile,
+  getWalletBalance,
   updateMyProfile,
   updateVehicle,
   uploadMyAvatar,
@@ -16,10 +17,12 @@ import {
   type UserProfile,
   type Vehicle,
 } from "../../services/api";
+import { formatVnd } from "../../utils/format";
 import { MAX_ODOMETER_KM, worstStage } from "../../utils/maintenance";
 
 type ProfilePageProps = {
   onAddVehicleClick: () => void;
+  onWalletClick: () => void;
   onBookingClick: () => void;
   onHomeClick: () => void;
   onHistoryClick: () => void;
@@ -34,6 +37,7 @@ const topAvatarImage =
 
 export default function ProfilePage({
   onAddVehicleClick,
+  onWalletClick,
   onBookingClick,
   onHomeClick,
   onHistoryClick,
@@ -58,6 +62,21 @@ export default function ProfilePage({
   const [profileSaved, setProfileSaved] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [recentActivity, setRecentActivity] = useState<AppointmentDto[]>([]);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getWalletBalance()
+      .then((balance) => {
+        if (!cancelled) setWalletBalance(balance);
+      })
+      .catch(() => {
+        // Không chặn trang cá nhân nếu không tải được số dư; thẻ ví vẫn bấm vào được.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleNavigate = (section: AppSection) => {
     if (section === "home") onHomeClick();
@@ -413,6 +432,31 @@ export default function ProfilePage({
               </div>
             </div>
           </section>
+
+          <button
+            type="button"
+            onClick={onWalletClick}
+            className="flex w-full items-center gap-4 rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-5 text-left shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] transition hover:bg-surface-container-low"
+          >
+            <span
+              aria-hidden="true"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-fixed text-on-primary-fixed-variant"
+            >
+              <span className="material-symbols-outlined">account_balance_wallet</span>
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-extrabold">Ví Servio</span>
+              <span className="block text-[13px] text-on-surface-variant">
+                Tiền hoàn từ lịch hẹn đã huỷ nằm ở đây. Bạn có thể rút về tài khoản ngân hàng.
+              </span>
+            </span>
+            <span className="shrink-0 text-lg font-extrabold" data-testid="profile-wallet-balance">
+              {walletBalance === null ? "—" : formatVnd(walletBalance)}
+            </span>
+            <span aria-hidden="true" className="material-symbols-outlined text-on-surface-variant">
+              chevron_right
+            </span>
+          </button>
 
           <div className="grid items-start gap-5 xl:grid-cols-[22rem_1fr]">
             <section

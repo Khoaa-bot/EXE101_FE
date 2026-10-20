@@ -4,7 +4,6 @@ import {
   getWithdrawalEligibility,
   getWalletHistory,
   getWalletSummary,
-  requestWalletTopUp,
   requestWithdrawal,
   type WalletSummary,
   type WalletTransactionItem,
@@ -14,11 +13,9 @@ import {
 import { formatDateTime, formatVnd } from "../../utils/format";
 import WalletHistory from "./WalletHistory";
 
-const TOP_UP_MIN = 10000;
 const WITHDRAW_MIN = 50000;
 const WITHDRAW_MAX = 50000000;
 const QR_MAX_BYTES = 5 * 1024 * 1024;
-const QUICK_AMOUNTS = [50000, 100000, 200000, 500000];
 
 const WITHDRAWAL_STATUS = {
   PENDING: { label: "Chờ xử lý", cls: "bg-[#fff1cc] text-[#6b4200]", tone: "bg-[#fff1cc] text-[#6b4200]", icon: "hourglass_top" },
@@ -37,11 +34,6 @@ export default function WalletPage() {
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequestItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-
-  const [tab, setTab] = useState<"topup" | "withdraw">("topup");
-  const [topUpAmount, setTopUpAmount] = useState("");
-  const [isTopUpSubmitting, setIsTopUpSubmitting] = useState(false);
-  const [topUpError, setTopUpError] = useState<string | null>(null);
 
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [bankName, setBankName] = useState("");
@@ -121,23 +113,7 @@ export default function WalletPage() {
   const canTopUpRole = summary?.role === "customer";
   // Super Admin là bên nhận hoa hồng, không rút tiền về tài khoản nào: ẩn form và danh sách yêu cầu rút.
   const isAdmin = summary?.role === "admin";
-  const activeTab = canTopUpRole ? tab : "withdraw";
-
-  const topUpValue = Number(topUpAmount);
-  const canTopUp = !isTopUpSubmitting && Number.isInteger(topUpValue) && topUpValue >= TOP_UP_MIN;
-
-  const submitTopUp = async () => {
-    if (!canTopUp) return;
-    setIsTopUpSubmitting(true);
-    setTopUpError(null);
-    try {
-      const response = await requestWalletTopUp(topUpValue);
-      window.location.href = response.paymentUrl;
-    } catch (err) {
-      setTopUpError(err instanceof Error ? err.message : "Không tạo được link nạp tiền.");
-      setIsTopUpSubmitting(false);
-    }
-  };
+  // Khách chỉ xem số dư và rút tiền hoàn từ lịch huỷ; tiền trả cho lịch hẹn đi thẳng qua PayOS nên không có tab nạp.
 
   const withdrawValue = Number(withdrawAmount);
   const balance = summary?.balance ?? 0;
@@ -259,104 +235,10 @@ export default function WalletPage() {
                 >
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <h2 id="wallet-money-title" className="text-lg font-extrabold">
-                      Giao dịch tiền
+                      Rút tiền
                     </h2>
-                    {canTopUpRole && (
-                      <div role="tablist" aria-label="Loại giao dịch" className="inline-flex gap-1 rounded-2xl bg-surface-container p-1">
-                        {(["topup", "withdraw"] as const).map((key) => (
-                          <button
-                            key={key}
-                            type="button"
-                            role="tab"
-                            aria-selected={tab === key}
-                            onClick={() => setTab(key)}
-                            className={`min-h-10 rounded-xl px-5 text-[13px] font-bold ${
-                              tab === key
-                                ? "bg-surface-container-lowest text-on-primary-fixed-variant shadow-sm"
-                                : "text-on-surface-variant hover:text-on-surface"
-                            }`}
-                          >
-                            {key === "topup" ? "Nạp tiền" : "Rút tiền"}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
-                  {activeTab === "topup" && (
-                    <form
-                      className="space-y-4"
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        void submitTopUp();
-                      }}
-                    >
-                      <div>
-                        <label htmlFor="pages-customer-walletpage-field-1" className="mb-1.5 block text-xs font-bold text-on-surface-variant">
-                          Số tiền muốn nạp (tối thiểu {formatVnd(TOP_UP_MIN)})
-                        </label>
-                        <div className="flex h-14 items-center gap-2 rounded-2xl border-[1.5px] border-primary bg-surface-container-lowest px-4 focus-within:ring-[3px] focus-within:ring-primary/20">
-                          <input
-                            id="pages-customer-walletpage-field-1"
-                            value={topUpAmount}
-                            onChange={(event) => setTopUpAmount(event.target.value.replace(/\D/g, ""))}
-                            inputMode="numeric"
-                            placeholder="Ví dụ: 200000"
-                            className="min-w-0 flex-1 bg-transparent text-[22px] font-extrabold outline-none"
-                          />
-                          <span className="font-bold text-outline">đ</span>
-                        </div>
-                      </div>
-                      <div role="group" aria-label="Chọn nhanh số tiền" className="flex flex-wrap gap-2">
-                        {QUICK_AMOUNTS.map((amount) => (
-                          <button
-                            key={amount}
-                            type="button"
-                            aria-pressed={topUpAmount === String(amount)}
-                            onClick={() => setTopUpAmount(String(amount))}
-                            className={`min-h-9 rounded-full border px-3.5 text-[13px] font-semibold ${
-                              topUpAmount === String(amount)
-                                ? "border-primary bg-primary-fixed text-on-primary-fixed-variant"
-                                : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low"
-                            }`}
-                          >
-                            {formatVnd(amount)}
-                          </button>
-                        ))}
-                      </div>
-                      <p className="flex items-start gap-2.5 rounded-2xl bg-surface-container-low p-3.5 text-[13px]">
-                        <span aria-hidden="true" className="material-symbols-outlined text-xl text-on-primary-fixed-variant">
-                          qr_code_2
-                        </span>
-                        <span>
-                          Bạn sẽ được chuyển sang cổng thanh toán PayOS (VietQR) để hoàn tất.
-                          {canTopUp && (
-                            <>
-                              {" "}
-                              Số dư sau khi nạp: <b>{formatVnd(balance + topUpValue)}</b>.
-                            </>
-                          )}
-                        </span>
-                      </p>
-                      {topUpError && (
-                        <p role="alert" className="text-sm text-error">
-                          {topUpError}
-                        </p>
-                      )}
-                      <button
-                        type="submit"
-                        disabled={!canTopUp}
-                        className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-primary to-primary-container text-[15px] font-bold text-on-primary shadow-[0_12px_22px_-14px_rgba(0,89,187,0.9)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <span aria-hidden="true" className="material-symbols-outlined">
-                          qr_code_scanner
-                        </span>
-                        {isTopUpSubmitting ? "Đang chuyển sang trang thanh toán..." : "Nạp tiền qua PayOS (VietQR)"}
-                      </button>
-                    </form>
-                  )}
-
-                  {activeTab === "withdraw" && (
                     <form
                       className="space-y-4"
                       onSubmit={(event) => {
@@ -473,7 +355,6 @@ export default function WalletPage() {
                         {isWithdrawSubmitting ? "Đang gửi..." : "Gửi yêu cầu rút tiền"}
                       </button>
                     </form>
-                  )}
                 </section>
               )}
 
