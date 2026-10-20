@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useDialogA11y } from "../../hooks/useDialogA11y";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import StarRating from "../../components/StarRating";
@@ -52,10 +52,21 @@ function statusLabel(status: string) {
 }
 
 function statusTone(status: string) {
-  const s = status.toLowerCase();
-  if (s === "cancelled" || s === "no_show") return "bg-error-container/30 text-on-error-container";
-  if (isDone(s)) return "bg-secondary-container/30 text-on-secondary-container";
-  return "bg-primary-container/20 text-primary";
+  switch (status.toLowerCase()) {
+    case "cancelled":
+      return "bg-[#e9eaeb] text-[#3a3f4b]";
+    case "no_show":
+      return "bg-error-container text-on-error-container";
+    case "completed":
+    case "successful":
+      return "bg-[#d9f7dd] text-[#00531a]";
+    case "in_progress":
+      return "bg-[#e6defa] text-[#3b2a7a]";
+    case "pending":
+      return "bg-[#fff1cc] text-[#6b4200]";
+    default:
+      return "bg-primary-fixed text-on-primary-fixed-variant";
+  }
 }
 
 function statusIcon(status: string) {
@@ -63,6 +74,13 @@ function statusIcon(status: string) {
   if (s === "cancelled" || s === "no_show") return "cancel";
   if (isDone(s)) return "task_alt";
   return "build";
+}
+
+const PAGE_SIZE = 10;
+
+function monthLabel(value: string) {
+  const match = /^(\d{4})-(\d{2})/.exec(value);
+  return match ? `Tháng ${Number(match[2])} / ${match[1]}` : "Khác";
 }
 
 function formatCurrency(value: number | null | undefined) {
@@ -79,6 +97,7 @@ export default function HistoryPage({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const unreadNotificationCount = useUnreadNotificationCount();
   const [activeFilter, setActiveFilter] = useState(filters[0].value);
+  const [page, setPage] = useState(0);
   const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -213,6 +232,17 @@ export default function HistoryPage({
           activeFilter === "completed" ? isDone(record.status) : record.status.toLowerCase() === activeFilter,
         );
 
+  const totalPages = Math.max(1, Math.ceil(visibleRecords.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageRecords = visibleRecords.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+  const recordGroups: Array<{ label: string; rows: AppointmentDto[] }> = [];
+  for (const record of pageRecords) {
+    const label = monthLabel(record.scheduleDate);
+    const last = recordGroups[recordGroups.length - 1];
+    if (last && last.label === label) last.rows.push(record);
+    else recordGroups.push({ label, rows: [record] });
+  }
+
   const totalCost = appointments
     .filter((record) => isDone(record.status))
     .reduce((sum, record) => sum + (record.servicePrice || 0), 0);
@@ -319,297 +349,215 @@ export default function HistoryPage({
           </div>
         </header>
 
-        <div className="mx-auto max-w-6xl space-y-lg p-margin-mobile pb-28 md:p-xl">
-          <section className="grid grid-cols-1 gap-lg md:grid-cols-3">
-            <div className="flex flex-col gap-xs rounded-xl border border-outline-variant bg-surface-container-lowest p-lg">
-              <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">
-                Tổng chi phí đã hoàn thành
+        <div className="mx-auto max-w-6xl space-y-5 p-margin-mobile pb-28 md:p-xl">
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-3" aria-label="Tổng quan lịch sử">
+            <div className="flex items-center gap-3.5 rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[18px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+              <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[#fff1cc] text-[#6b4200]">
+                <span className="material-symbols-outlined">payments</span>
               </span>
-              <span className="font-display-lg text-display-lg text-primary">
-                {formatCurrency(totalCost)}
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-xs rounded-xl border border-outline-variant bg-surface-container-lowest p-lg">
-              <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">
-                Số lần dịch vụ
-              </span>
-              <span className="font-display-lg text-display-lg text-on-surface">
-                {appointments.length.toString().padStart(2, "0")}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between rounded-xl bg-primary-container p-lg text-on-primary-container shadow-lg shadow-primary-container/20">
-              <div className="flex flex-col gap-xs">
-                <span className="font-label-sm text-label-sm uppercase tracking-wider opacity-90">
-                  Đã huỷ / Không đến
-                </span>
-                <span className="font-headline-md text-headline-md">
-                  {
-                    appointments.filter((a) =>
-                      ["cancelled", "no_show"].includes(a.status.toLowerCase()),
-                    ).length
-                  }{" "}
-                  lịch hẹn
-                </span>
+              <div>
+                <p className="text-[13px] text-on-surface-variant">Tổng chi phí đã hoàn thành</p>
+                <p className="text-2xl font-extrabold">{formatCurrency(totalCost)}</p>
               </div>
-              <span className="material-symbols-outlined text-4xl opacity-50">
-                cancel
+            </div>
+            <div className="flex items-center gap-3.5 rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[18px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+              <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-primary-fixed text-on-primary-fixed-variant">
+                <span className="material-symbols-outlined">event_note</span>
               </span>
+              <div>
+                <p className="text-[13px] text-on-surface-variant">Số lần dịch vụ</p>
+                <p className="text-2xl font-extrabold">{appointments.length}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3.5 rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[18px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+              <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[#e9eaeb] text-[#3a3f4b]">
+                <span className="material-symbols-outlined">cancel</span>
+              </span>
+              <div>
+                <p className="text-[13px] text-on-surface-variant">Đã huỷ / Không đến</p>
+                <p className="text-2xl font-extrabold">
+                  {appointments.filter((a) => ["cancelled", "no_show"].includes(a.status.toLowerCase())).length}
+                </p>
+              </div>
             </div>
           </section>
 
-          <section className="flex flex-col items-center justify-between gap-md rounded-xl border border-outline-variant bg-surface-container-lowest p-md sm:flex-row">
-            <div className="flex w-full rounded-lg bg-surface-container-high p-1 sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2">
+            <div role="group" aria-label="Lọc theo trạng thái" className="flex flex-wrap gap-2">
               {filters.map((filter) => (
                 <button
                   key={filter.value}
-                  className={`flex-1 rounded-md px-lg py-2 font-label-md text-label-md transition-all sm:flex-none ${
+                  aria-pressed={activeFilter === filter.value}
+                  className={`min-h-9 rounded-full border px-3.5 text-[13px] font-semibold ${
                     activeFilter === filter.value
-                      ? "bg-primary text-on-primary shadow-sm"
-                      : "text-on-surface-variant hover:text-primary"
+                      ? "border-primary bg-primary-fixed text-on-primary-fixed-variant"
+                      : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low"
                   }`}
                   type="button"
-                  onClick={() => setActiveFilter(filter.value)}
+                  onClick={() => {
+                    setActiveFilter(filter.value);
+                    setPage(0);
+                  }}
                 >
                   {filter.label}
                 </button>
               ))}
             </div>
-          </section>
+            {!isLoading && !error && (
+              <span aria-live="polite" className="ml-auto text-[13px] text-on-surface-variant">
+                {visibleRecords.length} lịch hẹn
+              </span>
+            )}
+          </div>
 
           {isLoading && (
-            <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-xl text-center font-body-md text-body-md text-on-surface-variant">
+            <div className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-8 text-center text-on-surface-variant">
               Đang tải lịch sử dịch vụ...
             </div>
           )}
 
           {!isLoading && error && (
-            <div className="rounded-xl border border-error/30 bg-error-container/10 p-xl text-center font-body-md text-body-md text-error">
+            <div className="rounded-3xl border border-error/30 bg-error-container/10 p-8 text-center text-error">
               {error}
             </div>
           )}
 
           {!isLoading && !error && visibleRecords.length === 0 && (
-            <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-xl text-center font-body-md text-body-md text-on-surface-variant">
-              Chưa có lịch sử dịch vụ nào.
+            <div className="flex flex-col items-center gap-3 rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-10 text-center">
+              <span aria-hidden="true" className="flex h-[72px] w-[72px] items-center justify-center rounded-3xl bg-surface-container text-outline">
+                <span className="material-symbols-outlined text-4xl">event_busy</span>
+              </span>
+              <p className="text-lg font-extrabold">Chưa có lịch sử dịch vụ nào</p>
+              <p className="text-sm text-on-surface-variant">Khi bạn đặt lịch, các lần sửa chữa sẽ hiện ở đây.</p>
             </div>
           )}
 
           {!isLoading && !error && visibleRecords.length > 0 && (
-            <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
-              <div className="hidden overflow-x-auto lg:block">
-                <table className="w-full border-collapse text-left">
-                  <thead className="border-b border-outline-variant bg-surface-container-low">
-                    <tr>
-                      {["DỊCH VỤ", "TRẠNG THÁI", "NGÀY HẸN", "GARAGE", "CHI PHÍ", ""].map(
-                        (heading) => (
-                          <th
-                            key={heading}
-                            className="px-xl py-md font-label-md text-label-md text-on-surface-variant"
-                          >
-                            {heading}
-                          </th>
-                        ),
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-outline-variant">
-                    {visibleRecords.map((record) => (
-                      <Fragment key={record.id}>
-                      <tr
-                        className="group transition-colors hover:bg-surface-container-low"
-                      >
-                        <td className="px-xl py-lg">
-                          <div className="flex items-center gap-md">
-                            <div
-                              className={`flex h-10 w-10 items-center justify-center rounded-lg ${statusTone(record.status)}`}
-                            >
-                              <span className="material-symbols-outlined">
-                                {statusIcon(record.status)}
-                              </span>
-                            </div>
-                            <div>
-                              <p className="font-body-lg text-body-lg font-semibold text-on-surface">
-                                {record.serviceName}
-                              </p>
-                              <p className="font-label-sm text-label-sm text-on-surface-variant">
-                                {record.vehicleModel} · {record.vehicleVin}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-xl py-lg">
+            <>
+              <section
+                aria-label="Danh sách lịch hẹn"
+                className="overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]"
+              >
+                {recordGroups.map((group) => (
+                  <div key={group.label}>
+                    <h2 className="bg-surface-container-low px-6 pb-1 pt-2.5 text-[11px] font-bold uppercase tracking-wider text-outline">
+                      {group.label}
+                    </h2>
+                    <ul className="divide-y divide-outline-variant/40">
+                      {group.rows.map((record) => (
+                        <li key={record.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4">
                           <span
-                            className={`rounded-full px-sm py-xs font-label-sm text-label-sm ${statusTone(record.status)}`}
+                            aria-hidden="true"
+                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] ${statusTone(record.status)}`}
+                          >
+                            <span className="material-symbols-outlined">{statusIcon(record.status)}</span>
+                          </span>
+                          <div className="min-w-[12rem] flex-1">
+                            <p className="font-bold">{record.serviceName}</p>
+                            <p className="text-[13px] text-on-surface-variant">
+                              {record.garageName} · {record.vehicleModel} · {record.scheduleDate} · {record.timeFrame}
+                            </p>
+                          </div>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${statusTone(record.status)}`}
                           >
                             {statusLabel(record.status)}
                           </span>
-                        </td>
-                        <td className="px-xl py-lg">
-                          <p className="font-body-md text-body-md text-on-surface">
-                            {record.scheduleDate}
-                          </p>
-                          <p className="font-label-sm text-label-sm text-on-surface-variant">
-                            {record.timeFrame}
-                          </p>
-                        </td>
-                        <td className="px-xl py-lg">
-                          <div className="flex items-center gap-xs">
-                            <span className="material-symbols-outlined text-sm text-on-surface-variant">
-                              location_on
-                            </span>
-                            <span className="font-body-md text-body-md text-on-surface">
-                              {record.garageName}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-xl py-lg">
-                          <span className="font-body-lg text-body-lg font-bold text-on-surface">
-                            {formatCurrency(record.servicePrice)}
-                          </span>
-                        </td>
-                        <td className="px-xl py-lg text-right">
-                          <div className="flex flex-col items-end gap-xs">
+                          <b className="min-w-[5.5rem] text-right">{formatCurrency(record.servicePrice)}</b>
+                          <div className="flex min-w-[8.5rem] flex-col items-end gap-1.5">
                             {record.invoicePaymentStatus === "unpaid" && (
                               <button
                                 type="button"
                                 onClick={() => payInvoice(record)}
                                 disabled={payingInvoiceId === record.invoiceId}
-                                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 font-label-sm text-label-sm text-on-primary hover:opacity-90 disabled:opacity-60"
+                                className="inline-flex min-h-9 items-center gap-1 rounded-xl bg-primary px-3.5 text-[13px] font-bold text-on-primary hover:opacity-90 disabled:opacity-60"
                               >
-                                <span className="material-symbols-outlined text-sm">
+                                <span aria-hidden="true" className="material-symbols-outlined text-lg">
                                   payments
                                 </span>
                                 {payingInvoiceId === record.invoiceId ? "Đang tạo link..." : "Thanh toán"}
                               </button>
                             )}
                             {record.invoicePaymentStatus === "paid" && (
-                              <span className="font-label-sm text-label-sm text-tertiary">
-                                Đã thanh toán
-                              </span>
+                              <span className="text-xs font-semibold text-tertiary">Đã thanh toán</span>
                             )}
                             {isDone(record.status) &&
                               (record.reviewId ? (
-                                <span className="font-label-sm text-label-sm text-tertiary">
-                                  Đã đánh giá
-                                </span>
+                                <span className="text-xs font-semibold text-tertiary">Đã đánh giá</span>
                               ) : (
                                 <button
                                   type="button"
                                   onClick={() => openReview(record)}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 font-label-sm text-label-sm text-primary hover:bg-primary hover:text-on-primary"
+                                  className="inline-flex min-h-9 items-center gap-1 rounded-xl border-[1.5px] border-outline-variant px-3.5 text-[13px] font-bold text-on-primary-fixed-variant hover:bg-surface-container-low"
                                 >
-                                  <span className="material-symbols-outlined text-sm">
+                                  <span aria-hidden="true" className="material-symbols-outlined text-lg">
                                     star
                                   </span>
                                   Đánh giá
                                 </button>
                               ))}
                           </div>
-                        </td>
-                      </tr>
-                      {record.reviewId ? (
-                        <tr>
-                          <td colSpan={6} className="px-xl pb-lg pt-0">
-                            <ReviewBlock record={record} onEdit={() => openReview(record)} />
-                          </td>
-                        </tr>
-                      ) : null}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="divide-y divide-outline-variant lg:hidden">
-                {visibleRecords.map((record) => (
-                  <article key={`${record.id}-mobile`} className="p-lg">
-                    <div className="mb-md flex items-start gap-md">
-                      <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${statusTone(record.status)}`}
-                      >
-                        <span className="material-symbols-outlined">
-                          {statusIcon(record.status)}
-                        </span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-body-lg text-body-lg font-semibold">
-                          {record.serviceName}
-                        </h3>
-                        <p className="font-label-sm text-label-sm text-on-surface-variant">
-                          {record.vehicleModel} · {record.vehicleVin}
-                        </p>
-                      </div>
-                      <span
-                        className={`rounded-full px-sm py-xs font-label-sm text-label-sm ${statusTone(record.status)}`}
-                      >
-                        {statusLabel(record.status)}
-                      </span>
-                    </div>
-                    <div className="grid gap-sm font-body-md text-body-md text-on-surface-variant">
-                      <p>
-                        {record.scheduleDate} - {record.timeFrame}
-                      </p>
-                      <p>{record.garageName}</p>
-                    </div>
-                    <div className="mt-md flex items-center justify-between border-t border-outline-variant pt-md">
-                      <span className="font-label-md text-label-md text-outline">
-                        Chi phí
-                      </span>
-                      <span className="font-headline-md text-headline-md text-primary">
-                        {formatCurrency(record.servicePrice)}
-                      </span>
-                    </div>
-                    {record.invoicePaymentStatus === "unpaid" && (
-                      <div className="mt-md">
-                        <button
-                          type="button"
-                          onClick={() => payInvoice(record)}
-                          disabled={payingInvoiceId === record.invoiceId}
-                          className="inline-flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-3 py-2 font-label-sm text-label-sm text-on-primary disabled:opacity-60"
-                        >
-                          <span className="material-symbols-outlined text-sm">
-                            payments
-                          </span>
-                          {payingInvoiceId === record.invoiceId ? "Đang tạo link..." : "Thanh toán"}
-                        </button>
-                      </div>
-                    )}
-                    {record.invoicePaymentStatus === "paid" && (
-                      <div className="mt-md">
-                        <span className="font-label-sm text-label-sm text-tertiary">
-                          Đã thanh toán
-                        </span>
-                      </div>
-                    )}
-                    {isDone(record.status) && (
-                      <div className="mt-md">
-                        {record.reviewId ? (
-                          <ReviewBlock record={record} onEdit={() => openReview(record)} />
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => openReview(record)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 font-label-sm text-label-sm text-primary"
-                          >
-                            <span className="material-symbols-outlined text-sm">
-                              star
-                            </span>
-                            Đánh giá
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </article>
+                          {record.reviewId ? (
+                            <div className="basis-full">
+                              <ReviewBlock record={record} onEdit={() => openReview(record)} />
+                            </div>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </div>
-            </section>
-          )}
+              </section>
 
-          <footer className="flex flex-col gap-md pb-xl font-label-sm text-label-sm text-on-surface-variant sm:flex-row sm:items-center sm:justify-between">
-            <p>© 2024 Servio Automotive Management. All rights reserved.</p>
-          </footer>
+              {totalPages > 1 && (
+                <nav aria-label="Phân trang" className="flex items-center justify-between">
+                  <span className="text-xs text-on-surface-variant">
+                    Trang {safePage + 1}/{totalPages}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={safePage === 0}
+                      onClick={() => setPage(safePage - 1)}
+                      aria-label="Trang trước"
+                      className="flex h-9 min-w-9 items-center justify-center rounded-[10px] border border-outline-variant hover:bg-surface-container-low disabled:opacity-45"
+                    >
+                      <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                        chevron_left
+                      </span>
+                    </button>
+                    {Array.from({ length: totalPages }, (_, index) => index).map((index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setPage(index)}
+                        aria-label={`Trang ${index + 1}`}
+                        aria-current={index === safePage ? "page" : undefined}
+                        className={`h-9 min-w-9 rounded-[10px] border px-2 text-[13px] font-bold ${
+                          index === safePage
+                            ? "border-primary bg-primary text-on-primary"
+                            : "border-outline-variant hover:bg-surface-container-low"
+                        }`}
+                      >
+                        {index + 1}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      disabled={safePage + 1 >= totalPages}
+                      onClick={() => setPage(safePage + 1)}
+                      aria-label="Trang sau"
+                      className="flex h-9 min-w-9 items-center justify-center rounded-[10px] border border-outline-variant hover:bg-surface-container-low disabled:opacity-45"
+                    >
+                      <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                        chevron_right
+                      </span>
+                    </button>
+                  </div>
+                </nav>
+              )}
+            </>
+          )}
         </div>
       </main>
 
