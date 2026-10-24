@@ -399,6 +399,11 @@ function App() {
     onNotificationsClick: () => navigate("/notifications"),
     onProfileClick: () => navigate("/profile"),
     onTrackingClick: () => navigate("/tracking"),
+    // Bong bóng chat nổi ở mọi trang khách hàng dẫn tới chẩn đoán AI.
+    onDiagnoseClick: () => {
+      setDiagnoseVehicleId(null);
+      navigate("/diagnose");
+    },
     onLogout: () => {
       localStorage.removeItem("auth_session");
       setIsAuthenticated(false);
@@ -654,7 +659,7 @@ function App() {
 
   if (routePath === "/diagnose") {
     return (
-      <AppShell active="home" title="Chẩn đoán AI" {...shellProps}>
+      <AppShell active="home" title="Chẩn đoán AI" {...shellProps} hideAiBubble>
         <DiagnosePage
           initialVehicleId={diagnoseVehicleId}
           onBookServiceClick={(serviceId) => {
@@ -670,7 +675,7 @@ function App() {
 
   if (routePath === "/booking") {
     return (
-      <AppShell active="home" title="Đặt lịch dịch vụ" {...shellProps}>
+      <AppShell active="home" title="Đặt lịch dịch vụ" {...shellProps} hideAiBubble>
         <BookingPage
           onHomeClick={shellProps.onHomeClick}
           onHistoryClick={shellProps.onHistoryClick}

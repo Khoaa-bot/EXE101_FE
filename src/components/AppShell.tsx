@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import AppSidebar, { type AppSection } from "./AppSidebar";
+import AiChatBubble from "./AiChatBubble";
 import BrandLink from "./BrandLink";
 import { useUnreadNotificationCount } from "../hooks/useUnreadNotificationCount";
 import { getStoredAuthSession } from "../services/api";
@@ -16,6 +17,9 @@ export type AppShellProps = {
   onFindGarageClick?: () => void;
   onBookingClick?: () => void;
   onAddVehicleClick?: () => void;
+  // Có hàm này thì hiện bong bóng chat nổi để vào trang chẩn đoán AI; hideAiBubble ẩn nó ở trang không cần.
+  onDiagnoseClick?: () => void;
+  hideAiBubble?: boolean;
   onLogout?: () => void;
   contentClassName?: string;
 };
@@ -51,6 +55,8 @@ export default function AppShell({
   onFindGarageClick,
   onBookingClick,
   onAddVehicleClick,
+  onDiagnoseClick,
+  hideAiBubble = false,
   onLogout,
   contentClassName = "app-shell-content",
 }: AppShellProps) {
@@ -331,6 +337,10 @@ export default function AppShell({
 
         <div className={contentClassName}>{children}</div>
       </main>
+
+      {onDiagnoseClick && !hideAiBubble && (
+        <AiChatBubble onClick={onDiagnoseClick} showTip={active === "home"} />
+      )}
     </div>
   );
 }
