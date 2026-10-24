@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useDialogA11y } from "../../hooks/useDialogA11y";
+import BrandLink from "../../components/BrandLink";
 
 export type AdminTabKey =
   | "dashboard"
@@ -46,7 +47,7 @@ export interface AdminShellProps extends AdminNavProps {
   children: ReactNode;
 }
 
-export const ADMIN_TABS: {
+const ADMIN_TABS: {
   key: AdminTabKey;
   icon: string;
   label: string;
@@ -255,10 +256,10 @@ export default function AdminShell({
         >
           <span className="material-symbols-outlined text-[28px]">menu</span>
         </button>
-        <div className="flex items-center gap-2 text-primary">
+        <BrandLink className="flex items-center gap-2 text-primary">
           <span className="material-symbols-outlined text-2xl">electric_car</span>
           <span className="font-headline-md text-headline-md font-bold">Servio</span>
-        </div>
+        </BrandLink>
       </header>
       {/* Desktop Sidebar */}
       <aside
@@ -268,10 +269,10 @@ export default function AdminShell({
         }`}
       >
         <div className="mb-xl">
-          <div className="flex items-center gap-2 text-primary">
+          <BrandLink className="flex items-center gap-2 text-primary">
             <span className="material-symbols-outlined text-3xl">electric_car</span>
             <span className="font-headline-lg text-headline-lg font-bold">Servio</span>
-          </div>
+          </BrandLink>
           <p className="mt-1 text-xs text-on-surface-variant">
             Quản trị garage {garageName ? `· ${garageName}` : ""}
           </p>

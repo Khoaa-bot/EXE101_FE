@@ -59,11 +59,11 @@ export default function SuperAdminOverviewTab({ onNavigate }: Props) {
           : `${blockedGarages} bị chặn · ${hiddenGarages} đã ẩn`,
     },
     {
-      icon: "payments",
-      tone: "bg-[#ffe4d6] text-[#7a2e00]",
-      label: "Yêu cầu chuyển tiền chờ",
-      value: formatCount(pendingCount),
-      hint: overview ? `Tổng ${formatVnd(overview.pendingWithdrawalAmount)}` : "",
+      icon: "task_alt",
+      tone: "bg-[#d9f7dd] text-[#00531a]",
+      label: "Giao dịch thành công",
+      value: formatCount(overview?.successfulTransactionCount ?? null),
+      hint: wallet ? `Tổng vào ${formatVnd(wallet.cashInViaPayos)}` : "",
     },
     {
       icon: "account_balance",

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useUnreadNotificationCount } from "../hooks/useUnreadNotificationCount";
+import BrandLink from "./BrandLink";
 
 export type StaffRole = "reception" | "engineer";
 
@@ -81,10 +82,10 @@ export default function StaffShell({
     <>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-outline-variant bg-surface-container-lowest p-lg md:flex">
         <div className="mb-xl">
-          <div className="flex items-center gap-2 text-primary">
+          <BrandLink className="flex items-center gap-2 text-primary">
             <span className="material-symbols-outlined text-3xl">electric_car</span>
             <span className="font-headline-lg text-headline-lg font-bold">Servio</span>
-          </div>
+          </BrandLink>
           <p className="mt-1 text-xs text-on-surface-variant">{ROLE_SUBTITLE[role]}</p>
         </div>
         <nav className="space-y-1" aria-label={`Điều hướng ${ROLE_SUBTITLE[role]}`}>

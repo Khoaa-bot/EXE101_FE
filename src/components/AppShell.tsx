@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import AppSidebar, { type AppSection } from "./AppSidebar";
+import BrandLink from "./BrandLink";
 import { useUnreadNotificationCount } from "../hooks/useUnreadNotificationCount";
 import { getStoredAuthSession } from "../services/api";
 
@@ -112,14 +113,14 @@ export default function AppShell({
         }`}
       >
         <div className="px-lg py-xl shrink-0">
-          <div className="flex items-center gap-sm">
+          <BrandLink className="flex items-center gap-sm">
             <span className="material-symbols-outlined text-headline-lg text-primary">
               electric_car
             </span>
             <span className="font-headline-lg text-headline-lg font-bold text-primary">
               Servio
             </span>
-          </div>
+          </BrandLink>
         </div>
 
         <nav className="flex-1 space-y-base px-md">

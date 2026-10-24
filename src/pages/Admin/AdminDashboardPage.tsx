@@ -1,16 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
+import StarRating from "../../components/StarRating";
 import {
   getAdminEmployees,
+  getMyGarageReviews,
   getReceptionDashboard,
   getWalletSummary,
   type AdminEmployee,
   type AppointmentDto,
+  type GarageOwnerReviews,
   type ReceptionDashboard,
   type WalletSummary,
 } from "../../services/api";
 import AdminShell, { type AdminNavProps, StatusPill } from "./AdminShell";
 
 export type AdminDashboardPageProps = AdminNavProps;
+
+const NO_EMPLOYEES: AdminEmployee[] = [];
+const NO_APPOINTMENTS: AppointmentDto[] = [];
 
 const formatPrice = (n: number) => `${n.toLocaleString("vi-VN")}đ`;
 
@@ -25,11 +31,19 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function AdminDashboardPage(props: AdminDashboardPageProps) {
   const [notice, setNotice] = useState("");
-  const [dashboard, setDashboard] = useState<ReceptionDashboard | null>(null);
-  const [employees, setEmployees] = useState<AdminEmployee[]>([]);
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<GarageOwnerReviews | null>(null);
+  // null = đang tải; có giá trị = đã tải xong (thành công hoặc lỗi).
+  const [loaded, setLoaded] = useState<{
+    dashboard: ReceptionDashboard | null;
+    employees: AdminEmployee[];
+    error: string | null;
+  } | null>(null);
+
+  const isLoading = loaded === null;
+  const dashboard = loaded?.dashboard ?? null;
+  const employees = loaded?.employees ?? NO_EMPLOYEES;
+  const loadError = loaded?.error ?? null;
 
   const showNotice = (message: string) => {
     setNotice(message);
@@ -38,22 +52,17 @@ export default function AdminDashboardPage(props: AdminDashboardPageProps) {
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
-    setLoadError(null);
     Promise.all([getReceptionDashboard(), getAdminEmployees()])
       .then(([dash, emp]) => {
-        if (cancelled) return;
-        setDashboard(dash);
-        setEmployees(emp);
+        if (!cancelled) setLoaded({ dashboard: dash, employees: emp, error: null });
       })
       .catch((err) => {
         if (cancelled) return;
-        setLoadError(
-          err instanceof Error ? err.message : "Không tải được dữ liệu dashboard.",
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
+        setLoaded({
+          dashboard: null,
+          employees: NO_EMPLOYEES,
+          error: err instanceof Error ? err.message : "Không tải được dữ liệu dashboard.",
+        });
       });
 
     // Ví không chặn dashboard: lỗi thì chỉ ẩn thẻ số dư.
@@ -62,12 +71,19 @@ export default function AdminDashboardPage(props: AdminDashboardPageProps) {
         if (!cancelled) setWallet(data);
       })
       .catch(() => undefined);
+
+    // Đánh giá cũng không chặn dashboard: lỗi thì chỉ ẩn thẻ đánh giá.
+    getMyGarageReviews({ mode: "all", page: 0, size: 3 })
+      .then((data) => {
+        if (!cancelled) setReviews(data);
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const appointments = dashboard?.appointments ?? [];
+  const appointments = dashboard?.appointments ?? NO_APPOINTMENTS;
 
   const totalRevenue = useMemo(
     () =>
@@ -156,6 +172,12 @@ export default function AdminDashboardPage(props: AdminDashboardPageProps) {
             />
           </section>
 
+          {reviews && (
+            <section className="mb-6">
+              <ReviewsCard reviews={reviews} onViewAll={props.onReviewsClick} />
+            </section>
+          )}
+
           {/* Lưới chính: Lịch hôm nay + Đang xử lý | Kỹ thuật viên */}
           <section className="grid gap-6 xl:grid-cols-3">
             <div className="min-w-0 space-y-6 xl:col-span-2">
@@ -172,6 +194,142 @@ export default function AdminDashboardPage(props: AdminDashboardPageProps) {
         </>
       )}
     </AdminShell>
+  );
+}
+
+function formatReviewDate(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("vi-VN");
+}
+
+const REVIEW_AVATAR_TONES = [
+  "bg-primary-fixed text-on-primary-fixed-variant",
+  "bg-[#d9f7dd] text-[#00531a]",
+  "bg-[#ffe4d6] text-[#7a2e00]",
+];
+
+function ReviewsCard({
+  reviews,
+  onViewAll,
+}: {
+  reviews: GarageOwnerReviews;
+  onViewAll?: () => void;
+}) {
+  const average = reviews.summary.average;
+
+  return (
+    <article
+      aria-label="Đánh giá của khách"
+      className="overflow-hidden rounded-2xl border border-outline-variant/50 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]"
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-outline-variant/50 px-5 py-4">
+        <div className="flex items-center gap-2">
+          <span aria-hidden="true" className="material-symbols-outlined text-primary">
+            reviews
+          </span>
+          <h2 className="font-headline-md text-base font-bold">Đánh giá của khách</h2>
+        </div>
+        {onViewAll && (
+          <button
+            type="button"
+            onClick={onViewAll}
+            className="inline-flex min-h-9 items-center gap-1 text-xs font-bold text-primary hover:underline"
+          >
+            Xem tất cả đánh giá
+            <span aria-hidden="true" className="material-symbols-outlined text-lg">
+              arrow_forward
+            </span>
+          </button>
+        )}
+      </div>
+
+      <div className="grid md:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="flex flex-col gap-4 border-b border-outline-variant/50 p-5 md:border-b-0 md:border-r">
+          <div className="flex items-center gap-3.5">
+            <span className="text-5xl font-extrabold leading-none tracking-tight">
+              {average !== null
+                ? average.toLocaleString("vi-VN", { minimumFractionDigits: 1 })
+                : "—"}
+            </span>
+            <div className="flex flex-col gap-1">
+              {average !== null && <StarRating value={average} size={18} />}
+              <span className="text-xs text-on-surface-variant">
+                {reviews.summary.count.toLocaleString("vi-VN")} đánh giá
+              </span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2 rounded-[14px] bg-[#ffe4d6] px-3 py-2.5 text-[#7a2e00]">
+              <span className="flex items-center gap-2 text-[13px]">
+                <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                  mark_chat_unread
+                </span>
+                Chưa phản hồi
+              </span>
+              <b className="text-lg">{reviews.unreplied}</b>
+            </div>
+            <div className="flex items-center justify-between gap-2 rounded-[14px] bg-error-container px-3 py-2.5 text-on-error-container">
+              <span className="flex items-center gap-2 text-[13px]">
+                <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                  thumb_down
+                </span>
+                Từ 2 sao trở xuống (30 ngày)
+              </span>
+              <b className="text-lg">{reviews.lowLast30Days}</b>
+            </div>
+          </div>
+        </div>
+
+        <ul>
+          {reviews.items.map((review, index) => (
+            <li
+              key={review.id}
+              className={`space-y-2 border-t border-outline-variant/40 px-5 py-3.5 first:border-t-0 ${
+                review.hidden ? "opacity-70" : ""
+              }`}
+            >
+              <div className="flex flex-wrap items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  className={`flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full font-extrabold ${
+                    REVIEW_AVATAR_TONES[index % REVIEW_AVATAR_TONES.length]
+                  }`}
+                >
+                  {review.customerName.charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <b className="text-sm">{review.customerName}</b>
+                  <div className="text-xs text-on-surface-variant">
+                    <StarRating value={review.rating} size={16} /> · {formatReviewDate(review.createdAt)}
+                  </div>
+                </div>
+                {review.serviceName && (
+                  <span className="rounded-full bg-surface-container px-2.5 py-1 text-xs font-semibold text-on-surface-variant">
+                    {review.serviceName}
+                  </span>
+                )}
+                {review.hidden ? (
+                  <StatusPill tone="neutral">Quản trị viên đã ẩn</StatusPill>
+                ) : review.reply ? (
+                  <StatusPill tone="success">Đã phản hồi</StatusPill>
+                ) : (
+                  <StatusPill tone="warning">Chưa phản hồi</StatusPill>
+                )}
+              </div>
+              {!review.hidden && review.comment && (
+                <p className="ml-[50px] line-clamp-2 text-sm leading-relaxed">{review.comment}</p>
+              )}
+            </li>
+          ))}
+          {reviews.items.length === 0 && (
+            <li className="px-5 py-8 text-center text-body-sm text-on-surface-variant">
+              Chưa có đánh giá nào.
+            </li>
+          )}
+        </ul>
+      </div>
+    </article>
   );
 }
 

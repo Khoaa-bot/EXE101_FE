@@ -1833,6 +1833,7 @@ export type AdminOverview = {
   garagesWithoutOwner: Array<{ id: number; name: string }>;
   pendingWithdrawalCount: number;
   pendingWithdrawalAmount: number;
+  successfulTransactionCount: number;
   wallet: PlatformWallet;
 };
 

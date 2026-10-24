@@ -147,7 +147,11 @@ const getRoutePath = (isAuthenticated: boolean, pathname: string, role: string) 
     return publicRoutes.has(pathname) ? pathname : "/login";
   }
 
-  if (pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/forgot-password") {
+  if (pathname === "/") {
+    return "/";
+  }
+
+  if (pathname === "/login" || pathname === "/register" || pathname === "/forgot-password") {
     return defaultHome[role] || "/home";
   }
 
@@ -339,6 +343,11 @@ function App() {
         onProfileClick={() => navigate("/profile")}
       />
     );
+  }
+
+  if (isAuthenticated && routePath === "/") {
+    const goToApp = () => navigate(defaultHome[role] || "/home");
+    return <LandingPage onLoginClick={goToApp} onRegisterClick={goToApp} onGoToApp={goToApp} />;
   }
 
   if (!isAuthenticated) {

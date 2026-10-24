@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 type LandingPageProps = {
   onLoginClick: () => void;
   onRegisterClick: () => void;
+  // Có khi người dùng đã đăng nhập: thay các nút Đăng nhập / Đăng ký bằng nút vào lại ứng dụng.
+  onGoToApp?: () => void;
 };
 
 // Thông tin liên hệ hiển thị ở thanh trên cùng và chân trang — thay bằng thông tin thật.
@@ -133,6 +135,7 @@ function CarScene({ color, glow }: { color: string; glow: string }) {
 export default function LandingPage({
   onLoginClick,
   onRegisterClick,
+  onGoToApp,
 }: LandingPageProps) {
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(
@@ -232,20 +235,32 @@ export default function LandingPage({
             </nav>
 
             <div className="flex items-center gap-sm">
-              <button
-                type="button"
-                onClick={onLoginClick}
-                className="hidden min-h-11 rounded-full border border-white/70 px-5 text-sm font-bold text-white transition-colors hover:bg-white/15 sm:block"
-              >
-                Đăng nhập
-              </button>
-              <button
-                type="button"
-                onClick={onRegisterClick}
-                className="hidden min-h-11 rounded-full bg-primary px-5 text-sm font-bold text-on-primary sm:block"
-              >
-                Đăng ký
-              </button>
+              {onGoToApp ? (
+                <button
+                  type="button"
+                  onClick={onGoToApp}
+                  className="hidden min-h-11 rounded-full bg-primary px-5 text-sm font-bold text-on-primary sm:block"
+                >
+                  Vào ứng dụng
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={onLoginClick}
+                    className="hidden min-h-11 rounded-full border border-white/70 px-5 text-sm font-bold text-white transition-colors hover:bg-white/15 sm:block"
+                  >
+                    Đăng nhập
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onRegisterClick}
+                    className="hidden min-h-11 rounded-full bg-primary px-5 text-sm font-bold text-on-primary sm:block"
+                  >
+                    Đăng ký
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 aria-label="Mở menu"
@@ -275,22 +290,32 @@ export default function LandingPage({
                   {item.label}
                 </a>
               ))}
-              <div className="mt-2 grid grid-cols-2 gap-2">
+              {onGoToApp ? (
                 <button
                   type="button"
-                  onClick={onLoginClick}
-                  className="min-h-11 rounded-full border border-white/70 text-sm font-bold"
+                  onClick={onGoToApp}
+                  className="mt-2 min-h-11 w-full rounded-full bg-primary text-sm font-bold text-on-primary"
                 >
-                  Đăng nhập
+                  Vào ứng dụng
                 </button>
-                <button
-                  type="button"
-                  onClick={onRegisterClick}
-                  className="min-h-11 rounded-full bg-primary text-sm font-bold text-on-primary"
-                >
-                  Đăng ký
-                </button>
-              </div>
+              ) : (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={onLoginClick}
+                    className="min-h-11 rounded-full border border-white/70 text-sm font-bold"
+                  >
+                    Đăng nhập
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onRegisterClick}
+                    className="min-h-11 rounded-full bg-primary text-sm font-bold text-on-primary"
+                  >
+                    Đăng ký
+                  </button>
+                </div>
+              )}
             </nav>
           )}
         </div>
@@ -310,10 +335,10 @@ export default function LandingPage({
             <div className="mt-7 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={onRegisterClick}
+                onClick={onGoToApp ?? onRegisterClick}
                 className="min-h-12 rounded-full bg-primary px-7 text-sm font-bold text-on-primary"
               >
-                Bắt đầu ngay
+                {onGoToApp ? "Vào ứng dụng" : "Bắt đầu ngay"}
               </button>
               <a
                 href="#gioi-thieu"
@@ -471,20 +496,32 @@ export default function LandingPage({
             tài khoản.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <button
-              type="button"
-              onClick={onRegisterClick}
-              className="min-h-12 rounded-full bg-white px-8 text-sm font-bold text-primary"
-            >
-              Đăng ký ngay
-            </button>
-            <button
-              type="button"
-              onClick={onLoginClick}
-              className="min-h-12 rounded-full border border-white/70 px-8 text-sm font-bold hover:bg-white/15"
-            >
-              Đăng nhập
-            </button>
+            {onGoToApp ? (
+              <button
+                type="button"
+                onClick={onGoToApp}
+                className="min-h-12 rounded-full bg-white px-8 text-sm font-bold text-primary"
+              >
+                Vào ứng dụng
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onRegisterClick}
+                  className="min-h-12 rounded-full bg-white px-8 text-sm font-bold text-primary"
+                >
+                  Đăng ký ngay
+                </button>
+                <button
+                  type="button"
+                  onClick={onLoginClick}
+                  className="min-h-12 rounded-full border border-white/70 px-8 text-sm font-bold hover:bg-white/15"
+                >
+                  Đăng nhập
+                </button>
+              </>
+            )}
           </div>
           <p className="mt-6 text-xs text-white/70">
             {CONTACT.email} · © Servio. Tất cả quyền được bảo lưu.

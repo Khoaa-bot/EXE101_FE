@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useDialogA11y } from "../hooks/useDialogA11y";
+import BrandLink from "./BrandLink";
 import { getStoredAuthSession } from "../services/api";
 import { useUnreadNotificationCount } from "../hooks/useUnreadNotificationCount";
 
@@ -73,14 +74,14 @@ export default function AppSidebar({
         className="fixed left-0 top-0 z-[70] flex h-full w-[300px] flex-col rounded-r-[28px] bg-surface-container-lowest shadow-2xl transition-transform duration-300 ease-in-out"
         style={{ transform: isOpen ? "translateX(0)" : "translateX(-100%)" }}
       >
-        <div className="flex items-center gap-3 border-b border-outline-variant p-lg">
+        <BrandLink className="flex items-center gap-3 border-b border-outline-variant p-lg">
           <span className="material-symbols-outlined text-[28px] text-primary">
             electric_car
           </span>
           <span className="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary">
             Servio
           </span>
-        </div>
+        </BrandLink>
 
         <nav className="flex-1 overflow-y-auto py-md">
           {navItems.map((item) => {
