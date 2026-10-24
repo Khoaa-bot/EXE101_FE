@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useUnreadNotificationCount } from "../hooks/useUnreadNotificationCount";
+import VideoCallHost from "./VideoCallHost";
 import BrandLink from "./BrandLink";
 
 export type StaffRole = "reception" | "engineer";
@@ -79,7 +80,7 @@ export default function StaffShell({
   }, [menuOpen]);
 
   return (
-    <>
+    <VideoCallHost>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-outline-variant bg-surface-container-lowest p-lg md:flex">
         <div className="mb-xl">
           <BrandLink className="flex items-center gap-2 text-primary">
@@ -250,6 +251,6 @@ export default function StaffShell({
 
         {children}
       </main>
-    </>
+    </VideoCallHost>
   );
 }

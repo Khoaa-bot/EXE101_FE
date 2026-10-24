@@ -1702,6 +1702,31 @@ export function sendAppointmentMessage(appointmentId: number | string, content: 
   });
 }
 
+// Thông tin phòng gọi video của một lịch hẹn (VideoCallDto của backend). Phòng nằm ở nhà cung cấp
+// ngoài (Jitsi, Daily hoặc MiroTalk), roomUrl đã mang tên người đang xem.
+export type VideoCallInfo = {
+  appointmentId: number;
+  provider: string;
+  roomName: string;
+  roomUrl: string;
+  initiatorId: number;
+  initiatorName: string;
+  initiatorRole: string;
+  startedAt: string;
+};
+
+// POST /api/appointments/{id}/video-call — bắt đầu cuộc gọi: backend tạo phòng, đẩy sự kiện SSE
+// "video-call" cho bên kia, tạo thông báo và ghi một dòng "[Cuộc gọi video] …" vào chat.
+export function startVideoCall(appointmentId: number | string) {
+  return apiRequest<VideoCallInfo>(`/appointments/${appointmentId}/video-call`, { method: "POST" });
+}
+
+// GET /api/appointments/{id}/video-call — lấy đường dẫn phòng mang tên người đang gọi API để tham gia.
+// Không gửi thông báo nào. Lưu ý: initiator* và startedAt ở đây là của chính người gọi GET.
+export function getVideoCallInfo(appointmentId: number | string) {
+  return apiRequest<VideoCallInfo>(`/appointments/${appointmentId}/video-call`);
+}
+
 export type PaymentReturnResult = {
   success: boolean;
   message: string;

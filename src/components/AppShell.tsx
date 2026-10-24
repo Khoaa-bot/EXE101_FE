@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import AppSidebar, { type AppSection } from "./AppSidebar";
 import AiChatBubble from "./AiChatBubble";
 import BrandLink from "./BrandLink";
+import VideoCallHost from "./VideoCallHost";
 import { useUnreadNotificationCount } from "../hooks/useUnreadNotificationCount";
 import { getStoredAuthSession } from "../services/api";
 
@@ -104,6 +105,7 @@ export default function AppShell({
   };
 
   return (
+    <VideoCallHost>
     <div className="min-h-dvh bg-surface font-sans text-on-surface">
       <AppSidebar
         active={active}
@@ -342,5 +344,6 @@ export default function AppShell({
         <AiChatBubble onClick={onDiagnoseClick} showTip={active === "home"} />
       )}
     </div>
+    </VideoCallHost>
   );
 }

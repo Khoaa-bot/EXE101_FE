@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useDialogA11y } from "../../hooks/useDialogA11y";
 import BrandLink from "../../components/BrandLink";
+import VideoCallHost from "../../components/VideoCallHost";
 
 export type AdminTabKey =
   | "dashboard"
@@ -244,6 +245,7 @@ export default function AdminShell({
   const displayedNavigationItems: ShellNavigationItem[] = navigationItems ?? ADMIN_TABS;
 
   return (
+    <VideoCallHost>
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
       {/* Mobile Header */}
       <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-outline-variant/60 bg-surface/80 px-margin-mobile backdrop-blur-md md:hidden">
@@ -365,5 +367,6 @@ export default function AdminShell({
         </div>
       )}
     </div>
+    </VideoCallHost>
   );
 }

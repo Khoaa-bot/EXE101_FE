@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useVideoCall } from "../hooks/useVideoCall";
 import {
   getAppointmentMessages,
   getNotificationStreamUrl,
@@ -19,7 +20,12 @@ type AppointmentChatProps = {
   closed?: boolean;
   callPhone?: string | null;
   callLabel?: string;
+  // Ẩn nút "Gọi video" (dùng khi khung chat nằm ngay trong hộp thoại cuộc gọi).
+  hideVideoCall?: boolean;
 };
+
+// Backend ghi dòng này vào chat mỗi khi có người bắt đầu cuộc gọi video.
+const VIDEO_CALL_PREFIX = "[Cuộc gọi video]";
 
 const ROLE_LABEL: Record<string, string> = {
   customer: "Khách",
@@ -43,7 +49,9 @@ export default function AppointmentChat({
   closed = false,
   callPhone,
   callLabel = "Gọi điện",
+  hideVideoCall = false,
 }: AppointmentChatProps) {
+  const videoCall = useVideoCall();
   const [messages, setMessages] = useState<AppointmentMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -171,15 +179,31 @@ export default function AppointmentChat({
           <span className="material-symbols-outlined text-primary">chat</span>
           Trao đổi về lịch hẹn
         </h3>
-        {callPhone && (
-          <a
-            href={`tel:${callPhone}`}
-            className="inline-flex min-h-10 items-center gap-1 rounded-xl bg-[#d9f7dd] px-3.5 text-sm font-bold text-[#00531a] transition hover:opacity-90"
-          >
-            <span className="material-symbols-outlined text-[18px]">call</span>
-            {callLabel}: {callPhone}
-          </a>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {callPhone && (
+            <a
+              href={`tel:${callPhone}`}
+              className="inline-flex min-h-10 items-center gap-1 rounded-xl bg-[#d9f7dd] px-3.5 text-sm font-bold text-[#00531a] transition hover:opacity-90"
+            >
+              <span className="material-symbols-outlined text-[18px]">call</span>
+              {callLabel}: {callPhone}
+            </a>
+          )}
+          {videoCall && !hideVideoCall && (
+            <button
+              type="button"
+              disabled={closed || videoCall.busy}
+              onClick={() => videoCall.start(appointmentId)}
+              title={closed ? "Lịch hẹn này không ở trạng thái cho phép gọi video." : undefined}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#008730] to-[#00a63f] px-3.5 text-sm font-bold text-white shadow-[0_12px_22px_-14px_rgba(0,135,48,0.9)] transition hover:opacity-90 disabled:bg-surface-container-high disabled:from-surface-container-high disabled:to-surface-container-high disabled:text-outline disabled:shadow-none"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
+                {closed ? "videocam_off" : "videocam"}
+              </span>
+              Gọi video
+            </button>
+          )}
+        </div>
       </div>
 
       <div
@@ -193,6 +217,38 @@ export default function AppointmentChat({
         )}
         {messages.map((message) => {
           const mine = message.senderId === myId;
+          if (message.content.startsWith(VIDEO_CALL_PREFIX)) {
+            const text = message.content.slice(VIDEO_CALL_PREFIX.length).trim();
+            return (
+              <div key={message.id} className="flex justify-center">
+                <div
+                  className={`flex max-w-full items-center gap-2.5 rounded-2xl py-2 pl-3.5 pr-2 text-[13px] font-semibold ${
+                    mine ? "bg-primary-fixed text-on-primary-fixed-variant" : "bg-[#d9f7dd] text-[#00531a]"
+                  }`}
+                >
+                  <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                    videocam
+                  </span>
+                  <span className="min-w-0">
+                    {text}
+                    <span className="ml-1.5 text-[11px] font-medium opacity-75">{formatTime(message.createdAt)}</span>
+                  </span>
+                  {videoCall && !closed && (
+                    <button
+                      type="button"
+                      disabled={videoCall.busy}
+                      onClick={() => videoCall.join(appointmentId)}
+                      className={`min-h-9 shrink-0 rounded-xl px-3.5 text-[13px] font-bold text-white disabled:opacity-60 ${
+                        mine ? "bg-primary" : "bg-[#008730]"
+                      }`}
+                    >
+                      {mine ? "Vào lại" : "Tham gia"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          }
           return (
             <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
               <div
