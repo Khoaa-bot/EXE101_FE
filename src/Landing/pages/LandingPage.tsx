@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useDepthPointer, useReveal } from "../../hooks/useDepthPointer";
 
 type LandingPageProps = {
   onLoginClick: () => void;
@@ -90,43 +91,57 @@ function CarScene({ color, glow }: { color: string; glow: string }) {
   return (
     <div className="absolute inset-0 overflow-hidden bg-gradient-to-b from-[#2a3038] via-[#161a20] to-[#0b0d11]">
       {/* ceiling lights */}
-      <div className="absolute left-[6%] top-[14%] h-1.5 w-28 rotate-90 rounded-full bg-white shadow-[0_0_30px_8px_rgba(255,255,255,0.55)]" />
-      <div className="absolute right-[8%] top-[10%] h-1.5 w-56 -rotate-6 rounded-full bg-white shadow-[0_0_36px_10px_rgba(255,255,255,0.5)]" />
-      <div className="absolute left-[38%] top-[26%] h-1 w-20 rounded-full bg-white/80 shadow-[0_0_20px_5px_rgba(255,255,255,0.4)]" />
-      {/* pillars */}
-      <div className="absolute right-[6%] top-[18%] h-[55%] w-16 bg-gradient-to-r from-[#232830] to-[#14181d]" />
-      <div className="absolute left-[18%] top-[30%] h-[40%] w-10 bg-gradient-to-r from-[#1f242b] to-[#12151a]" />
+      <div className="parallax absolute inset-0 [--depth:-6]">
+        <div className="absolute left-[6%] top-[14%] h-1.5 w-28 rotate-90 rounded-full bg-white shadow-[0_0_30px_8px_rgba(255,255,255,0.55)]" />
+        <div className="absolute right-[8%] top-[10%] h-1.5 w-56 -rotate-6 rounded-full bg-white shadow-[0_0_36px_10px_rgba(255,255,255,0.5)]" />
+        <div className="absolute left-[38%] top-[26%] h-1 w-20 rounded-full bg-white/80 shadow-[0_0_20px_5px_rgba(255,255,255,0.4)]" />
+        {/* pillars */}
+        <div className="absolute right-[6%] top-[18%] h-[55%] w-16 bg-gradient-to-r from-[#232830] to-[#14181d]" />
+        <div className="absolute left-[18%] top-[30%] h-[40%] w-10 bg-gradient-to-r from-[#1f242b] to-[#12151a]" />
+      </div>
       {/* floor */}
       <div className="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-b from-[#1b2027] to-[#0a0c0f]" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-[-30%] bottom-[-14%] h-[52%] origin-bottom opacity-80"
+        style={{
+          transform: "perspective(560px) rotateX(64deg)",
+          backgroundImage:
+            "linear-gradient(rgba(159,195,255,0.22) 1px, transparent 1px), linear-gradient(90deg, rgba(159,195,255,0.22) 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
+        }}
+      />
       <div
         className="absolute bottom-[8%] left-1/2 h-40 w-[70%] -translate-x-1/2 rounded-full blur-3xl"
         style={{ background: glow }}
       />
-      {/* car */}
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 600 220"
-        className="absolute bottom-[10%] left-1/2 w-[min(720px,82%)] -translate-x-1/2 lg:left-auto lg:right-[3%] lg:w-[min(640px,52%)] lg:translate-x-0 drop-shadow-[0_30px_30px_rgba(0,0,0,0.6)]"
-      >
-        <ellipse cx="300" cy="200" rx="270" ry="14" fill="rgba(0,0,0,0.55)" />
-        <path
-          d="M40 150 C40 130 70 125 110 118 L170 80 C190 66 220 60 260 60 L350 60 C390 60 420 72 445 100 L500 112 C545 118 565 132 565 152 L565 168 L40 168 Z"
-          fill={color}
-        />
-        <path
-          d="M185 98 L215 74 C230 68 245 67 262 67 L340 67 C362 67 380 76 395 100 Z"
-          fill="#0d1218"
-        />
-        <path d="M60 140 L545 140" stroke="rgba(0,0,0,0.25)" strokeWidth="3" />
-        <rect x="528" y="124" width="26" height="9" rx="4" fill="#fff6c9" />
-        <rect x="46" y="128" width="22" height="9" rx="4" fill="#ff5a5a" />
-        <circle cx="150" cy="170" r="34" fill="#0b0d10" />
-        <circle cx="150" cy="170" r="19" fill="#cfd5de" />
-        <circle cx="150" cy="170" r="6" fill="#0b0d10" />
-        <circle cx="455" cy="170" r="34" fill="#0b0d10" />
-        <circle cx="455" cy="170" r="19" fill="#cfd5de" />
-        <circle cx="455" cy="170" r="6" fill="#0b0d10" />
-      </svg>
+      {/* car: nghiêng nhẹ và lệch theo chuột */}
+      <div className="car-tilt absolute inset-0">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 600 220"
+          className="absolute bottom-[10%] left-1/2 w-[min(720px,82%)] -translate-x-1/2 lg:left-auto lg:right-[3%] lg:w-[min(640px,52%)] lg:translate-x-0 drop-shadow-[0_30px_30px_rgba(0,0,0,0.6)]"
+        >
+          <ellipse cx="300" cy="200" rx="270" ry="14" fill="rgba(0,0,0,0.55)" />
+          <path
+            d="M40 150 C40 130 70 125 110 118 L170 80 C190 66 220 60 260 60 L350 60 C390 60 420 72 445 100 L500 112 C545 118 565 132 565 152 L565 168 L40 168 Z"
+            fill={color}
+          />
+          <path
+            d="M185 98 L215 74 C230 68 245 67 262 67 L340 67 C362 67 380 76 395 100 Z"
+            fill="#0d1218"
+          />
+          <path d="M60 140 L545 140" stroke="rgba(0,0,0,0.25)" strokeWidth="3" />
+          <rect x="528" y="124" width="26" height="9" rx="4" fill="#fff6c9" />
+          <rect x="46" y="128" width="22" height="9" rx="4" fill="#ff5a5a" />
+          <circle cx="150" cy="170" r="34" fill="#0b0d10" />
+          <circle cx="150" cy="170" r="19" fill="#cfd5de" />
+          <circle cx="150" cy="170" r="6" fill="#0b0d10" />
+          <circle cx="455" cy="170" r="34" fill="#0b0d10" />
+          <circle cx="455" cy="170" r="19" fill="#cfd5de" />
+          <circle cx="455" cy="170" r="6" fill="#0b0d10" />
+        </svg>
+      </div>
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/40" />
     </div>
   );
@@ -142,6 +157,8 @@ export default function LandingPage({
     () => !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const depth = useDepthPointer<HTMLElement>();
+  const revealRef = useReveal<HTMLElement>();
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -160,6 +177,9 @@ export default function LandingPage({
     <div className="min-h-dvh bg-surface font-sans text-on-surface">
       <section
         id="trang-chu"
+        ref={depth.ref}
+        onPointerMove={depth.onPointerMove}
+        onPointerLeave={depth.onPointerLeave}
         aria-roledescription="carousel"
         aria-label="Giới thiệu Servio"
         className="relative h-[100svh] min-h-[560px] overflow-hidden text-white"
@@ -187,6 +207,22 @@ export default function LandingPage({
             <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/25" />
           </div>
         ))}
+
+        {/* Thẻ kính lơ lửng ở lớp gần, chỉ hiện trên màn rộng. */}
+        <div
+          aria-hidden="true"
+          className="parallax absolute right-[34%] top-[26%] z-10 hidden items-center gap-2.5 rounded-2xl border border-white/30 bg-white/15 px-3.5 py-2.5 text-[13px] font-semibold backdrop-blur [--depth:-30] lg:flex"
+        >
+          <span className="material-symbols-outlined text-xl">schedule</span>
+          Xác nhận lịch trong 5 phút
+        </div>
+        <div
+          aria-hidden="true"
+          className="parallax absolute right-[6%] top-[22%] z-10 hidden items-center gap-2.5 rounded-2xl border border-white/30 bg-white/15 px-3.5 py-2.5 text-[13px] font-semibold shadow-[0_22px_40px_-18px_rgba(0,0,0,0.6)] backdrop-blur [--depth:34] lg:flex"
+        >
+          <span className="material-symbols-outlined text-xl">receipt_long</span>
+          Báo giá minh bạch
+        </div>
 
         <div className="absolute inset-x-0 top-0 z-20">
           <div className="mx-auto hidden max-w-6xl items-center justify-between px-lg py-2 text-xs text-white/85 md:flex">
@@ -414,11 +450,11 @@ export default function LandingPage({
             dụng duy nhất, còn garage quản lý lịch hẹn và công việc dễ dàng hơn.
           </p>
         </div>
-        <div className="mt-12 grid gap-lg md:grid-cols-3">
+        <div className="lift-grid mt-12 grid gap-lg md:grid-cols-3">
           {FEATURES.map((feature) => (
             <div
               key={feature.title}
-              className="rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-lg"
+              className="lift-card rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-lg"
             >
               <span
                 aria-hidden="true"
@@ -460,16 +496,20 @@ export default function LandingPage({
         </div>
       </section>
 
-      <section id="quy-trinh" className="mx-auto max-w-6xl scroll-mt-4 px-lg py-20">
+      <section id="quy-trinh" ref={revealRef} className="mx-auto max-w-6xl scroll-mt-4 px-lg py-20">
         <div className="mx-auto max-w-[42rem] text-center">
           <p className="text-sm font-bold uppercase tracking-widest text-primary">Quy trình</p>
           <h2 className="mt-2 text-[30px] font-extrabold tracking-tight md:text-[36px]">
             Bốn bước đơn giản
           </h2>
         </div>
-        <ol className="mt-12 grid gap-lg md:grid-cols-4">
+        <ol className="reveal-stage mt-12 grid gap-lg md:grid-cols-4">
           {STEPS.map((step, i) => (
-            <li key={step.title} className="relative rounded-3xl bg-surface-container-lowest p-lg shadow-sm">
+            <li
+              key={step.title}
+              style={{ "--delay": `${i * 80}ms` } as React.CSSProperties}
+              className="reveal relative rounded-3xl bg-surface-container-lowest p-lg shadow-sm"
+            >
               <span
                 aria-hidden="true"
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-base font-extrabold text-on-primary"

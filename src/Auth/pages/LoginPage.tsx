@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { login, type AuthSession } from "../../services/api";
+import { useDepthPointer } from "../../hooks/useDepthPointer";
 
 type LoginPageProps = {
   onLogin: (session: AuthSession) => void;
@@ -15,6 +16,7 @@ export default function LoginPage({
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const depth = useDepthPointer<HTMLElement>();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -53,12 +55,17 @@ export default function LoginPage({
         </div>
       </header>
 
-      <main className="grid flex-1 pt-16 lg:grid-cols-2">
+      <main
+        ref={depth.ref}
+        onPointerMove={depth.onPointerMove}
+        onPointerLeave={depth.onPointerLeave}
+        className="grid flex-1 pt-16 lg:grid-cols-2"
+      >
         <div className="relative hidden overflow-hidden bg-[#0b1f3f] lg:block">
           <img
             src="/landing/hero-1.jpg"
             alt=""
-            className="absolute inset-0 h-full w-full object-cover"
+            className="parallax absolute inset-0 h-full w-full scale-110 object-cover [--depth:-10]"
             style={{ objectPosition: "center 55%" }}
             onError={(event) => {
               event.currentTarget.style.display = "none";
@@ -66,7 +73,22 @@ export default function LoginPage({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
           <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-xl text-white xl:p-12">
+          {/* Thẻ kính lơ lửng ở lớp gần: lệch nhiều hơn ảnh nền khi rê chuột. */}
+          <div
+            aria-hidden="true"
+            className="parallax absolute left-10 top-24 flex items-center gap-2.5 rounded-2xl border border-white/30 bg-white/15 px-3.5 py-2.5 text-[13px] font-semibold text-white backdrop-blur [--depth:-26]"
+          >
+            <span className="material-symbols-outlined text-xl">event_available</span>
+            Đặt lịch chỉ trong vài phút
+          </div>
+          <div
+            aria-hidden="true"
+            className="parallax absolute right-12 top-44 flex items-center gap-2.5 rounded-2xl border border-white/30 bg-white/15 px-3.5 py-2.5 text-[13px] font-semibold text-white shadow-[0_22px_40px_-18px_rgba(0,0,0,0.6)] backdrop-blur [--depth:30]"
+          >
+            <span className="material-symbols-outlined text-xl">verified</span>
+            Garage đã xác minh
+          </div>
+          <div className="parallax absolute inset-x-0 bottom-0 p-xl text-white [--depth:-6] xl:p-12">
             <p className="mb-3 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-widest backdrop-blur">
               Nền tảng chăm sóc xe
             </p>
@@ -93,9 +115,10 @@ export default function LoginPage({
           </div>
         </div>
 
-        <div className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-surface via-surface to-primary-fixed/50 px-margin-mobile py-12 md:px-margin-desktop">
-        <section className="relative z-10 w-full max-w-[480px] rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-8 shadow-[0_24px_60px_-24px_rgba(0,89,187,0.35)] md:p-10">
-          <div className="mb-8 text-center">
+        <div className="depth-stage relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-surface via-surface to-primary-fixed/50 px-margin-mobile py-12 md:px-margin-desktop">
+        <section className="tilt-card relative z-10 w-full max-w-[480px] rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-8 shadow-[0_24px_60px_-24px_rgba(0,89,187,0.35)] md:p-10">
+          <div aria-hidden="true" className="tilt-shine absolute inset-0 rounded-3xl" />
+          <div className="z-2 mb-8 text-center">
             <div className="mb-4 flex items-center justify-center gap-2">
               <span
                 className="material-symbols-outlined text-4xl text-primary"
@@ -115,7 +138,7 @@ export default function LoginPage({
             </p>
           </div>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="z-1 space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-1.5">
               <label
                 className="ml-1 font-label-md text-label-md text-on-surface-variant"
@@ -189,7 +212,7 @@ export default function LoginPage({
             )}
 
             <button
-              className="w-full rounded-lg bg-primary py-4 font-headline-md text-headline-md text-on-primary shadow-md transition-all hover:bg-surface-tint active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+              className="z-3 w-full rounded-lg bg-primary py-4 font-headline-md text-headline-md text-on-primary shadow-md transition-all hover:bg-surface-tint active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
               type="submit"
               disabled={isSubmitting}
             >

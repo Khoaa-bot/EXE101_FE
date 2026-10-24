@@ -410,3 +410,104 @@ aside[class*="w-60"] > button.mt-auto:hover {
     transition: none;
   }
 }
+
+/* Hiệu ứng 3D nhẹ cho đăng nhập và landing (xem hooks/useDepthPointer.ts).
+   Chỉ dùng transform và opacity; --px / --py là vị trí con trỏ từ -1 đến 1,
+   nên khi chưa rê chuột mọi thứ nằm ở trạng thái phẳng bình thường. */
+.depth-stage {
+  perspective: 1200px;
+}
+
+.tilt-card {
+  transform: rotateY(calc(var(--px, 0) * 8deg)) rotateX(calc(var(--py, 0) * -6deg));
+  transform-style: preserve-3d;
+  transition: transform 0.18s ease-out;
+}
+
+.tilt-card .z-1 {
+  transform: translateZ(18px);
+}
+.tilt-card .z-2 {
+  transform: translateZ(30px);
+}
+.tilt-card .z-3 {
+  transform: translateZ(42px);
+}
+
+.tilt-shine {
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  opacity: calc(0.35 + var(--px, 0) * var(--px, 0) * 0.65);
+  background: linear-gradient(
+    112deg,
+    transparent calc(30% + var(--px, 0) * 20%),
+    rgba(255, 255, 255, 0.8) calc(46% + var(--px, 0) * 20%),
+    rgba(216, 226, 255, 0.5) calc(54% + var(--px, 0) * 20%),
+    transparent calc(66% + var(--px, 0) * 20%)
+  );
+}
+
+.parallax {
+  transform: translate3d(calc(var(--px, 0) * var(--depth, 0) * 1px), calc(var(--py, 0) * var(--depth, 0) * 0.6px), 0);
+  transition: transform 0.25s ease-out;
+}
+
+.car-tilt {
+  transform: perspective(900px) translate3d(calc(var(--px, 0) * 14px), 0, 0)
+    rotateY(calc(var(--px, 0) * -6deg)) rotateX(calc(var(--py, 0) * 2deg));
+  transform-origin: 75% 70%;
+  transition: transform 0.25s ease-out;
+}
+
+/* Thẻ tính năng: thẻ đang rê chuột nổi lên, hai bên nghiêng vào trong. */
+.lift-grid {
+  perspective: 1100px;
+}
+.lift-card {
+  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out, border-color 0.25s;
+}
+.lift-card:hover {
+  transform: translateY(-12px) scale(1.04);
+  border-color: rgb(0 89 187 / 0.35);
+  box-shadow: 0 0 0 4px #d8e2ff, 0 34px 50px -22px rgb(0 89 187 / 0.5);
+}
+.lift-card:has(~ .lift-card:hover) {
+  transform: rotateY(10deg) translateZ(-8px);
+  transform-origin: 100% 50%;
+}
+.lift-card:hover ~ .lift-card {
+  transform: rotateY(-10deg) translateZ(-8px);
+  transform-origin: 0 50%;
+}
+
+/* Hiện dần theo chiều sâu khi cuộn tới (hook useReveal đặt data-in). */
+.reveal-stage {
+  perspective: 1100px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    opacity: 0;
+    transform: translate3d(0, 28px, -60px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    transition-delay: var(--delay, 0ms);
+  }
+  .reveal[data-in] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce), (hover: none) {
+  .tilt-card,
+  .parallax,
+  .car-tilt,
+  .lift-card {
+    transform: none !important;
+    transition: none;
+  }
+  .tilt-card .z-1,
+  .tilt-card .z-2,
+  .tilt-card .z-3 {
+    transform: none;
+  }
+}
