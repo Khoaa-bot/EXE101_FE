@@ -18,6 +18,7 @@ const CONTACT = {
 const NAV_ITEMS = [
   { label: "Trang chủ", href: "#trang-chu" },
   { label: "Giới thiệu", href: "#gioi-thieu" },
+  { label: "Tính năng", href: "#tinh-nang" },
   { label: "Dịch vụ", href: "#dich-vu" },
   { label: "Quy trình", href: "#quy-trinh" },
   { label: "Liên hệ", href: "#lien-he" },
@@ -143,6 +144,94 @@ function CarScene({ color, glow }: { color: string; glow: string }) {
         </svg>
       </div>
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/40" />
+    </div>
+  );
+}
+
+const MAINTENANCE_TONES = {
+  amber: { panel: "bg-[#fff1cc]", text: "text-[#6b4200]", bar: "bg-[#c47f00]" },
+  green: { panel: "bg-[#d9f7dd]", text: "text-[#00531a]", bar: "bg-[#008730]" },
+  red: { panel: "bg-error-container", text: "text-on-error-container", bar: "bg-error" },
+};
+
+function MaintenanceRow({
+  label,
+  remaining,
+  percent,
+  tone,
+  action,
+}: {
+  label: string;
+  remaining: string;
+  percent: number;
+  tone: keyof typeof MAINTENANCE_TONES;
+  action?: string;
+}) {
+  const t = MAINTENANCE_TONES[tone];
+  return (
+    <div className={`rounded-xl p-2.5 ${t.panel}`}>
+      <div className="mb-1.5 flex justify-between gap-2 text-xs font-semibold">
+        <span>{label}</span>
+        <span className={t.text}>{remaining}</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-highest">
+        <div className={`h-full rounded-full ${t.bar}`} style={{ width: `${percent}%` }} />
+      </div>
+      {action && (
+        <div className="mt-2 flex h-[30px] items-center justify-center rounded-lg bg-error text-xs font-bold text-on-error">
+          {action}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const bubble = {
+  me: "max-w-[90%] justify-self-end rounded-[13px] rounded-br bg-primary px-[11px] py-2 text-xs text-on-primary",
+  other:
+    "max-w-[90%] rounded-[13px] rounded-bl border border-outline-variant bg-surface-container-lowest px-[11px] py-2 text-xs",
+};
+
+function FeatureCard({
+  icon,
+  title,
+  isNew = false,
+  text,
+  children,
+  demoClass = "grid content-center gap-[7px] p-3",
+}: {
+  icon: string;
+  title: string;
+  isNew?: boolean;
+  text: string;
+  children: React.ReactNode;
+  demoClass?: string;
+}) {
+  return (
+    <div className="focus-card flex flex-col gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-6 sm:flex-row">
+      <div className="min-w-0 flex-1">
+        <span
+          aria-hidden="true"
+          className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-gradient-to-br from-primary-fixed to-secondary-fixed-dim text-on-primary-fixed-variant"
+        >
+          <span className="material-symbols-outlined text-[28px]">{icon}</span>
+        </span>
+        <h3 className="mt-3.5 text-lg font-bold">
+          {title}
+          {isNew && (
+            <span className="ml-2 inline-block rounded-full bg-[#fff1cc] px-2.5 py-0.5 align-middle text-[11px] font-bold text-[#6b4200]">
+              Mới
+            </span>
+          )}
+        </h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-on-surface-variant">{text}</p>
+      </div>
+      <div
+        aria-hidden="true"
+        className={`w-full shrink-0 overflow-hidden rounded-[18px] bg-surface-container-low sm:w-[14.75rem] ${demoClass}`}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -469,7 +558,113 @@ export default function LandingPage({
         </div>
       </section>
 
-      <section id="dich-vu" className="scroll-mt-4 bg-primary-fixed/50 py-20">
+      <section id="tinh-nang" className="scroll-mt-4 bg-primary-fixed/50 py-20">
+        <div className="mx-auto max-w-6xl px-lg">
+          <div className="mx-auto max-w-[42rem] text-center">
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">Tính năng nổi bật</p>
+            <h2 className="mt-2 text-[30px] font-extrabold tracking-tight md:text-[36px]">
+              Hiểu xe của bạn trước khi đến garage
+            </h2>
+            <p className="mt-3 text-body-lg text-on-surface-variant">
+              Hỏi AI về triệu chứng, nhận nhắc bảo dưỡng đúng hạn, trao đổi với garage và gặp kỹ
+              thuật viên qua video khi cần.
+            </p>
+          </div>
+          <div className="focus-grid mt-12 grid gap-6 md:grid-cols-2">
+            <FeatureCard
+              icon="smart_toy"
+              title="Chẩn đoán xe bằng AI"
+              text="Mô tả tiếng ồn, đèn báo hay triệu chứng. AI hỏi thêm vài câu rồi gợi ý nguyên nhân thường gặp và mức độ khẩn cấp."
+            >
+              <div className={bubble.me}>Xe rung mạnh khi phanh</div>
+              <div className={bubble.other}>Bạn thấy rung ở vô lăng hay bàn đạp?</div>
+              <div className={bubble.me}>Ở vô lăng, lúc chạy nhanh</div>
+              <div className={bubble.other}>
+                <b className="text-primary">Có thể do đĩa phanh cong.</b> Nên kiểm tra sớm.
+              </div>
+            </FeatureCard>
+
+            <FeatureCard
+              icon="event_repeat"
+              title="Nhắc bảo dưỡng & thông báo"
+              isNew
+              text="Servio tính hạn thay nhớt, phanh, lốp từ lần làm gần nhất và gửi thông báo khi sắp đến hạn hoặc quá hạn, kèm nút đặt lịch một chạm. Lịch hẹn đổi trạng thái cũng được báo ngay."
+              demoClass="grid content-center gap-2 p-3"
+            >
+              <div className="flex items-center gap-2 text-[11px] font-bold text-outline">
+                <span className="relative inline-flex">
+                  <span className="material-symbols-outlined text-xl text-primary">notifications</span>
+                  <i className="absolute -right-0.5 -top-0.5 h-[9px] w-[9px] rounded-full border-2 border-surface-container-low bg-error" />
+                </span>
+                Honda Vision · 59A-123.45
+              </div>
+              <MaintenanceRow label="Thay nhớt" remaining="Còn 12 ngày" percent={82} tone="amber" />
+              <MaintenanceRow label="Kiểm tra phanh" remaining="Còn 2 tháng" percent={34} tone="green" />
+              <MaintenanceRow
+                label="Thay lốp"
+                remaining="Quá hạn 5 ngày"
+                percent={100}
+                tone="red"
+                action="Đặt lịch ngay"
+              />
+            </FeatureCard>
+
+            <FeatureCard
+              icon="forum"
+              title="Nhắn tin với garage"
+              text="Mỗi lịch hẹn có một cuộc trò chuyện riêng với lễ tân và kỹ thuật viên: hỏi tiến độ, gửi ảnh, duyệt hạng mục phát sinh."
+            >
+              <div className={bubble.other}>
+                <b>Kỹ thuật viên Minh</b>
+                <br />
+                Đã thay má phanh, xe xong lúc 16:30.
+              </div>
+              <div className={bubble.me}>Em ghé lấy lúc 17:00 nhé</div>
+              <div className={`${bubble.other} flex items-center gap-1.5`}>
+                <span className="material-symbols-outlined text-base text-primary">image</span>
+                Ảnh má phanh cũ (2)
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-outline">
+                <div className="flex h-[30px] flex-1 items-center rounded-full border border-outline-variant bg-surface-container-lowest px-3">
+                  Nhập tin nhắn…
+                </div>
+                <span className="material-symbols-outlined text-xl text-primary">send</span>
+              </div>
+            </FeatureCard>
+
+            <FeatureCard
+              icon="videocam"
+              title="Gọi video với kỹ thuật viên"
+              isNew
+              text="Cho kỹ thuật viên xem tình trạng xe ngay trên điện thoại để được tư vấn nhanh, không cần chạy tới garage."
+              demoClass="relative h-[200px] bg-gradient-to-br from-[#2a3038] to-[#0b0d11]"
+            >
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primary-fixed text-3xl font-extrabold text-on-primary-fixed-variant">
+                  M
+                </span>
+              </div>
+              <span className="absolute left-2.5 top-2.5 rounded-full bg-black/40 px-2 py-0.5 text-[11px] font-semibold text-white">
+                Kỹ thuật viên Minh · 02:14
+              </span>
+              <span className="absolute right-2.5 top-10 h-[72px] w-[54px] rounded-[10px] border border-white/30 bg-gradient-to-br from-[#3b4452] to-[#1b2027]" />
+              <div className="absolute inset-x-0 bottom-2.5 flex justify-center gap-2.5 text-white">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                  <span className="material-symbols-outlined text-[22px]">mic</span>
+                </span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                  <span className="material-symbols-outlined text-[22px]">cameraswitch</span>
+                </span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-error">
+                  <span className="material-symbols-outlined text-[22px]">call_end</span>
+                </span>
+              </div>
+            </FeatureCard>
+          </div>
+        </div>
+      </section>
+
+      <section id="dich-vu" className="scroll-mt-4 bg-surface-container-low py-20">
         <div className="mx-auto max-w-6xl px-lg">
           <div className="mx-auto max-w-[42rem] text-center">
             <p className="text-sm font-bold uppercase tracking-widest text-primary">Dịch vụ</p>

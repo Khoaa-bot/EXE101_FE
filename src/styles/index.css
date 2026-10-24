@@ -480,6 +480,23 @@ aside[class*="w-60"] > button.mt-auto:hover {
   transform-origin: 0 50%;
 }
 
+/* Lưới tính năng 2x2: thẻ đang rê chuột nổi lên, các thẻ còn lại thu nhẹ. */
+.focus-grid {
+  perspective: 1100px;
+}
+.focus-card {
+  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out, border-color 0.25s, opacity 0.25s;
+}
+.focus-card:hover {
+  transform: translateY(-12px) scale(1.03);
+  border-color: rgb(0 89 187 / 0.35);
+  box-shadow: 0 0 0 4px #d8e2ff, 0 34px 50px -22px rgb(0 89 187 / 0.5);
+}
+.focus-grid:has(.focus-card:hover) .focus-card:not(:hover) {
+  transform: scale(0.985);
+  opacity: 0.94;
+}
+
 /* Hiện dần theo chiều sâu khi cuộn tới (hook useReveal đặt data-in). */
 .reveal-stage {
   perspective: 1100px;
@@ -501,7 +518,8 @@ aside[class*="w-60"] > button.mt-auto:hover {
   .tilt-card,
   .parallax,
   .car-tilt,
-  .lift-card {
+  .lift-card,
+  .focus-card {
     transform: none !important;
     transition: none;
   }
