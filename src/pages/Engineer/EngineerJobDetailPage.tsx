@@ -127,11 +127,12 @@ export default function EngineerJobDetailPage({
   const completeJob = () => {
     if (!appointmentId) return;
     const odometerText = odometerAtService.trim();
-    const odometer = odometerText === "" ? undefined : Number(odometerText);
-    if (
-      odometer !== undefined &&
-      (!Number.isInteger(odometer) || odometer < 0 || odometer > MAX_ODOMETER_KM)
-    ) {
+    if (odometerText === "") {
+      showNotice("Vui lòng nhập số km hiện tại của xe trước khi hoàn thành.");
+      return;
+    }
+    const odometer = Number(odometerText);
+    if (!Number.isInteger(odometer) || odometer < 0 || odometer > MAX_ODOMETER_KM) {
       showNotice(`Số km phải là số nguyên từ 0 đến ${MAX_ODOMETER_KM.toLocaleString("vi-VN")}.`);
       return;
     }
@@ -459,10 +460,11 @@ export default function EngineerJobDetailPage({
 
                         <div>
                           <label htmlFor="pages-engineer-engineerjobdetailpage-field-3" className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                            Số km hiện tại của xe (tuỳ chọn)
+                            Số km hiện tại của xe <span className="text-error" aria-hidden="true">*</span>
                           </label>
                           <input id="pages-engineer-engineerjobdetailpage-field-3"
                             type="number"
+                            required
                             min={0}
                             max={MAX_ODOMETER_KM}
                             value={odometerAtService}
