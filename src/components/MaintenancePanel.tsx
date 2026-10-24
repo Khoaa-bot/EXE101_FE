@@ -11,7 +11,7 @@ export function MaintenanceBadge({ stage }: { stage: MaintenanceStage }) {
   const meta = STAGE_META[stage];
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-label-md text-label-md ${meta.badge}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${meta.badge}`}
     >
       <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
         {meta.icon}
@@ -25,7 +25,7 @@ export function MaintenanceBadge({ stage }: { stage: MaintenanceStage }) {
 export function MaintenancePanel({ items }: { items: MaintenanceStatus[] }) {
   if (items.length === 0) {
     return (
-      <p className="rounded-lg bg-surface-container-low p-3 font-label-sm text-label-sm text-on-surface-variant">
+      <p className="rounded-2xl bg-surface-container-low p-3.5 text-xs text-on-surface-variant">
         Chưa có dữ liệu bảo dưỡng định kỳ. Hạn sẽ được tính sau lần bảo dưỡng đầu tiên tại garage.
       </p>
     );
@@ -35,8 +35,8 @@ export function MaintenancePanel({ items }: { items: MaintenanceStatus[] }) {
   const meta = STAGE_META[urgent.stage];
 
   return (
-    <div className={`space-y-2 rounded-lg p-3 ${meta.panel}`}>
-      <div className="flex justify-between gap-2 font-label-md text-label-md">
+    <div className={`space-y-2 rounded-2xl p-3.5 ${meta.panel}`}>
+      <div className="flex justify-between gap-2 text-[13px]">
         <span className="font-semibold text-on-surface">{urgent.serviceName}</span>
         <span className="shrink-0 text-on-surface-variant">{dueLabel(urgent)}</span>
       </div>
@@ -50,7 +50,7 @@ export function MaintenancePanel({ items }: { items: MaintenanceStatus[] }) {
       >
         <div className={`h-full ${meta.bar}`} style={{ width: `${progressPercent(urgent)}%` }} />
       </div>
-      <p className={`font-label-sm text-label-sm ${meta.text}`}>{formatRemaining(urgent)}</p>
+      <p className={`text-xs ${meta.text}`}>{formatRemaining(urgent)}</p>
     </div>
   );
 }
@@ -70,7 +70,7 @@ export function MaintenanceAlert({
 
   return (
     <div
-      className={`flex flex-col gap-md rounded-xl p-md sm:flex-row sm:items-center ${meta.panel}`}
+      className={`flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center ${meta.panel}`}
     >
       <span
         className={`material-symbols-outlined text-[28px] ${
@@ -82,14 +82,14 @@ export function MaintenanceAlert({
       </span>
       <div className="min-w-0 flex-1">
         <p
-          className={`font-label-md text-label-md font-bold ${
+          className={`text-sm font-bold ${
             overdue ? "text-on-error-container" : "text-[#4f2f00]"
           }`}
         >
           {vehicleLabel} {overdue ? "đã quá hạn" : "sắp đến hạn"} {status.serviceName}
         </p>
         <p
-          className={`font-label-sm text-label-sm ${
+          className={`text-xs ${
             overdue ? "text-on-error-container" : "text-[#6b4000]"
           }`}
         >
@@ -100,7 +100,7 @@ export function MaintenanceAlert({
       <button
         type="button"
         onClick={onBook}
-        className={`min-h-11 shrink-0 rounded-lg px-lg font-label-md text-label-md text-white transition-all hover:shadow-lg active:scale-95 ${
+        className={`min-h-11 shrink-0 rounded-xl px-5 text-sm font-bold text-white transition-all hover:shadow-lg active:scale-95 ${
           overdue ? "bg-error" : "bg-primary"
         }`}
       >

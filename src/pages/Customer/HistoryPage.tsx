@@ -13,6 +13,7 @@ import {
 } from "../../services/api";
 
 const REVIEW_COMMENT_LIMIT = 1000;
+const REVIEW_RATING_LABELS = ["Rất tệ", "Chưa tốt", "Bình thường", "Hài lòng", "Tuyệt vời"];
 
 type HistoryPageProps = {
   onHomeClick: () => void;
@@ -608,61 +609,74 @@ export default function HistoryPage({
           aria-label="Đánh giá dịch vụ"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
         >
-          <div className="w-full max-w-[28rem] rounded-2xl border border-outline-variant bg-surface-container-lowest p-lg shadow-xl">
-            <div className="flex items-center justify-between">
-              <h3 className="font-headline-md text-headline-md">
-                {reviewingRecord.reviewId ? "Sửa đánh giá" : "Đánh giá dịch vụ"}
-              </h3>
-              <button aria-label="Đóng"
+          <div className="w-full max-w-[35rem] space-y-4 rounded-3xl bg-surface-container-lowest p-7 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.55)]">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-extrabold tracking-tight">
+                  {reviewingRecord.reviewId ? "Sửa đánh giá" : "Đánh giá dịch vụ"}
+                </h3>
+                <p className="mt-1 text-[13px] text-on-surface-variant">
+                  {reviewingRecord.serviceName} · {reviewingRecord.vehicleModel}
+                </p>
+              </div>
+              <button
+                aria-label="Đóng"
                 type="button"
                 onClick={() => setReviewingRecord(null)}
-                className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container"
+                className="flex rounded-full p-1 text-on-surface-variant hover:bg-surface-container"
               >
-                <span className="material-symbols-outlined">close</span>
+                <span aria-hidden="true" className="material-symbols-outlined">
+                  close
+                </span>
               </button>
             </div>
-            <p className="mt-1 font-body-sm text-body-sm text-on-surface-variant">
-              {reviewingRecord.serviceName} · {reviewingRecord.vehicleModel}
-            </p>
 
-            <div className="mt-lg flex justify-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setReviewRating(star)}
-                  aria-label={`${star} sao`}
-                  className="p-1"
-                >
-                  <span
-                    className="material-symbols-outlined text-3xl"
-                    style={{
-                      fontVariationSettings: star <= reviewRating ? "'FILL' 1" : "'FILL' 0",
-                      color:
-                        star <= reviewRating
-                          ? "var(--color-tertiary)"
-                          : "var(--color-outline-variant)",
-                    }}
+            <div className="space-y-1.5">
+              <span className="text-[13px] font-bold">Bạn chấm mấy sao?</span>
+              <div role="radiogroup" aria-label="Số sao" className="-ml-2 flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    role="radio"
+                    aria-checked={star === reviewRating}
+                    onClick={() => setReviewRating(star)}
+                    aria-label={`${star} sao`}
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                      star <= reviewRating ? "text-[#9a5b00]" : "text-outline-variant"
+                    }`}
                   >
-                    star
-                  </span>
-                </button>
-              ))}
+                    <span
+                      aria-hidden="true"
+                      className="material-symbols-outlined text-[34px]"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      star
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <span className="text-[13px] text-on-surface-variant">
+                {reviewRating > 0
+                  ? `${REVIEW_RATING_LABELS[reviewRating - 1]} (${reviewRating}/5)`
+                  : "Chạm vào sao để chấm điểm"}
+              </span>
             </div>
 
-            <div className="mt-lg space-y-sm">
-              <label htmlFor="pages-customer-historypage-field-1" className="block font-label-md text-label-md text-on-surface-variant">
+            <div className="space-y-1.5">
+              <label htmlFor="pages-customer-historypage-field-1" className="block text-[13px] font-bold">
                 Nhận xét (không bắt buộc)
               </label>
-              <textarea id="pages-customer-historypage-field-1"
-                rows={3}
+              <textarea
+                id="pages-customer-historypage-field-1"
+                rows={4}
                 maxLength={REVIEW_COMMENT_LIMIT}
                 value={reviewComment}
                 onChange={(e) => setReviewComment(e.target.value)}
                 placeholder="Chia sẻ trải nghiệm của bạn về dịch vụ này..."
-                className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 font-body-md text-body-md outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+                className="w-full resize-none rounded-[14px] border border-outline-variant bg-surface-container-lowest px-3.5 py-3 text-sm leading-relaxed outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
-              <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+              <div className="flex justify-between text-xs text-on-surface-variant">
                 <span>Tối đa {REVIEW_COMMENT_LIMIT.toLocaleString("vi-VN")} ký tự.</span>
                 <span aria-live="polite">
                   {reviewComment.length} / {REVIEW_COMMENT_LIMIT.toLocaleString("vi-VN")}
@@ -671,27 +685,41 @@ export default function HistoryPage({
             </div>
 
             {reviewingRecord.reviewId && reviewingRecord.reviewEditDaysLeft ? (
-              <p className="mt-3 rounded-lg bg-[#fff1cc] px-3 py-2 font-body-sm text-body-sm text-[#6b4200]">
+              <p className="flex items-start gap-2.5 rounded-[14px] bg-[#fff1cc] px-3.5 py-3 text-[13px] leading-snug text-[#6b4200]">
+                <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                  schedule
+                </span>
                 Bạn còn {reviewingRecord.reviewEditDaysLeft} ngày để sửa. Sau đó đánh giá sẽ được giữ nguyên.
               </p>
             ) : null}
 
             {reviewError && (
-              <p className="mt-3 font-body-sm text-body-sm text-error">{reviewError}</p>
+              <p role="alert" className="rounded-[14px] bg-error-container px-3.5 py-3 text-[13px] text-on-error-container">
+                {reviewError}
+              </p>
             )}
 
-            <button
-              type="button"
-              onClick={submitReview}
-              disabled={isSubmittingReview}
-              className="mt-lg w-full rounded-lg bg-primary py-3 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
-            >
-              {isSubmittingReview
-                ? "Đang gửi..."
-                : reviewingRecord.reviewId
-                  ? "Lưu thay đổi"
-                  : "Gửi đánh giá"}
-            </button>
+            <div className="flex justify-end gap-2.5 pt-0.5">
+              <button
+                type="button"
+                onClick={() => setReviewingRecord(null)}
+                className="min-h-11 rounded-xl border-[1.5px] border-outline-variant bg-surface-container-lowest px-5 text-sm font-bold hover:bg-surface-container-low"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={submitReview}
+                disabled={isSubmittingReview}
+                className="min-h-11 rounded-xl bg-primary px-5 text-sm font-bold text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+              >
+                {isSubmittingReview
+                  ? "Đang gửi..."
+                  : reviewingRecord.reviewId
+                    ? "Lưu thay đổi"
+                    : "Gửi đánh giá"}
+              </button>
+            </div>
           </div>
         </div>
       )}

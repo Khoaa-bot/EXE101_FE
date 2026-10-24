@@ -179,7 +179,7 @@ export default function EngineerJobDetailPage({
       >
 
         {/* Page Content */}
-        <div className="mx-auto max-w-[1440px] p-margin-mobile md:p-margin-desktop">
+        <div className="mx-auto max-w-[1440px] p-6 md:p-8">
           {/* Back Link */}
           <button
             type="button"
@@ -193,13 +193,13 @@ export default function EngineerJobDetailPage({
           </button>
 
           {isLoading && (
-            <p className="mt-6 text-body-sm text-on-surface-variant">
+            <p className="mt-6 text-sm text-on-surface-variant">
               Đang tải chi tiết công việc...
             </p>
           )}
 
           {!isLoading && loadError && (
-            <p className="mt-6 text-body-sm text-error">{loadError}</p>
+            <p className="mt-6 text-sm text-error">{loadError}</p>
           )}
 
           {!isLoading && appointment && (
@@ -211,7 +211,7 @@ export default function EngineerJobDetailPage({
                     Chi tiết công việc{" "}
                     <span className="text-primary">#{appointment.id}</span>
                   </h1>
-                  <p className="mt-1 text-body-sm text-on-surface-variant">
+                  <p className="mt-1 text-sm text-on-surface-variant">
                     Phiếu sửa chữa được phân công ngày {appointment.scheduleDate}{" "}
                     lúc {appointment.timeFrame}.
                   </p>
@@ -229,14 +229,14 @@ export default function EngineerJobDetailPage({
                 {/* Left Column (Info) */}
                 <div className="space-y-6 lg:col-span-2">
                   {/* Vehicle Info Card */}
-                  <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
-                    <div className="mb-4 flex items-center gap-2 text-primary font-bold">
-                      <span className="material-symbols-outlined text-xl">
+                  <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+                    <div className="mb-4 flex items-center gap-2 font-extrabold">
+                      <span className="material-symbols-outlined text-xl text-primary">
                         directions_car
                       </span>
-                      <h2>Thông tin phương tiện</h2>
+                      <h2 className="text-lg">Thông tin phương tiện</h2>
                     </div>
-                    <div className="space-y-2 text-body-sm">
+                    <div className="space-y-2 text-sm">
                       <div className="flex justify-between border-b border-outline-variant/40 pb-1">
                         <span className="text-on-surface-variant">Mẫu xe:</span>
                         <span className="font-bold">
@@ -256,12 +256,12 @@ export default function EngineerJobDetailPage({
 
                   {/* Customer & Service Request */}
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
-                      <div className="mb-3 flex items-center gap-2 text-primary font-bold">
-                        <span className="material-symbols-outlined text-xl">
+                    <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+                      <div className="mb-3 flex items-center gap-2 font-extrabold">
+                        <span className="material-symbols-outlined text-xl text-primary">
                           account_circle
                         </span>
-                        <h2>Thông tin khách hàng</h2>
+                        <h2 className="text-lg">Thông tin khách hàng</h2>
                       </div>
                       <p className="font-bold text-base">
                         {appointment.customerName}
@@ -277,14 +277,14 @@ export default function EngineerJobDetailPage({
                       )}
                     </article>
 
-                    <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
-                      <div className="mb-3 flex items-center gap-2 text-primary font-bold">
-                        <span className="material-symbols-outlined text-xl">
+                    <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+                      <div className="mb-3 flex items-center gap-2 font-extrabold">
+                        <span className="material-symbols-outlined text-xl text-primary">
                           build
                         </span>
-                        <h2>Yêu cầu dịch vụ</h2>
+                        <h2 className="text-lg">Yêu cầu dịch vụ</h2>
                       </div>
-                      <p className="font-semibold text-body-sm">
+                      <p className="font-semibold text-sm">
                         {appointment.serviceName}
                       </p>
                       {appointment.notes && (
@@ -300,12 +300,12 @@ export default function EngineerJobDetailPage({
                     (status === "in_progress" ||
                       status === "completed" ||
                       status === "successful") && (
-                      <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
-                        <div className="mb-4 flex items-center gap-2 text-primary font-bold">
-                          <span className="material-symbols-outlined text-xl">
+                      <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+                        <div className="mb-4 flex items-center gap-2 font-extrabold">
+                          <span className="material-symbols-outlined text-xl text-primary">
                             checklist
                           </span>
-                          <h2>
+                          <h2 className="text-lg">
                             Các bước bảo dưỡng ({steps.filter((s) => s.isCompleted).length}/
                             {steps.length})
                           </h2>
@@ -314,7 +314,7 @@ export default function EngineerJobDetailPage({
                           {steps.map((step) => (
                             <li key={step.id}>
                               <label
-                                className={`flex items-center gap-3 rounded-lg border border-outline-variant p-3 text-body-sm ${
+                                className={`flex items-center gap-3 rounded-2xl border border-outline-variant/60 p-3.5 text-sm ${
                                   status === "in_progress"
                                     ? "cursor-pointer hover:bg-surface-container-low"
                                     : "opacity-70"
@@ -348,10 +348,10 @@ export default function EngineerJobDetailPage({
 
                   {/* Hạng mục phát sinh — KTV đề xuất, khách duyệt */}
                   {(status === "in_progress" || (appointment.extras ?? []).length > 0) && (
-                    <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
-                      <div className="mb-4 flex items-center gap-2 text-primary font-bold">
-                        <span className="material-symbols-outlined text-xl">add_task</span>
-                        <h2>Hạng mục phát sinh</h2>
+                    <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+                      <div className="mb-4 flex items-center gap-2 font-extrabold">
+                        <span className="material-symbols-outlined text-xl text-primary">add_task</span>
+                        <h2 className="text-lg">Hạng mục phát sinh</h2>
                       </div>
                       <ExtrasList extras={appointment.extras ?? []} />
                       {status === "in_progress" && (
@@ -371,10 +371,10 @@ export default function EngineerJobDetailPage({
 
                   {/* Phụ tùng lấy từ kho garage */}
                   {(status === "in_progress" || (appointment.parts ?? []).length > 0) && (
-                    <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
-                      <div className="mb-4 flex items-center gap-2 text-primary font-bold">
-                        <span className="material-symbols-outlined text-xl">inventory_2</span>
-                        <h2>Phụ tùng từ kho</h2>
+                    <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+                      <div className="mb-4 flex items-center gap-2 font-extrabold">
+                        <span className="material-symbols-outlined text-xl text-primary">inventory_2</span>
+                        <h2 className="text-lg">Phụ tùng từ kho</h2>
                       </div>
                       <EngineerPartsPanel
                         appointmentId={appointment.id}
@@ -385,10 +385,10 @@ export default function EngineerJobDetailPage({
                     </article>
                   )}
 
-                  <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
-                    <div className="mb-4 flex items-center gap-2 text-primary font-bold">
-                      <span className="material-symbols-outlined text-xl">receipt_long</span>
-                      <h2>Chi phí dự kiến</h2>
+                  <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
+                    <div className="mb-4 flex items-center gap-2 font-extrabold">
+                      <span className="material-symbols-outlined text-xl text-primary">receipt_long</span>
+                      <h2 className="text-lg">Chi phí dự kiến</h2>
                     </div>
                     <CostBreakdown appointment={appointment} />
                   </article>
@@ -404,17 +404,17 @@ export default function EngineerJobDetailPage({
 
                 {/* Right Column (Report & Updates Panel) */}
                 <aside className="space-y-6">
-                  <article className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 space-y-4">
-                    <div className="flex items-center gap-2 text-primary font-bold border-b border-outline-variant pb-3">
-                      <span className="material-symbols-outlined text-xl">
+                  <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] space-y-4">
+                    <div className="flex items-center gap-2 border-b border-outline-variant/40 pb-3 font-extrabold">
+                      <span className="material-symbols-outlined text-xl text-primary">
                         edit_note
                       </span>
-                      <h2>Báo cáo & Cập nhật</h2>
+                      <h2 className="text-lg">Báo cáo & Cập nhật</h2>
                     </div>
 
                     {status === "confirmed" && (
                       <>
-                        <p className="text-body-sm text-on-surface-variant">
+                        <p className="text-sm text-on-surface-variant">
                           Lịch hẹn đã được tiếp nhận. Bấm bắt đầu để chuyển sang
                           xử lý và mở checklist các bước bảo dưỡng.
                         </p>
@@ -422,7 +422,7 @@ export default function EngineerJobDetailPage({
                           type="button"
                           onClick={startProcessing}
                           disabled={isSaving}
-                          className="w-full rounded-xl bg-gradient-to-br from-primary to-primary-container py-2.5 font-label-md text-label-md text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+                          className="w-full min-h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-container shadow-[0_12px_22px_-14px_rgba(0,89,187,0.9)] text-sm font-bold text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
                         >
                           {isSaving ? "Đang xử lý..." : "Bắt đầu xử lý"}
                         </button>
@@ -440,7 +440,7 @@ export default function EngineerJobDetailPage({
                             value={engineerNotes}
                             onChange={(e) => setEngineerNotes(e.target.value)}
                             placeholder="Chẩn đoán, tình trạng xe, hướng xử lý..."
-                            className="w-full rounded-2xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                            className="w-full rounded-[14px] border border-outline-variant bg-surface-container-lowest px-3.5 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                           />
                         </div>
 
@@ -453,7 +453,7 @@ export default function EngineerJobDetailPage({
                             value={partsUsed}
                             onChange={(e) => setPartsUsed(e.target.value)}
                             placeholder="Ví dụ: má phanh trước, dầu động cơ 4L..."
-                            className="w-full rounded-2xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                            className="w-full rounded-[14px] border border-outline-variant bg-surface-container-lowest px-3.5 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                           />
                         </div>
 
@@ -468,7 +468,7 @@ export default function EngineerJobDetailPage({
                             value={odometerAtService}
                             onChange={(e) => setOdometerAtService(e.target.value)}
                             placeholder="Ví dụ: 41250 — dùng để tính hạn bảo dưỡng tiếp theo"
-                            className="w-full rounded-2xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                            className="w-full rounded-[14px] border border-outline-variant bg-surface-container-lowest px-3.5 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                           />
                         </div>
 
@@ -490,9 +490,9 @@ export default function EngineerJobDetailPage({
                           type="button"
                           onClick={completeJob}
                           disabled={isSaving || !canComplete}
-                          className={`w-full rounded-lg border py-2.5 font-label-md text-label-md transition ${
+                          className={`min-h-12 w-full rounded-2xl border-[1.5px] text-sm font-bold transition ${
                             canComplete
-                              ? "border-tertiary bg-tertiary-container/10 text-tertiary hover:bg-tertiary/20 active:scale-[0.98]"
+                              ? "border-[#008730] bg-[#d9f7dd] text-[#00531a] hover:bg-[#c7f0cd] active:scale-[0.98]"
                               : "border-outline-variant bg-surface-container-high text-outline cursor-not-allowed"
                           }`}
                         >
@@ -502,19 +502,19 @@ export default function EngineerJobDetailPage({
                     )}
 
                     {(status === "completed" || status === "successful") && (
-                      <p className="text-body-sm text-tertiary">
+                      <p className="text-sm text-tertiary">
                         Công việc đã hoàn thành, không thể chỉnh sửa thêm.
                       </p>
                     )}
 
                     {(status === "cancelled" || status === "no_show") && (
-                      <p className="text-body-sm text-error">
+                      <p className="text-sm text-error">
                         Lịch hẹn đã bị hủy hoặc khách không đến.
                       </p>
                     )}
 
                     {status === "pending" && (
-                      <p className="text-body-sm text-on-surface-variant">
+                      <p className="text-sm text-on-surface-variant">
                         Lịch hẹn đang chờ lễ tân xác nhận.
                       </p>
                     )}
@@ -529,7 +529,7 @@ export default function EngineerJobDetailPage({
       {/* Notice Toast */}
       {notice && (
         <div
-          className="fixed bottom-5 right-5 z-50 rounded-lg bg-inverse-surface px-4 py-3 text-body-sm text-inverse-on-surface shadow-lg"
+          className="fixed bottom-5 right-5 z-50 rounded-2xl bg-inverse-surface px-4 py-3 text-sm text-inverse-on-surface shadow-[0_18px_40px_-16px_rgba(25,28,29,0.5)]"
           role="status"
         >
           {notice}
