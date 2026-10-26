@@ -19,8 +19,6 @@ const NAV: Record<StaffRole, NavDef[]> = {
   engineer: [
     { key: "dashboard", icon: "space_dashboard", label: "Tổng quan" },
     { key: "appointments", icon: "event_note", label: "Lịch hẹn" },
-    { key: "schedule", icon: "calendar_month", label: "Lịch làm việc" },
-    { key: "customers", icon: "groups", label: "Khách hàng" },
     { key: "technicians", icon: "engineering", label: "Kỹ thuật viên" },
     { key: "settings", icon: "settings", label: "Cài đặt" },
   ],

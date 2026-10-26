@@ -25,10 +25,8 @@ import WalletPage from "./pages/Customer/WalletPage";
 import DiagnosePage from "./pages/Customer/DiagnosePage";
 import RegisterPage from "./Auth/pages/RegisterPage";
 import EngineerDashboardPage from "./pages/Engineer/EngineerDashboardPage";
-import EngineerSchedulePage from "./pages/Engineer/EngineerSchedulePage";
 import EngineerAppointmentsPage from "./pages/Engineer/EngineerAppointmentsPage";
 import EngineerTechniciansPage from "./pages/Engineer/EngineerTechniciansPage";
-import EngineerCustomersPage from "./pages/Engineer/EngineerCustomersPage";
 import EngineerJobDetailPage from "./pages/Engineer/EngineerJobDetailPage";
 import EngineerSettingsPage from "./pages/Engineer/EngineerSettingsPage";
 import TrackingPage from "./pages/Customer/TrackingPage";
@@ -73,10 +71,8 @@ const appRoutes = new Set([
   "/admin/reviews",
   "/super-admin",
   "/engineer",
-  "/engineer/schedule",
   "/engineer/appointments",
   "/engineer/technicians",
-  "/engineer/customers",
   "/engineer/job-detail",
   "/engineer/settings",
   "/reception",
@@ -99,10 +95,8 @@ const publicRoutes = new Set([
   "/preview/admin/inventory",
   "/preview/admin/pricing",
   "/preview/engineer",
-  "/preview/engineer/schedule",
   "/preview/engineer/appointments",
   "/preview/engineer/technicians",
-  "/preview/engineer/customers",
   "/preview/engineer/job-detail",
   "/preview/engineer/settings",
   "/preview/reception",
@@ -121,8 +115,8 @@ const roleRoutes: Record<string, Set<string>> = {
   ]),
   ADMIN: new Set(["/super-admin"]),
   ENGINEER: new Set([
-    "/engineer", "/engineer/schedule", "/engineer/appointments",
-    "/engineer/technicians", "/engineer/customers", "/engineer/job-detail", "/engineer/settings",
+    "/engineer", "/engineer/appointments",
+    "/engineer/technicians", "/engineer/job-detail", "/engineer/settings",
   ]),
   RECEPTION: new Set([
     "/reception", "/reception/schedule", "/reception/appointments",
@@ -233,10 +227,8 @@ function App() {
 
   const previewEngineerProps = {
     onDashboardClick: () => navigate("/preview/engineer"),
-    onScheduleClick: () => navigate("/preview/engineer/schedule"),
     onAppointmentsClick: () => navigate("/preview/engineer/appointments"),
     onTechniciansClick: () => navigate("/preview/engineer/technicians"),
-    onCustomersClick: () => navigate("/preview/engineer/customers"),
     onSettingsClick: () => navigate("/preview/engineer/settings"),
     onJobDetailClick: () => navigate("/preview/engineer/job-detail"),
     onLogout: () => navigate("/login"),
@@ -279,20 +271,12 @@ function App() {
     return <EngineerDashboardPage {...previewEngineerProps} />;
   }
 
-  if (routePath === "/preview/engineer/schedule") {
-    return <EngineerSchedulePage {...previewEngineerProps} />;
-  }
-
   if (routePath === "/preview/engineer/appointments") {
     return <EngineerAppointmentsPage {...previewEngineerProps} />;
   }
 
   if (routePath === "/preview/engineer/technicians") {
     return <EngineerTechniciansPage {...previewEngineerProps} />;
-  }
-
-  if (routePath === "/preview/engineer/customers") {
-    return <EngineerCustomersPage {...previewEngineerProps} />;
   }
 
   if (routePath === "/preview/engineer/job-detail") {
@@ -434,10 +418,8 @@ function App() {
 
   const engineerProps = {
     onDashboardClick: () => navigate("/engineer"),
-    onScheduleClick: () => navigate("/engineer/schedule"),
     onAppointmentsClick: () => navigate("/engineer/appointments"),
     onTechniciansClick: () => navigate("/engineer/technicians"),
-    onCustomersClick: () => navigate("/engineer/customers"),
     onSettingsClick: () => navigate("/engineer/settings"),
     onJobDetailClick: (id?: string) => {
       if (id) setAppointmentId(id);
@@ -511,20 +493,12 @@ function App() {
     return <EngineerDashboardPage {...engineerProps} />;
   }
 
-  if (routePath === "/engineer/schedule") {
-    return <EngineerSchedulePage {...engineerProps} />;
-  }
-
   if (routePath === "/engineer/appointments") {
     return <EngineerAppointmentsPage {...engineerProps} />;
   }
 
   if (routePath === "/engineer/technicians") {
     return <EngineerTechniciansPage {...engineerProps} />;
-  }
-
-  if (routePath === "/engineer/customers") {
-    return <EngineerCustomersPage {...engineerProps} />;
   }
 
   if (routePath === "/engineer/job-detail") {

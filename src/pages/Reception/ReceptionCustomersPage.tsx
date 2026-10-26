@@ -89,6 +89,7 @@ type ReceptionCustomersPageProps = {
   onScheduleClick?: () => void;
   onAppointmentsClick?: () => void;
   onCustomersClick?: () => void;
+  onNewAppointmentClick?: () => void;
   onLogout?: () => void;
 };
 
@@ -97,6 +98,7 @@ export default function ReceptionCustomersPage({
   onScheduleClick,
   onAppointmentsClick,
   onCustomersClick,
+  onNewAppointmentClick,
   onLogout,
 }: ReceptionCustomersPageProps) {
   const [filter, setFilter] = useState<"all" | "in_progress">("all");
@@ -146,7 +148,7 @@ export default function ReceptionCustomersPage({
       <StaffShell
         role="reception"
         active="customers"
-        handlers={{ dashboard: onDashboardClick, schedule: onScheduleClick, appointments: onAppointmentsClick, customers: onCustomersClick }}
+        handlers={{ dashboard: onDashboardClick, schedule: onScheduleClick, appointments: onAppointmentsClick, customers: onCustomersClick, new: onNewAppointmentClick }}
         userName={dashboard?.receptionistName ?? "Lễ tân"}
         userDetail={dashboard?.garageName ?? "Lễ tân"}
         onLogout={onLogout}

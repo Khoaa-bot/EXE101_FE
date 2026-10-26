@@ -100,7 +100,11 @@ export default function GarageDetailPage({
               <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm opacity-95">
                 {garage.rating != null && (
                   <span className="flex items-center gap-1 font-bold text-[#ffd479]">
-                    <span aria-hidden="true" className="material-symbols-outlined text-lg">
+                    <span
+                      aria-hidden="true"
+                      className="material-symbols-outlined text-lg"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
                       star
                     </span>
                     {garage.rating.toLocaleString("vi-VN", { minimumFractionDigits: 1 })}
