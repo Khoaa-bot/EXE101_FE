@@ -102,8 +102,7 @@ export default function GarageDetailPage({
                   <span className="flex items-center gap-1 font-bold text-[#ffd479]">
                     <span
                       aria-hidden="true"
-                      className="material-symbols-outlined text-lg"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
+                      className="material-symbols-outlined icon-fill-solid text-lg"
                     >
                       star
                     </span>

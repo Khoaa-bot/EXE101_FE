@@ -648,8 +648,7 @@ export default function HistoryPage({
                   >
                     <span
                       aria-hidden="true"
-                      className="material-symbols-outlined text-[34px]"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
+                      className="material-symbols-outlined icon-fill-solid text-[34px]"
                     >
                       star
                     </span>

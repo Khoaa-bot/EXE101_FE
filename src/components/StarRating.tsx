@@ -7,11 +7,10 @@ export default function StarRating({ value, size = 18 }: { value: number; size?:
         <span
           key={star}
           aria-hidden="true"
-          className="material-symbols-outlined"
+          className="material-symbols-outlined icon-fill-solid"
           style={{
             fontSize: size,
             color: star <= filled ? "#9a5b00" : "#c1c6d7",
-            fontVariationSettings: "'FILL' 1",
           }}
         >
           star

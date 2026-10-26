@@ -151,8 +151,7 @@ export default function FindGaragePage({ onBookingClick }: FindGaragePageProps) 
                     <b className="flex shrink-0 items-center gap-0.5 text-sm text-[#6b4200]">
                       <span
                         aria-hidden="true"
-                        className="material-symbols-outlined text-lg text-[#c47f00]"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
+                        className="material-symbols-outlined icon-fill-solid text-lg text-[#c47f00]"
                       >
                         star
                       </span>

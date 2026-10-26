@@ -137,6 +137,13 @@ button {
   vertical-align: middle;
 }
 
+/* Ép đủ cả 4 trục variable font (không chỉ FILL) để icon tô đặc màu chắc
+   chắn hiện ra ngay cả khi trình duyệt/extension không merge đúng khi chỉ
+   override 1 trục qua inline style. Dùng cho sao đánh giá. */
+.material-symbols-outlined.icon-fill-solid {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24 !important;
+}
+
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }
