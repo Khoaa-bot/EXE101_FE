@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "https://exe101-be.onrender.com/api";
+  import.meta.env.VITE_API_URL || "https://exe101-be-0z7y.onrender.com/api";
 
 export type LoginPayload = {
   username: string;
