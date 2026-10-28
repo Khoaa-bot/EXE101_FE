@@ -69,7 +69,7 @@ export default function AdminCustomerDetailPage({
           <div className="space-y-4">
             <Row icon="mail" label="Email" value={cust.email || "—"} />
             <Row icon="phone" label="Số điện thoại" value={cust.phone || "—"} />
-            <Row icon="calendar_today" label="Ngày tham gia" value={cust.servicedAt || "—"} />
+            <Row icon="calendar_today" label="Tham gia lúc" value={cust.servicedAt || "—"} />
           </div>
         </article>
 
