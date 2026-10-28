@@ -2131,6 +2131,107 @@ export async function setReviewHidden(reviewId: number, hidden: boolean) {
   return toReviewItem(dto);
 }
 
+// ---------------------------------------------------------------------------
+// Đánh giá website Servio (khác đánh giá garage ở trên): khách hoặc khách vãng lai
+// gửi, công khai trên trang chủ, Super Admin trả lời và ẩn.
+// ---------------------------------------------------------------------------
+
+export type WebFeedbackCategory = "GENERAL" | "BOOKING" | "UI_UX" | "PAYMENT" | "SERVICE";
+
+export type WebFeedback = {
+  id: number;
+  userId: number | null; // null ở bản công khai và với khách vãng lai
+  username: string | null;
+  fullName: string | null; // bản công khai: tên đã che bớt
+  email: string | null; // bản công khai: null
+  rating: number;
+  title: string | null;
+  comment: string;
+  category: string | null;
+  hidden: boolean;
+  adminReply: string | null;
+  repliedAt: string | null;
+  createdAt: string;
+};
+
+export type WebFeedbackStats = {
+  totalFeedbacks: number;
+  averageRating: number;
+  ratingCounts: Record<string, number>; // khóa "1".."5"
+};
+
+export type WebFeedbackPage = {
+  items: WebFeedback[];
+  total: number;
+  page: number;
+  size: number;
+};
+
+export type WebFeedbackPayload = {
+  rating: number;
+  title?: string;
+  comment: string;
+  category: WebFeedbackCategory;
+  // Chỉ cần với khách vãng lai; khách đăng nhập BE tự lấy từ tài khoản.
+  fullName?: string;
+  email?: string;
+};
+
+// POST /api/web-reviews — gửi đánh giá website (đăng nhập hoặc vãng lai).
+export function submitWebFeedback(payload: WebFeedbackPayload) {
+  return apiRequest<WebFeedback>("/web-reviews", { method: "POST", body: payload });
+}
+
+// GET /api/web-reviews/my — đánh giá website của chính mình.
+export function getMyWebFeedbacks() {
+  return apiRequest<WebFeedback[]>("/web-reviews/my");
+}
+
+// DELETE /api/web-reviews/{id} — xóa đánh giá website của chính mình.
+export function deleteMyWebFeedback(id: number) {
+  return apiRequest<void>(`/web-reviews/${id}`, { method: "DELETE" });
+}
+
+// GET /api/web-reviews/public — đánh giá website công khai (không cần đăng nhập).
+export function getPublicWebFeedbacks(page = 0, size = 5) {
+  return apiRequest<WebFeedbackPage>("/web-reviews/public", { query: { page, size } });
+}
+
+// GET /api/web-reviews/stats — điểm trung bình và số lượng theo sao (công khai).
+export function getWebFeedbackStats() {
+  return apiRequest<WebFeedbackStats>("/web-reviews/stats");
+}
+
+// GET /api/admin/web-reviews — danh sách đánh giá website cho Super Admin.
+export function getAdminWebFeedbacks(
+  filters: { rating?: number; hidden?: boolean; search?: string; page?: number; size?: number } = {},
+) {
+  return apiRequest<WebFeedbackPage>("/admin/web-reviews", {
+    query: {
+      rating: filters.rating,
+      hidden: filters.hidden === undefined ? undefined : String(filters.hidden),
+      search: filters.search || undefined,
+      page: filters.page,
+      size: filters.size,
+    },
+  });
+}
+
+// GET /api/admin/web-reviews/stats — thống kê đánh giá website (không tính đánh giá đã ẩn).
+export function getAdminWebFeedbackStats() {
+  return apiRequest<WebFeedbackStats>("/admin/web-reviews/stats");
+}
+
+// PUT /api/admin/web-reviews/{id}/hidden — ẩn hoặc bỏ ẩn (Super Admin, không xóa).
+export function setWebFeedbackHidden(id: number, hidden: boolean) {
+  return apiRequest<WebFeedback>(`/admin/web-reviews/${id}/hidden`, { method: "PUT", body: { hidden } });
+}
+
+// PUT /api/admin/web-reviews/{id}/reply — trả lời hoặc sửa phản hồi (Super Admin).
+export function replyWebFeedback(id: number, reply: string) {
+  return apiRequest<WebFeedback>(`/admin/web-reviews/${id}/reply`, { method: "PUT", body: { reply } });
+}
+
 // GET /api/payment/wallet-summary — số dư và tổng nạp/chi/nhận.
 export function getWalletSummary() {
   return apiRequest<WalletSummary>("/payment/wallet-summary");

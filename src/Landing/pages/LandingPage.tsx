@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import WebFeedbackSection from "../../components/WebFeedbackSection";
 import { useDepthPointer, useReveal } from "../../hooks/useDepthPointer";
 
 type LandingPageProps = {
@@ -717,6 +718,8 @@ export default function LandingPage({
           ))}
         </ol>
       </section>
+
+      <WebFeedbackSection onLoginClick={onLoginClick} />
 
       <section
         id="lien-he"

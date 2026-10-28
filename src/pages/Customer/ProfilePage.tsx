@@ -18,6 +18,7 @@ import {
   type Vehicle,
 } from "../../services/api";
 import { formatVnd } from "../../utils/format";
+import MyWebFeedbackSection from "./MyWebFeedbackSection";
 import { MAX_ODOMETER_KM, worstStage } from "../../utils/maintenance";
 
 type ProfilePageProps = {
@@ -621,6 +622,8 @@ export default function ProfilePage({
               </div>
             )}
           </section>
+
+          {profile && <MyWebFeedbackSection accountName={profile.fullName || profile.username} />}
         </div>
       </main>
 
