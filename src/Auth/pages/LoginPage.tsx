@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { login, type AuthSession } from "../../services/api";
+import { getRememberedUsername, saveSession, setRememberedUsername } from "../../services/authSession";
 
 type LoginPageProps = {
   onLogin: (session: AuthSession) => void;
@@ -13,6 +14,7 @@ export default function LoginPage({
   onForgotPasswordClick,
 }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberedUsername] = useState(getRememberedUsername);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -29,7 +31,8 @@ export default function LoginPage({
         username: String(formData.get("username") || "").trim(),
         password: String(formData.get("password") || ""),
       });
-      localStorage.setItem("auth_session", JSON.stringify(session));
+      saveSession(session);
+      setRememberedUsername(formData.get("remember") === "on" ? String(formData.get("username") || "").trim() : null);
       onLogin(session);
     } catch (requestError) {
       setError(
@@ -147,6 +150,7 @@ export default function LoginPage({
                   name="username"
                   placeholder="Nhập tên đăng nhập"
                   type="text"
+                  defaultValue={rememberedUsername}
                   autoComplete="username"
                   required
                 />
@@ -186,7 +190,16 @@ export default function LoginPage({
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between gap-4">
+              <label className="flex cursor-pointer items-center gap-2 font-body-md text-body-sm text-on-surface-variant">
+                <input
+                  type="checkbox"
+                  name="remember"
+                  defaultChecked={rememberedUsername !== ""}
+                  className="h-4 w-4 rounded border-outline-variant accent-primary"
+                />
+                Ghi nhớ đăng nhập
+              </label>
               <button
                 className="font-label-md text-label-md font-semibold text-primary hover:underline"
                 type="button"

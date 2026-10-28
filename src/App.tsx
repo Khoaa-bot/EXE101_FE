@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getStoredAuthSession } from "./services/api";
+import { AUTH_EXPIRED_EVENT, clearSession, expireSession, tokenExpiryMs } from "./services/authSession";
 import AppShell from "./components/AppShell";
 import AddVehiclePage from "./pages/Customer/AddVehiclePage";
 import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
@@ -166,7 +167,7 @@ const getRoutePath = (isAuthenticated: boolean, pathname: string, role: string) 
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
-    () => Boolean(localStorage.getItem("auth_session")),
+    () => Boolean(getStoredAuthSession()),
   );
   const [role, setRole] = useState<string>(
     () => getStoredAuthSession()?.role?.toUpperCase() || "CUSTOMER",
@@ -213,6 +214,29 @@ function App() {
       window.history.replaceState(null, "", routePath);
     }
   }, [pathname, routePath]);
+
+  // Phiên hết hạn (token quá hạn): đưa về trang đăng nhập, cả khi đang mở web lẫn khi vừa mở lại.
+  useEffect(() => {
+    const onExpired = () => {
+      setIsAuthenticated(false);
+      setRole("CUSTOMER");
+      navigate("/login", true);
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
+
+    let timer: number | undefined;
+    if (isAuthenticated) {
+      const expiry = tokenExpiryMs(getStoredAuthSession()?.token);
+      if (expiry !== null) {
+        // setTimeout tối đa ~24,8 ngày; token của BE sống 24 giờ nên không vượt.
+        timer = window.setTimeout(expireSession, Math.min(Math.max(expiry - Date.now(), 0), 2_000_000_000));
+      }
+    }
+    return () => {
+      window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [isAuthenticated, navigate]);
 
   const [appointmentId, setAppointmentId] = useState<string>("1");
 
@@ -389,7 +413,7 @@ function App() {
       navigate("/diagnose");
     },
     onLogout: () => {
-      localStorage.removeItem("auth_session");
+      clearSession();
       setIsAuthenticated(false);
       setRole("CUSTOMER");
       navigate("/login", true);

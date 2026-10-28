@@ -1,3 +1,5 @@
+import { expireSession, isTokenExpired, readStoredSessionJson } from "./authSession";
+
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "https://exe101-be-0z7y.onrender.com/api";
 
@@ -23,8 +25,15 @@ export type AuthSession = {
 
 export function getStoredAuthSession(): AuthSession | null {
   try {
-    const storedSession = localStorage.getItem("auth_session");
-    return storedSession ? (JSON.parse(storedSession) as AuthSession) : null;
+    const storedSession = readStoredSessionJson();
+    if (!storedSession) return null;
+    const session = JSON.parse(storedSession) as AuthSession;
+    // Token hết hạn thì coi như đã đăng xuất (BE trả 403 chứ không phải 401 nên FE tự kiểm tra hạn).
+    if (isTokenExpired(session.token)) {
+      expireSession();
+      return null;
+    }
+    return session;
   } catch {
     return null;
   }
