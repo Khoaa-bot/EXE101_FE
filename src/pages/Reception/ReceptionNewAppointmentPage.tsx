@@ -10,6 +10,7 @@ import {
   type Schedule,
   type Vehicle,
 } from "../../services/api";
+import { isSlotUpcoming } from "../../utils/schedule";
 
 type ReceptionNewAppointmentPageProps = {
   onDashboardClick?: () => void;
@@ -79,7 +80,8 @@ export default function ReceptionNewAppointmentPage({
         setDashboardCustomers([...map.entries()].map(([id, name]) => ({ id, name })));
         setVehicles(vehicleData);
         setServices(serviceData);
-        setSchedules(scheduleData);
+        // Khung giờ đã bắt đầu không còn đặt được (BE cũng từ chối), nên không đưa vào danh sách chọn.
+        setSchedules(scheduleData.filter((schedule) => isSlotUpcoming(schedule.date, schedule.timeFrame)));
       })
       .catch((err) => {
         if (!cancelled) {

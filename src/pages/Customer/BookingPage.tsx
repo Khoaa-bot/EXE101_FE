@@ -11,6 +11,7 @@ import {
   type Schedule,
   type Vehicle,
 } from "../../services/api";
+import { isSlotUpcoming } from "../../utils/schedule";
 
 type BookingPageProps = {
   onHomeClick: () => void;
@@ -38,14 +39,6 @@ const optionClass = (active: boolean) =>
 function formatCurrency(value: number | null | undefined) {
   if (value === null || value === undefined) return "Liên hệ";
   return `${value.toLocaleString("vi-VN")}đ`;
-}
-
-function isSlotUpcoming(dateStr: string, timeFrame: string) {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return true;
-  const startHour = Number.parseInt(timeFrame, 10);
-  date.setHours(Number.isNaN(startHour) ? 0 : Math.min(Math.max(startHour, 0), 23), 0, 0, 0);
-  return date >= new Date();
 }
 
 export default function BookingPage({
