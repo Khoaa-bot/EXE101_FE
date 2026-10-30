@@ -5,7 +5,7 @@ import {
   setUserStatus,
   type SuperAdminUser,
 } from "../../services/api";
-import { formatVnd } from "../../utils/format";
+import { formatDateTime, formatVnd } from "../../utils/format";
 import ReasonConfirmDialog from "./ReasonConfirmDialog";
 import RowActionMenu from "./RowActionMenu";
 import { FilterChip, StatusChips } from "./SuperAdminChips";
@@ -361,8 +361,8 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
                 <dd>{selectedUser.appointmentCount ?? 0}</dd>
                 <dt className="text-on-surface-variant">Không đến</dt>
                 <dd>{selectedUser.noShow ?? 0}</dd>
-                <dt className="text-on-surface-variant">Tham gia</dt>
-                <dd>{formatDate(selectedUser.createdAt)}</dd>
+                <dt className="text-on-surface-variant">Tham gia lúc</dt>
+                <dd>{selectedUser.createdAt ? formatDateTime(selectedUser.createdAt) || "—" : "—"}</dd>
               </dl>
               <button
                 type="button"

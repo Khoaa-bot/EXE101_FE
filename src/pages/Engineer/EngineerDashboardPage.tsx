@@ -112,27 +112,27 @@ export default function EngineerDashboardPage({
       >
 
         {/* Page Content */}
-        <div className="mx-auto max-w-[1440px] p-margin-mobile md:p-margin-desktop">
+        <div className="mx-auto max-w-[1440px] p-6 md:p-8">
           {/* Banner Section */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant pb-5">
             <div>
               <h1 className="text-3xl font-extrabold tracking-tight">
                 Lịch làm việc của bạn
               </h1>
-              <p className="mt-1 text-body-sm text-on-surface-variant">
+              <p className="mt-1 text-sm text-on-surface-variant">
                 Bạn có {visibleAppointments.length} công việc cần xử lý từ hôm nay.
               </p>
             </div>
           </div>
 
           {isLoading && (
-            <p className="mt-6 text-body-sm text-on-surface-variant">
+            <p className="mt-6 text-sm text-on-surface-variant">
               Đang tải danh sách công việc...
             </p>
           )}
 
           {!isLoading && loadError && (
-            <p className="mt-6 text-body-sm text-error">{loadError}</p>
+            <p className="mt-6 text-sm text-error">{loadError}</p>
           )}
 
           {!isLoading && !loadError && (
@@ -143,7 +143,7 @@ export default function EngineerDashboardPage({
                   <p className="text-xs font-semibold uppercase text-outline">
                     ĐƯỢC PHÂN CÔNG
                   </p>
-                  <p className="mt-2 font-headline-lg text-3xl font-bold">
+                  <p className="mt-2 text-3xl font-extrabold tracking-tight">
                     {visibleAppointments.length} xe
                   </p>
                 </article>
@@ -151,7 +151,7 @@ export default function EngineerDashboardPage({
                   <p className="text-xs font-semibold uppercase text-outline">
                     ĐANG THỰC HIỆN
                   </p>
-                  <p className="mt-2 font-headline-lg text-3xl font-bold text-primary">
+                  <p className="mt-2 text-3xl font-extrabold tracking-tight text-primary">
                     {
                       visibleAppointments.filter(
                         (a) =>
@@ -166,7 +166,7 @@ export default function EngineerDashboardPage({
                   <p className="text-xs font-semibold uppercase text-outline">
                     ĐÃ HOÀN TẤT
                   </p>
-                  <p className="mt-2 font-headline-lg text-3xl font-bold text-tertiary">
+                  <p className="mt-2 text-3xl font-extrabold tracking-tight text-tertiary">
                     {completedCount} xe
                   </p>
                 </article>
@@ -174,12 +174,12 @@ export default function EngineerDashboardPage({
 
               {/* Job Cards List */}
               <section className="mt-8 space-y-4">
-                <h2 className="font-headline-md text-lg font-bold">
+                <h2 className="text-lg font-extrabold">
                   Danh sách phiếu sửa chữa
                 </h2>
 
                 {visibleAppointments.length === 0 && (
-                  <p className="rounded-xl border border-dashed border-outline-variant p-6 text-center text-body-sm text-on-surface-variant">
+                  <p className="rounded-xl border border-dashed border-outline-variant p-6 text-center text-sm text-on-surface-variant">
                     Không có công việc nào cần xử lý từ hôm nay. Xem lịch sử ở mục
                     "Lịch hẹn".
                   </p>
@@ -236,7 +236,7 @@ export default function EngineerDashboardPage({
                           type="button"
                           disabled={!isPending || acceptingId === job.id}
                           onClick={() => acceptJob(job.id)}
-                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                          className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
                             !isPending
                               ? "bg-surface-container-high text-outline cursor-not-allowed"
                               : "bg-primary text-on-primary hover:opacity-90 active:scale-[0.98]"
@@ -275,7 +275,7 @@ export default function EngineerDashboardPage({
       {/* Notice Toast */}
       {notice && (
         <div
-          className="fixed bottom-5 right-5 z-50 rounded-lg bg-inverse-surface px-4 py-3 text-body-sm text-inverse-on-surface shadow-lg"
+          className="fixed bottom-5 right-5 z-50 rounded-2xl bg-inverse-surface px-4 py-3 text-sm text-inverse-on-surface shadow-[0_18px_40px_-16px_rgba(25,28,29,0.5)]"
           role="status"
         >
           {notice}

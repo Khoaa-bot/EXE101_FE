@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import {
   getChatConversation,
   getChatConversations,
@@ -24,7 +24,17 @@ type DiagnosePageProps = {
 const MAX_MESSAGE = 1000;
 const GREETING =
   "Xin chào! Mình là trợ lý AI của Servio. Hãy cho mình biết xe của bạn đang gặp vấn đề gì — mình có thể hỏi thêm vài câu để chẩn đoán chính xác hơn.";
-const STARTER_CHIPS = ["Tiếng kêu lạ", "Đèn báo lỗi", "Xe rung lắc", "Khó nổ máy", "Hao xăng", "Điều hòa kém lạnh"];
+const STARTER_CHIPS: Array<[label: string, icon: string]> = [
+  ["Tiếng kêu lạ", "volume_up"],
+  ["Đèn báo lỗi", "warning"],
+  ["Xe rung lắc", "vibration"],
+  ["Khó nổ máy", "key"],
+  ["Hao xăng", "local_gas_station"],
+  ["Điều hòa kém lạnh", "ac_unit"],
+];
+
+const cardClass =
+  "rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]";
 
 const severityMeta: Record<
   DiagnosisSeverity,
@@ -50,14 +60,23 @@ const severityMeta: Record<
   },
 };
 
-const likelihoodMeta: Record<DiagnosisLikelihood, { label: string; className: string }> = {
-  HIGH: { label: "Khả năng cao", className: "bg-primary-fixed text-on-primary-fixed" },
-  MEDIUM: {
-    label: "Khả năng trung bình",
-    className: "bg-surface-container-highest text-on-surface-variant",
-  },
-  LOW: { label: "Khả năng thấp", className: "bg-surface-container-low text-outline" },
+const likelihoodMeta: Record<DiagnosisLikelihood, { label: string }> = {
+  HIGH: { label: "Khả năng cao" },
+  MEDIUM: { label: "Khả năng trung bình" },
+  LOW: { label: "Khả năng thấp" },
 };
+
+// Bong bóng lựa chọn nằm bên phải như tin của khách: chạm vào là chọn.
+type OptionVariant = "default" | "selected" | "go" | "danger";
+const optionClass = (variant: OptionVariant = "default") =>
+  `inline-flex min-h-11 items-center gap-2 rounded-[22px_22px_6px_22px] border-[1.5px] px-4 py-2 text-left text-sm font-semibold leading-snug transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+    {
+      default: "border-primary bg-surface-container-lowest text-on-primary-fixed-variant hover:bg-primary-fixed/40",
+      selected: "border-primary bg-primary-fixed text-on-primary-fixed-variant",
+      go: "border-transparent bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-[0_12px_22px_-14px_rgba(0,89,187,0.9)] hover:opacity-95",
+      danger: "border-transparent bg-error text-on-error hover:opacity-95",
+    }[variant]
+  }`;
 
 function bannerCopy(result: DiagnosisResult): { title: string; body: string } {
   if (result.stopDriving) {
@@ -255,31 +274,31 @@ export default function DiagnosePage({
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-6xl p-margin-mobile md:p-margin-desktop">
-        <p className="font-body-md text-body-md text-on-surface-variant">Đang tải...</p>
+      <div className="mx-auto max-w-6xl p-6 md:p-8">
+        <p className="text-on-surface-variant">Đang tải...</p>
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div className="mx-auto max-w-6xl p-margin-mobile md:p-margin-desktop">
-        <p className="rounded-lg bg-error-container px-4 py-3 text-sm text-on-error-container">{loadError}</p>
+      <div className="mx-auto max-w-6xl p-6 md:p-8">
+        <p className="rounded-2xl bg-error-container px-4 py-3 text-sm text-on-error-container">{loadError}</p>
       </div>
     );
   }
 
   if (vehicles.length === 0) {
     return (
-      <div className="mx-auto max-w-6xl space-y-md p-margin-mobile md:p-margin-desktop">
-        <h2 className="font-display-lg text-display-lg text-on-surface">Chẩn đoán xe bằng AI</h2>
-        <p className="font-body-md text-body-md text-on-surface-variant">
+      <div className="mx-auto max-w-6xl space-y-4 p-6 md:p-8">
+        <h2 className="text-3xl font-extrabold tracking-tight text-on-surface">Chẩn đoán xe bằng AI</h2>
+        <p className="text-[15px] text-on-surface-variant">
           Bạn chưa có xe nào để chẩn đoán. Hãy thêm phương tiện trước.
         </p>
         <button
           type="button"
           onClick={onAddVehicleClick}
-          className="min-h-11 rounded-lg bg-primary px-lg font-label-md text-label-md text-on-primary"
+          className="min-h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-container px-6 text-sm font-bold text-on-primary shadow-[0_12px_22px_-14px_rgba(0,89,187,0.9)]"
         >
           Thêm phương tiện
         </button>
@@ -293,35 +312,34 @@ export default function DiagnosePage({
   const showStarterChips = !conversation && !pending && !isSending;
   const quickReplies =
     !isSending && !pending && lastMessage?.role === "ASSISTANT" ? lastMessage.quickReplies : [];
+  const replyOptions: Array<[label: string, icon: string | null]> = showStarterChips
+    ? STARTER_CHIPS
+    : quickReplies.map((reply) => [reply, null]);
 
   const historyPanel = (
-    <div className="space-y-sm rounded-xl border border-outline-variant bg-white p-lg">
-      <h3 className="font-headline-md text-headline-md text-on-surface">Lịch sử trò chuyện</h3>
+    <div className={`${cardClass} space-y-3 p-[18px]`}>
+      <h3 className="text-base font-extrabold text-on-surface">Lịch sử trò chuyện</h3>
       {conversations.length === 0 ? (
-        <p className="font-label-md text-label-md text-on-surface-variant">Chưa có cuộc trò chuyện nào.</p>
+        <p className="text-[13px] text-on-surface-variant">Chưa có cuộc trò chuyện nào.</p>
       ) : (
         conversations.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => void openConversation(item.id)}
-            className={`flex w-full flex-col gap-1 rounded-xl border p-3 text-left transition-colors hover:bg-surface-container-low ${
-              conversation?.id === item.id ? "border-primary bg-primary-fixed/30" : "border-outline-variant"
+            className={`flex w-full flex-col gap-1 rounded-2xl border p-3 text-left transition-colors hover:bg-surface-container-low ${
+              conversation?.id === item.id ? "border-primary bg-primary-fixed/30" : "border-outline-variant/60"
             }`}
           >
             <span className="flex items-center justify-between gap-2">
-              <span className="line-clamp-1 font-label-md text-label-md font-semibold text-on-surface">
-                {item.title}
-              </span>
+              <span className="line-clamp-1 text-[13px] font-bold text-on-surface">{item.title}</span>
               {item.severity && (
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 font-label-sm text-label-sm font-semibold ${severityMeta[item.severity].chip}`}
-                >
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${severityMeta[item.severity].chip}`}>
                   {severityMeta[item.severity].label}
                 </span>
               )}
             </span>
-            <span className="font-label-sm text-label-sm text-outline">
+            <span className="text-xs text-on-surface-variant">
               {item.vehicleLabel} · {formatDateTime(item.updatedAt)}
             </span>
           </button>
@@ -331,16 +349,14 @@ export default function DiagnosePage({
   );
 
   return (
-    <div className="mx-auto max-w-6xl space-y-md p-margin-mobile pb-28 md:p-margin-desktop">
-      <div className="flex flex-col justify-between gap-md sm:flex-row sm:items-start">
+    <div className="mx-auto max-w-6xl space-y-5 p-6 pb-28 md:p-8">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div className="min-w-0">
-          <h2 className="flex items-center gap-2 font-display-lg text-display-lg text-on-surface">
-            <span className="material-symbols-outlined text-[32px] text-primary" aria-hidden="true">
-              auto_awesome
-            </span>
+          <h2 className="flex items-center gap-2.5 text-3xl font-extrabold tracking-tight text-on-surface">
+            <AiAvatar size="lg" />
             Chẩn đoán xe bằng AI
           </h2>
-          <p className="font-body-md text-body-md text-on-surface-variant">
+          <p className="mt-1 text-[15px] text-on-surface-variant">
             Trò chuyện với trợ lý để tìm nguyên nhân khả dĩ và dịch vụ phù hợp tại garage.
           </p>
         </div>
@@ -349,9 +365,9 @@ export default function DiagnosePage({
             type="button"
             onClick={() => setShowHistory((open) => !open)}
             aria-expanded={showHistory}
-            className="flex min-h-11 items-center gap-2 rounded-lg border border-outline-variant bg-white px-4 font-label-md text-label-md text-on-surface transition-colors hover:bg-surface-container-low lg:hidden"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-[1.5px] border-outline-variant bg-surface-container-lowest px-4 text-sm font-bold hover:bg-surface-container-low lg:hidden"
           >
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+            <span className="material-symbols-outlined text-xl" aria-hidden="true">
               history
             </span>
             Lịch sử
@@ -359,9 +375,9 @@ export default function DiagnosePage({
           <button
             type="button"
             onClick={startNew}
-            className="flex min-h-11 items-center gap-2 rounded-lg border border-outline-variant bg-white px-4 font-label-md text-label-md text-primary transition-colors hover:bg-surface-container-low"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-[1.5px] border-outline-variant bg-surface-container-lowest px-4 text-sm font-bold hover:bg-surface-container-low"
           >
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+            <span className="material-symbols-outlined text-xl text-primary" aria-hidden="true">
               add_comment
             </span>
             <span className="hidden sm:inline">Cuộc trò chuyện mới</span>
@@ -372,20 +388,20 @@ export default function DiagnosePage({
 
       {showHistory && <div className="lg:hidden">{historyPanel}</div>}
 
-      <div className="flex flex-col gap-lg lg:flex-row lg:items-start">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
         <section
           aria-label="Cuộc trò chuyện với trợ lý AI"
-          className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-outline-variant bg-white"
+          className={`${cardClass} flex min-w-0 flex-1 flex-col overflow-hidden`}
         >
-          <div className="flex flex-wrap items-center gap-md border-b border-outline-variant bg-surface-container-low px-md py-3">
-            <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">
+          <div className="flex flex-wrap items-center gap-3 border-b border-outline-variant/40 bg-surface-container-low px-5 py-3.5">
+            <span className="material-symbols-outlined text-primary" aria-hidden="true">
               directions_car
             </span>
             {conversation ? (
-              <span className="font-label-md text-label-md font-semibold text-on-surface">{vehicleLabel}</span>
+              <span className="text-sm font-bold text-on-surface">{vehicleLabel}</span>
             ) : (
               <>
-                <label htmlFor="diagnose-vehicle" className="font-label-md text-label-md text-on-surface-variant">
+                <label htmlFor="diagnose-vehicle" className="text-sm text-on-surface-variant">
                   Chẩn đoán cho xe:
                 </label>
                 <select
@@ -393,7 +409,7 @@ export default function DiagnosePage({
                   value={selectedVehicleId ?? ""}
                   onChange={(event) => setSelectedVehicleId(Number(event.target.value))}
                   disabled={isSending}
-                  className="min-h-9 rounded-lg border border-outline-variant bg-white px-3 font-label-md text-label-md text-on-surface outline-none focus:border-primary"
+                  className="min-h-10 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 text-sm outline-none focus:border-primary"
                 >
                   {vehicles.map((vehicle) => (
                     <option key={vehicle.id} value={vehicle.id}>
@@ -411,10 +427,10 @@ export default function DiagnosePage({
             role="log"
             aria-live="polite"
             aria-busy={isSending || isOpeningConversation}
-            className="max-h-[60vh] min-h-[320px] space-y-md overflow-y-auto p-md"
+            className="max-h-[62vh] min-h-[360px] space-y-3 overflow-y-auto p-5"
           >
             {isOpeningConversation ? (
-              <p className="font-body-md text-body-md text-on-surface-variant">Đang tải cuộc trò chuyện...</p>
+              <p className="text-on-surface-variant">Đang tải cuộc trò chuyện...</p>
             ) : (
               <>
                 {!conversation && <AssistantBubble text={GREETING} />}
@@ -436,41 +452,45 @@ export default function DiagnosePage({
                 )}
                 {pending && <UserBubble text={pending} />}
                 {isSending && (
-                  <div className="flex items-center gap-2 font-label-md text-label-md text-on-surface-variant" role="status">
-                    <span className="material-symbols-outlined animate-spin text-[18px]" aria-hidden="true">
+                  <div className="flex items-center gap-2 text-[13px] text-on-surface-variant" role="status">
+                    <span className="material-symbols-outlined animate-spin text-lg" aria-hidden="true">
                       sync
                     </span>
                     AI đang phân tích...
+                  </div>
+                )}
+                {replyOptions.length > 0 && (
+                  <div className="flex flex-wrap justify-end gap-2" aria-label="Gợi ý trả lời nhanh">
+                    {replyOptions.map(([label, icon]) => (
+                      <button
+                        key={label}
+                        type="button"
+                        disabled={!canSend}
+                        onClick={() => void send(label)}
+                        className={optionClass()}
+                      >
+                        {icon && (
+                          <span className="material-symbols-outlined text-lg" aria-hidden="true">
+                            {icon}
+                          </span>
+                        )}
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 )}
               </>
             )}
           </div>
 
-          {(showStarterChips || quickReplies.length > 0) && (
-            <div className="flex flex-wrap gap-2 px-md pb-3" aria-label="Gợi ý trả lời nhanh">
-              {(showStarterChips ? STARTER_CHIPS : quickReplies).map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  disabled={!canSend}
-                  onClick={() => void send(chip)}
-                  className="min-h-9 rounded-full border border-primary bg-white px-3 font-label-md text-label-md text-primary transition-colors hover:bg-primary-fixed/40 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
-          )}
-
           {error && (
-            <p role="alert" className="mx-md mb-3 rounded-lg bg-error-container px-4 py-3 text-sm text-on-error-container">
+            <p role="alert" className="mx-5 mb-3 rounded-2xl bg-error-container px-4 py-3 text-sm text-on-error-container">
               {error}
             </p>
           )}
 
-          <form onSubmit={handleSubmit} className="border-t border-outline-variant p-md">
-            <div className="flex items-end gap-2">
+          <form onSubmit={handleSubmit} className="border-t border-outline-variant/40 px-5 pb-4 pt-3.5">
+            <div className="flex items-end gap-2.5">
               <textarea
                 aria-label="Nhập tin nhắn"
                 rows={1}
@@ -482,20 +502,20 @@ export default function DiagnosePage({
                 placeholder={
                   isQuotaExhausted ? "Bạn đã dùng hết tin nhắn hôm nay." : "Mô tả triệu chứng hoặc trả lời AI..."
                 }
-                className="max-h-32 min-h-11 flex-1 resize-none rounded-xl border border-outline-variant bg-white px-3 py-2.5 font-body-md text-body-md outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-container-low"
+                className="max-h-32 min-h-[52px] flex-1 resize-none rounded-[18px] border border-outline-variant bg-surface-container-lowest px-4 py-3.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-container-low"
               />
               <button
                 type="submit"
                 aria-label="Gửi tin nhắn"
                 disabled={!canSend || !input.trim()}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary transition-all hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-[0_12px_22px_-14px_rgba(0,89,187,0.9)] transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="material-symbols-outlined" aria-hidden="true">
                   send
                 </span>
               </button>
             </div>
-            <div className="mt-2 flex flex-wrap justify-between gap-2 font-label-sm text-label-sm text-outline">
+            <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-on-surface-variant">
               <span>
                 {quota
                   ? isQuotaExhausted
@@ -508,10 +528,10 @@ export default function DiagnosePage({
           </form>
         </section>
 
-        <div className="hidden w-80 shrink-0 space-y-md lg:block">
+        <div className="hidden w-80 shrink-0 space-y-4 lg:block">
           {historyPanel}
-          <p className="flex gap-2 rounded-lg bg-surface-container-low p-3 font-label-sm text-label-sm text-on-surface-variant">
-            <span className="material-symbols-outlined text-[18px] text-outline" aria-hidden="true">
+          <p className="flex gap-2.5 rounded-[18px] bg-[#fff1cc] p-3.5 text-[12.5px] leading-relaxed text-[#6b4200]">
+            <span className="material-symbols-outlined text-xl" aria-hidden="true">
               info
             </span>
             Kết quả chỉ mang tính tham khảo, không thay thế việc kỹ thuật viên kiểm tra trực tiếp. Khi phanh yếu,
@@ -523,10 +543,46 @@ export default function DiagnosePage({
   );
 }
 
+function AiAvatar({ size = "sm" }: { size?: "sm" | "lg" }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-fixed to-secondary-fixed-dim text-on-primary-fixed-variant ${
+        size === "lg" ? "h-11 w-11" : "h-[34px] w-[34px]"
+      }`}
+    >
+      <span
+        className={`material-symbols-outlined ${size === "lg" ? "text-[26px]" : "text-xl"}`}
+        style={{ fontVariationSettings: "'FILL' 1" }}
+      >
+        auto_awesome
+      </span>
+    </span>
+  );
+}
+
+// Một lượt nói của AI: ảnh đại diện bên trái và các bong bóng xếp dọc.
+function AiRow({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <AiAvatar />
+      <div className="flex min-w-0 max-w-[85%] flex-col gap-2">{children}</div>
+    </div>
+  );
+}
+
+function AiBubble({ children }: { children: ReactNode }) {
+  return (
+    <p className="whitespace-pre-line rounded-[20px] rounded-bl-md bg-surface-container-low px-4 py-3 text-sm leading-relaxed text-on-surface">
+      {children}
+    </p>
+  );
+}
+
 function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <p className="max-w-[85%] whitespace-pre-line rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 font-body-md text-body-md text-on-primary">
+      <p className="max-w-[78%] whitespace-pre-line rounded-[20px] rounded-br-md bg-gradient-to-br from-primary to-primary-container px-4 py-3 text-sm leading-relaxed text-on-primary">
         {text}
       </p>
     </div>
@@ -553,35 +609,30 @@ function AssistantBubble({
   const diagnosis = message?.diagnosis ?? null;
 
   return (
-    <div className="flex items-start gap-2">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-primary">
-        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-          auto_awesome
-        </span>
-      </span>
-      <div className={`min-w-0 space-y-sm ${diagnosis ? "flex-1" : "max-w-[90%]"}`}>
-        {text && (
-          <p className="whitespace-pre-line rounded-2xl rounded-tl-sm bg-surface-container-low px-4 py-2.5 font-body-md text-body-md text-on-surface">
-            {text}
-          </p>
-        )}
-        {diagnosis && message && (
-          <ConclusionCard
-            diagnosis={diagnosis}
-            message={message}
-            showFeedback={showFeedback}
-            helpful={helpful}
-            isSendingFeedback={isSendingFeedback}
-            onFeedback={onFeedback}
-            onBook={onBook}
-          />
-        )}
-      </div>
-    </div>
+    <>
+      {text && (
+        <AiRow>
+          <AiBubble>{text}</AiBubble>
+        </AiRow>
+      )}
+      {diagnosis && message && (
+        <ConclusionBubbles
+          diagnosis={diagnosis}
+          message={message}
+          showFeedback={showFeedback}
+          helpful={helpful}
+          isSendingFeedback={isSendingFeedback}
+          onFeedback={onFeedback}
+          onBook={onBook}
+        />
+      )}
+    </>
   );
 }
 
-function ConclusionCard({
+// Kết luận chẩn đoán trình bày như một chuỗi bong bóng: mức độ, nguyên nhân (chạm để xem giải thích),
+// lời khuyên, dịch vụ gợi ý (chạm để đặt lịch) và đánh giá.
+function ConclusionBubbles({
   diagnosis,
   message,
   showFeedback,
@@ -601,79 +652,102 @@ function ConclusionCard({
   const meta = severityMeta[diagnosis.severity];
   const banner = bannerCopy(diagnosis);
   const urgent = diagnosis.severity === "URGENT";
+  const [openCause, setOpenCause] = useState(0);
+  const cause = diagnosis.causes[openCause];
 
   return (
-    <div className="space-y-md rounded-xl border border-outline-variant bg-white p-md">
-      <div className={`flex items-start gap-md rounded-xl border p-md ${meta.banner}`} role="status">
-        <span className="material-symbols-outlined text-[28px]" aria-hidden="true">
-          {meta.icon}
-        </span>
-        <div>
-          <p className="font-label-md text-label-md font-bold">{banner.title}</p>
-          <p className="font-label-md text-label-md">{banner.body}</p>
+    <>
+      <AiRow>
+        <div
+          role="status"
+          className={`rounded-[20px] rounded-bl-md border px-4 py-3 ${meta.banner}`}
+        >
+          <p className="flex items-center gap-1.5 text-sm font-bold">
+            <span className="material-symbols-outlined text-[22px]" aria-hidden="true">
+              {meta.icon}
+            </span>
+            {banner.title} · mức độ {meta.label}
+          </p>
+          <p className="mt-0.5 text-sm">{banner.body}</p>
         </div>
-      </div>
+        {diagnosis.causes.length > 0 && (
+          <AiBubble>
+            Mình nghĩ có {diagnosis.causes.length} nguyên nhân khả dĩ. Chạm vào từng cái để xem giải thích:
+          </AiBubble>
+        )}
+      </AiRow>
 
       {diagnosis.causes.length > 0 && (
-        <div>
-          <h4 className="mb-sm font-label-md text-label-md font-semibold text-on-surface">Nguyên nhân khả dĩ</h4>
-          <ul className="space-y-sm">
-            {diagnosis.causes.map((cause, index) => (
-              <li key={`${cause.name}-${index}`} className="rounded-xl border border-outline-variant p-3">
-                <div className="flex items-center justify-between gap-md">
-                  <span className="font-label-md text-label-md font-semibold text-on-surface">{cause.name}</span>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-0.5 font-label-sm text-label-sm font-semibold ${likelihoodMeta[cause.likelihood].className}`}
-                  >
-                    {likelihoodMeta[cause.likelihood].label}
-                  </span>
-                </div>
-                <p className="mt-1 font-label-md text-label-md text-on-surface-variant">{cause.explanation}</p>
-              </li>
-            ))}
-          </ul>
+        <div className="flex flex-wrap justify-end gap-2" role="group" aria-label="Nguyên nhân khả dĩ">
+          {diagnosis.causes.map((item, index) => (
+            <button
+              key={`${item.name}-${index}`}
+              type="button"
+              aria-pressed={openCause === index}
+              onClick={() => setOpenCause(index)}
+              className={optionClass(openCause === index ? "selected" : "default")}
+            >
+              <span>
+                {item.name}
+                <small className="block text-xs font-medium text-on-surface-variant">
+                  {likelihoodMeta[item.likelihood].label}
+                </small>
+              </span>
+              {openCause === index && (
+                <span className="material-symbols-outlined text-xl" aria-hidden="true">
+                  check
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       )}
 
-      {diagnosis.advice && (
-        <div className="rounded-lg bg-surface-container-low p-3">
-          <p className="font-label-md text-label-md font-semibold text-on-surface">Lời khuyên</p>
-          <p className="font-body-md text-body-md text-on-surface-variant">{diagnosis.advice}</p>
-        </div>
+      {(cause || diagnosis.advice || message.suggestedServices.length > 0) && (
+        <AiRow>
+          {cause && (
+            <AiBubble>
+              <b>{cause.name}.</b> {cause.explanation}
+            </AiBubble>
+          )}
+          {diagnosis.advice && (
+            <AiBubble>
+              <b>Lời khuyên:</b> {diagnosis.advice}
+            </AiBubble>
+          )}
+          {message.suggestedServices.length > 0 && <AiBubble>Bạn muốn đặt dịch vụ nào tại Servio?</AiBubble>}
+        </AiRow>
       )}
 
       {message.suggestedServices.length > 0 && (
-        <div className="space-y-sm">
-          <h4 className="font-label-md text-label-md font-semibold text-on-surface">Dịch vụ gợi ý tại Servio</h4>
+        <div className="flex flex-wrap justify-end gap-2" role="group" aria-label="Dịch vụ gợi ý tại Servio">
           {message.suggestedServices.map((service) => (
-            <div
+            <button
               key={service.id}
-              className="flex flex-col gap-md rounded-xl border border-outline-variant p-3 sm:flex-row sm:items-center"
+              type="button"
+              onClick={() => onBook?.(service.id)}
+              className={optionClass(urgent ? "danger" : "go")}
             >
-              <div className="min-w-0 flex-1">
-                <p className="font-label-md text-label-md font-semibold text-on-surface">{service.name}</p>
-                <p className="font-label-sm text-label-sm text-on-surface-variant">{formatPrice(service.price)}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onBook?.(service.id)}
-                className={`min-h-11 shrink-0 rounded-lg px-lg font-label-md text-label-md text-white transition-all hover:shadow-lg active:scale-95 ${
-                  urgent ? "bg-error" : "bg-primary"
-                }`}
-              >
-                Đặt lịch ngay
-              </button>
-            </div>
+              <span className="material-symbols-outlined text-xl" aria-hidden="true">
+                build
+              </span>
+              <span>
+                {service.name}
+                <small className="block text-xs font-medium opacity-90">
+                  {[formatPrice(service.price), "Đặt lịch ngay"].filter(Boolean).join(" · ")}
+                </small>
+              </span>
+            </button>
           ))}
         </div>
       )}
 
       {showFeedback && onFeedback && (
-        <div className="flex flex-wrap items-center justify-between gap-md border-t border-surface-container-highest pt-md">
-          <span className="font-label-md text-label-md font-semibold text-on-surface">
-            {helpful === null ? "Kết quả này có hữu ích không?" : "Cảm ơn bạn đã đánh giá."}
-          </span>
-          <div className="flex gap-2" role="group" aria-label="Đánh giá kết quả">
+        <>
+          <AiRow>
+            <AiBubble>{helpful === null ? "Kết quả này có hữu ích không?" : "Cảm ơn bạn đã đánh giá."}</AiBubble>
+          </AiRow>
+          <div className="flex flex-wrap justify-end gap-2" role="group" aria-label="Đánh giá kết quả">
             <FeedbackButton
               icon="thumb_up"
               label="Hữu ích"
@@ -689,13 +763,13 @@ function ConclusionCard({
               onClick={() => onFeedback(false)}
             />
           </div>
-        </div>
+        </>
       )}
 
-      <p className="font-label-sm text-label-sm text-outline">
+      <p className="pl-[44px] text-xs text-outline">
         Kết quả chỉ mang tính tham khảo do AI tạo ra, không thay thế việc kỹ thuật viên kiểm tra trực tiếp.
       </p>
-    </div>
+    </>
   );
 }
 
@@ -718,13 +792,9 @@ function FeedbackButton({
       disabled={disabled}
       aria-pressed={active}
       onClick={onClick}
-      className={`flex min-h-11 items-center gap-1.5 rounded-lg border px-4 font-label-md text-label-md font-semibold transition-colors disabled:opacity-60 ${
-        active
-          ? "border-primary bg-primary-fixed text-on-primary-fixed"
-          : "border-outline-variant bg-white text-on-surface hover:bg-surface-container-low"
-      }`}
+      className={optionClass(active ? "selected" : "default")}
     >
-      <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+      <span className="material-symbols-outlined text-xl" aria-hidden="true">
         {icon}
       </span>
       {label}

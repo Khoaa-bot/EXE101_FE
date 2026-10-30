@@ -4,6 +4,7 @@ import {
   getMyProfile,
   type AdminCustomer,
 } from "../../services/api";
+import { formatDateTime } from "../../utils/format";
 import AdminShell, { FilterChip, StatusPill, type AdminNavProps } from "./AdminShell";
 
 export type Customer = {
@@ -37,9 +38,7 @@ export function mapApiCustomer(c: AdminCustomer): Customer {
     vehicle: `${c.vehicleCount} xe`,
     vehicleCount: c.vehicleCount,
     plate: "—",
-    servicedAt: c.createdAt
-      ? new Date(c.createdAt).toLocaleDateString("vi-VN")
-      : "—",
+    servicedAt: c.createdAt ? formatDateTime(c.createdAt) || "—" : "—",
     createdAtRaw: c.createdAt,
     state: c.isBanned ? "repair" : "all",
     noShow: c.noShow,
@@ -198,7 +197,7 @@ export default function AdminCustomersPage({
                 <th className="px-5 py-3 font-bold">Liên hệ</th>
                 <th className="px-5 py-3 font-bold">Phương tiện</th>
                 <th className="px-5 py-3 font-bold">Trạng thái</th>
-                <th className="px-5 py-3 font-bold">Ngày tham gia</th>
+                <th className="px-5 py-3 font-bold">Tham gia lúc</th>
                 <th className="px-5 py-3 text-right font-bold">Thao tác</th>
               </tr>
             </thead>

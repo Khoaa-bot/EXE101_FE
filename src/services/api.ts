@@ -1,5 +1,7 @@
+import { expireSession, isTokenExpired, readStoredSessionJson } from "./authSession";
+
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "https://exe101-be.onrender.com/api";
+  import.meta.env.VITE_API_URL || "https://exe101-be-0z7y.onrender.com/api";
 
 export type LoginPayload = {
   username: string;
@@ -23,8 +25,15 @@ export type AuthSession = {
 
 export function getStoredAuthSession(): AuthSession | null {
   try {
-    const storedSession = localStorage.getItem("auth_session");
-    return storedSession ? (JSON.parse(storedSession) as AuthSession) : null;
+    const storedSession = readStoredSessionJson();
+    if (!storedSession) return null;
+    const session = JSON.parse(storedSession) as AuthSession;
+    // Token hết hạn thì coi như đã đăng xuất (BE trả 403 chứ không phải 401 nên FE tự kiểm tra hạn).
+    if (isTokenExpired(session.token)) {
+      expireSession();
+      return null;
+    }
+    return session;
   } catch {
     return null;
   }
@@ -1702,6 +1711,31 @@ export function sendAppointmentMessage(appointmentId: number | string, content: 
   });
 }
 
+// Thông tin phòng gọi video của một lịch hẹn (VideoCallDto của backend). Phòng nằm ở nhà cung cấp
+// ngoài (Jitsi, Daily hoặc MiroTalk), roomUrl đã mang tên người đang xem.
+export type VideoCallInfo = {
+  appointmentId: number;
+  provider: string;
+  roomName: string;
+  roomUrl: string;
+  initiatorId: number;
+  initiatorName: string;
+  initiatorRole: string;
+  startedAt: string;
+};
+
+// POST /api/appointments/{id}/video-call — bắt đầu cuộc gọi: backend tạo phòng, đẩy sự kiện SSE
+// "video-call" cho bên kia, tạo thông báo và ghi một dòng "[Cuộc gọi video] …" vào chat.
+export function startVideoCall(appointmentId: number | string) {
+  return apiRequest<VideoCallInfo>(`/appointments/${appointmentId}/video-call`, { method: "POST" });
+}
+
+// GET /api/appointments/{id}/video-call — lấy đường dẫn phòng mang tên người đang gọi API để tham gia.
+// Không gửi thông báo nào. Lưu ý: initiator* và startedAt ở đây là của chính người gọi GET.
+export function getVideoCallInfo(appointmentId: number | string) {
+  return apiRequest<VideoCallInfo>(`/appointments/${appointmentId}/video-call`);
+}
+
 export type PaymentReturnResult = {
   success: boolean;
   message: string;
@@ -1833,6 +1867,7 @@ export type AdminOverview = {
   garagesWithoutOwner: Array<{ id: number; name: string }>;
   pendingWithdrawalCount: number;
   pendingWithdrawalAmount: number;
+  successfulTransactionCount: number;
   wallet: PlatformWallet;
 };
 
@@ -2103,6 +2138,107 @@ export async function setReviewHidden(reviewId: number, hidden: boolean) {
     body: { hidden },
   });
   return toReviewItem(dto);
+}
+
+// ---------------------------------------------------------------------------
+// Đánh giá website Servio (khác đánh giá garage ở trên): khách hoặc khách vãng lai
+// gửi, công khai trên trang chủ, Super Admin trả lời và ẩn.
+// ---------------------------------------------------------------------------
+
+export type WebFeedbackCategory = "GENERAL" | "BOOKING" | "UI_UX" | "PAYMENT" | "SERVICE";
+
+export type WebFeedback = {
+  id: number;
+  userId: number | null; // null ở bản công khai và với khách vãng lai
+  username: string | null;
+  fullName: string | null; // bản công khai: tên đã che bớt
+  email: string | null; // bản công khai: null
+  rating: number;
+  title: string | null;
+  comment: string;
+  category: string | null;
+  hidden: boolean;
+  adminReply: string | null;
+  repliedAt: string | null;
+  createdAt: string;
+};
+
+export type WebFeedbackStats = {
+  totalFeedbacks: number;
+  averageRating: number;
+  ratingCounts: Record<string, number>; // khóa "1".."5"
+};
+
+export type WebFeedbackPage = {
+  items: WebFeedback[];
+  total: number;
+  page: number;
+  size: number;
+};
+
+export type WebFeedbackPayload = {
+  rating: number;
+  title?: string;
+  comment: string;
+  category: WebFeedbackCategory;
+  // Chỉ cần với khách vãng lai; khách đăng nhập BE tự lấy từ tài khoản.
+  fullName?: string;
+  email?: string;
+};
+
+// POST /api/web-reviews — gửi đánh giá website (đăng nhập hoặc vãng lai).
+export function submitWebFeedback(payload: WebFeedbackPayload) {
+  return apiRequest<WebFeedback>("/web-reviews", { method: "POST", body: payload });
+}
+
+// GET /api/web-reviews/my — đánh giá website của chính mình.
+export function getMyWebFeedbacks() {
+  return apiRequest<WebFeedback[]>("/web-reviews/my");
+}
+
+// DELETE /api/web-reviews/{id} — xóa đánh giá website của chính mình.
+export function deleteMyWebFeedback(id: number) {
+  return apiRequest<void>(`/web-reviews/${id}`, { method: "DELETE" });
+}
+
+// GET /api/web-reviews/public — đánh giá website công khai (không cần đăng nhập).
+export function getPublicWebFeedbacks(page = 0, size = 5) {
+  return apiRequest<WebFeedbackPage>("/web-reviews/public", { query: { page, size } });
+}
+
+// GET /api/web-reviews/stats — điểm trung bình và số lượng theo sao (công khai).
+export function getWebFeedbackStats() {
+  return apiRequest<WebFeedbackStats>("/web-reviews/stats");
+}
+
+// GET /api/admin/web-reviews — danh sách đánh giá website cho Super Admin.
+export function getAdminWebFeedbacks(
+  filters: { rating?: number; hidden?: boolean; search?: string; page?: number; size?: number } = {},
+) {
+  return apiRequest<WebFeedbackPage>("/admin/web-reviews", {
+    query: {
+      rating: filters.rating,
+      hidden: filters.hidden === undefined ? undefined : String(filters.hidden),
+      search: filters.search || undefined,
+      page: filters.page,
+      size: filters.size,
+    },
+  });
+}
+
+// GET /api/admin/web-reviews/stats — thống kê đánh giá website (không tính đánh giá đã ẩn).
+export function getAdminWebFeedbackStats() {
+  return apiRequest<WebFeedbackStats>("/admin/web-reviews/stats");
+}
+
+// PUT /api/admin/web-reviews/{id}/hidden — ẩn hoặc bỏ ẩn (Super Admin, không xóa).
+export function setWebFeedbackHidden(id: number, hidden: boolean) {
+  return apiRequest<WebFeedback>(`/admin/web-reviews/${id}/hidden`, { method: "PUT", body: { hidden } });
+}
+
+// PUT /api/admin/web-reviews/{id}/reply — trả lời hoặc sửa phản hồi (Super Admin).
+export function replyWebFeedback(id: number, reply: string) {
+  return apiRequest<WebFeedback>(`/admin/web-reviews/${id}/reply`, { method: "PUT", body: { reply } });
 }
 
 // GET /api/payment/wallet-summary — số dư và tổng nạp/chi/nhận.

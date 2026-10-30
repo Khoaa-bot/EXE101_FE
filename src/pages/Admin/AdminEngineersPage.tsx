@@ -8,6 +8,7 @@ import {
   type AdminEmployee,
   type Garage,
 } from "../../services/api";
+import { formatDateTime } from "../../utils/format";
 import AdminShell, { FilterChip, StatusPill, type AdminNavProps } from "./AdminShell";
 
 export type EngineerRole =
@@ -42,7 +43,7 @@ export function mapApiEmployee(e: AdminEmployee): Engineer {
     roleTitle: e.role,
     garageName: e.garageName,
     joined: e.createdAt
-      ? new Date(e.createdAt).toLocaleDateString("vi-VN")
+      ? formatDateTime(e.createdAt) || "—"
       : new Date().toLocaleDateString("vi-VN"),
   };
 }
@@ -431,7 +432,7 @@ export default function AdminEngineersPage({
                   <tr>
                     <th className="px-5 py-3 font-bold">Nhân viên</th>
                     <th className="px-5 py-3 font-bold">Vai trò</th>
-                    <th className="px-5 py-3 font-bold">Ngày tham gia</th>
+                    <th className="px-5 py-3 font-bold">Tham gia lúc</th>
                     <th className="px-5 py-3 text-right font-bold">Thao tác</th>
                   </tr>
                 </thead>

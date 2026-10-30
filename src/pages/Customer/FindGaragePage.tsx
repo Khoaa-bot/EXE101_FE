@@ -149,7 +149,10 @@ export default function FindGaragePage({ onBookingClick }: FindGaragePageProps) 
                   <h3 className="text-[17px] font-extrabold">{garage.name}</h3>
                   {garage.rating != null && (
                     <b className="flex shrink-0 items-center gap-0.5 text-sm text-[#6b4200]">
-                      <span aria-hidden="true" className="material-symbols-outlined text-lg text-[#c47f00]">
+                      <span
+                        aria-hidden="true"
+                        className="material-symbols-outlined icon-fill-solid text-lg text-[#c47f00]"
+                      >
                         star
                       </span>
                       {garage.rating.toLocaleString("vi-VN", { minimumFractionDigits: 1 })}

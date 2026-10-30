@@ -5,7 +5,7 @@ import SuperAdminAppointmentsTab from "./SuperAdminAppointmentsTab";
 import SuperAdminCustomersTab from "./SuperAdminCustomersTab";
 import SuperAdminGaragesTab from "./SuperAdminGaragesTab";
 import SuperAdminOverviewTab from "./SuperAdminOverviewTab";
-import SuperAdminReviewsTab from "./SuperAdminReviewsTab";
+import SuperAdminReviewsHub from "./SuperAdminReviewsHub";
 import SuperAdminWalletTab from "./SuperAdminWalletTab";
 import SuperAdminWithdrawalsTab from "./SuperAdminWithdrawalsTab";
 
@@ -40,7 +40,7 @@ const TABS: { key: TabKey; icon: string; label: string; description: string }[] 
     key: "reviews",
     icon: "reviews",
     label: "Đánh giá",
-    description: "Xem đánh giá của khách trên mọi garage, ẩn đánh giá không phù hợp. Không xóa được đánh giá.",
+    description: "Đánh giá garage và góp ý về website Servio. Chỉ ẩn hoặc hiện, không xóa.",
   },
   {
     key: "withdrawals",
@@ -128,7 +128,7 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
               <SuperAdminCustomersTab notify={notify} onViewAppointments={viewAppointmentsOf} />
             )}
             {tab === "garages" && <SuperAdminGaragesTab notify={notify} />}
-            {tab === "reviews" && <SuperAdminReviewsTab notify={notify} />}
+            {tab === "reviews" && <SuperAdminReviewsHub notify={notify} />}
             {tab === "withdrawals" && (
               <SuperAdminWithdrawalsTab
                 notify={notify}

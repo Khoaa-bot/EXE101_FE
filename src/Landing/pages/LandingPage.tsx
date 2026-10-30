@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
+import WebFeedbackSection from "../../components/WebFeedbackSection";
+import { useDepthPointer, useReveal } from "../../hooks/useDepthPointer";
 
 type LandingPageProps = {
   onLoginClick: () => void;
   onRegisterClick: () => void;
+  // Có khi người dùng đã đăng nhập: thay các nút Đăng nhập / Đăng ký bằng nút vào lại ứng dụng.
+  onGoToApp?: () => void;
 };
 
 // Thông tin liên hệ hiển thị ở thanh trên cùng và chân trang — thay bằng thông tin thật.
@@ -15,6 +19,7 @@ const CONTACT = {
 const NAV_ITEMS = [
   { label: "Trang chủ", href: "#trang-chu" },
   { label: "Giới thiệu", href: "#gioi-thieu" },
+  { label: "Tính năng", href: "#tinh-nang" },
   { label: "Dịch vụ", href: "#dich-vu" },
   { label: "Quy trình", href: "#quy-trinh" },
   { label: "Liên hệ", href: "#lien-he" },
@@ -88,44 +93,146 @@ function CarScene({ color, glow }: { color: string; glow: string }) {
   return (
     <div className="absolute inset-0 overflow-hidden bg-gradient-to-b from-[#2a3038] via-[#161a20] to-[#0b0d11]">
       {/* ceiling lights */}
-      <div className="absolute left-[6%] top-[14%] h-1.5 w-28 rotate-90 rounded-full bg-white shadow-[0_0_30px_8px_rgba(255,255,255,0.55)]" />
-      <div className="absolute right-[8%] top-[10%] h-1.5 w-56 -rotate-6 rounded-full bg-white shadow-[0_0_36px_10px_rgba(255,255,255,0.5)]" />
-      <div className="absolute left-[38%] top-[26%] h-1 w-20 rounded-full bg-white/80 shadow-[0_0_20px_5px_rgba(255,255,255,0.4)]" />
-      {/* pillars */}
-      <div className="absolute right-[6%] top-[18%] h-[55%] w-16 bg-gradient-to-r from-[#232830] to-[#14181d]" />
-      <div className="absolute left-[18%] top-[30%] h-[40%] w-10 bg-gradient-to-r from-[#1f242b] to-[#12151a]" />
+      <div className="parallax absolute inset-0 [--depth:-6]">
+        <div className="absolute left-[6%] top-[14%] h-1.5 w-28 rotate-90 rounded-full bg-white shadow-[0_0_30px_8px_rgba(255,255,255,0.55)]" />
+        <div className="absolute right-[8%] top-[10%] h-1.5 w-56 -rotate-6 rounded-full bg-white shadow-[0_0_36px_10px_rgba(255,255,255,0.5)]" />
+        <div className="absolute left-[38%] top-[26%] h-1 w-20 rounded-full bg-white/80 shadow-[0_0_20px_5px_rgba(255,255,255,0.4)]" />
+        {/* pillars */}
+        <div className="absolute right-[6%] top-[18%] h-[55%] w-16 bg-gradient-to-r from-[#232830] to-[#14181d]" />
+        <div className="absolute left-[18%] top-[30%] h-[40%] w-10 bg-gradient-to-r from-[#1f242b] to-[#12151a]" />
+      </div>
       {/* floor */}
       <div className="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-b from-[#1b2027] to-[#0a0c0f]" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-[-30%] bottom-[-14%] h-[52%] origin-bottom opacity-80"
+        style={{
+          transform: "perspective(560px) rotateX(64deg)",
+          backgroundImage:
+            "linear-gradient(rgba(159,195,255,0.22) 1px, transparent 1px), linear-gradient(90deg, rgba(159,195,255,0.22) 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
+        }}
+      />
       <div
         className="absolute bottom-[8%] left-1/2 h-40 w-[70%] -translate-x-1/2 rounded-full blur-3xl"
         style={{ background: glow }}
       />
-      {/* car */}
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 600 220"
-        className="absolute bottom-[10%] left-1/2 w-[min(720px,82%)] -translate-x-1/2 lg:left-auto lg:right-[3%] lg:w-[min(640px,52%)] lg:translate-x-0 drop-shadow-[0_30px_30px_rgba(0,0,0,0.6)]"
-      >
-        <ellipse cx="300" cy="200" rx="270" ry="14" fill="rgba(0,0,0,0.55)" />
-        <path
-          d="M40 150 C40 130 70 125 110 118 L170 80 C190 66 220 60 260 60 L350 60 C390 60 420 72 445 100 L500 112 C545 118 565 132 565 152 L565 168 L40 168 Z"
-          fill={color}
-        />
-        <path
-          d="M185 98 L215 74 C230 68 245 67 262 67 L340 67 C362 67 380 76 395 100 Z"
-          fill="#0d1218"
-        />
-        <path d="M60 140 L545 140" stroke="rgba(0,0,0,0.25)" strokeWidth="3" />
-        <rect x="528" y="124" width="26" height="9" rx="4" fill="#fff6c9" />
-        <rect x="46" y="128" width="22" height="9" rx="4" fill="#ff5a5a" />
-        <circle cx="150" cy="170" r="34" fill="#0b0d10" />
-        <circle cx="150" cy="170" r="19" fill="#cfd5de" />
-        <circle cx="150" cy="170" r="6" fill="#0b0d10" />
-        <circle cx="455" cy="170" r="34" fill="#0b0d10" />
-        <circle cx="455" cy="170" r="19" fill="#cfd5de" />
-        <circle cx="455" cy="170" r="6" fill="#0b0d10" />
-      </svg>
+      {/* car: nghiêng nhẹ và lệch theo chuột */}
+      <div className="car-tilt absolute inset-0">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 600 220"
+          className="absolute bottom-[10%] left-1/2 w-[min(720px,82%)] -translate-x-1/2 lg:left-auto lg:right-[3%] lg:w-[min(640px,52%)] lg:translate-x-0 drop-shadow-[0_30px_30px_rgba(0,0,0,0.6)]"
+        >
+          <ellipse cx="300" cy="200" rx="270" ry="14" fill="rgba(0,0,0,0.55)" />
+          <path
+            d="M40 150 C40 130 70 125 110 118 L170 80 C190 66 220 60 260 60 L350 60 C390 60 420 72 445 100 L500 112 C545 118 565 132 565 152 L565 168 L40 168 Z"
+            fill={color}
+          />
+          <path
+            d="M185 98 L215 74 C230 68 245 67 262 67 L340 67 C362 67 380 76 395 100 Z"
+            fill="#0d1218"
+          />
+          <path d="M60 140 L545 140" stroke="rgba(0,0,0,0.25)" strokeWidth="3" />
+          <rect x="528" y="124" width="26" height="9" rx="4" fill="#fff6c9" />
+          <rect x="46" y="128" width="22" height="9" rx="4" fill="#ff5a5a" />
+          <circle cx="150" cy="170" r="34" fill="#0b0d10" />
+          <circle cx="150" cy="170" r="19" fill="#cfd5de" />
+          <circle cx="150" cy="170" r="6" fill="#0b0d10" />
+          <circle cx="455" cy="170" r="34" fill="#0b0d10" />
+          <circle cx="455" cy="170" r="19" fill="#cfd5de" />
+          <circle cx="455" cy="170" r="6" fill="#0b0d10" />
+        </svg>
+      </div>
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/40" />
+    </div>
+  );
+}
+
+const MAINTENANCE_TONES = {
+  amber: { panel: "bg-[#fff1cc]", text: "text-[#6b4200]", bar: "bg-[#c47f00]" },
+  green: { panel: "bg-[#d9f7dd]", text: "text-[#00531a]", bar: "bg-[#008730]" },
+  red: { panel: "bg-error-container", text: "text-on-error-container", bar: "bg-error" },
+};
+
+function MaintenanceRow({
+  label,
+  remaining,
+  percent,
+  tone,
+  action,
+}: {
+  label: string;
+  remaining: string;
+  percent: number;
+  tone: keyof typeof MAINTENANCE_TONES;
+  action?: string;
+}) {
+  const t = MAINTENANCE_TONES[tone];
+  return (
+    <div className={`rounded-xl p-2.5 ${t.panel}`}>
+      <div className="mb-1.5 flex justify-between gap-2 text-xs font-semibold">
+        <span>{label}</span>
+        <span className={t.text}>{remaining}</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-highest">
+        <div className={`h-full rounded-full ${t.bar}`} style={{ width: `${percent}%` }} />
+      </div>
+      {action && (
+        <div className="mt-2 flex h-[30px] items-center justify-center rounded-lg bg-error text-xs font-bold text-on-error">
+          {action}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const bubble = {
+  me: "max-w-[90%] justify-self-end rounded-[13px] rounded-br bg-primary px-[11px] py-2 text-xs text-on-primary",
+  other:
+    "max-w-[90%] rounded-[13px] rounded-bl border border-outline-variant bg-surface-container-lowest px-[11px] py-2 text-xs",
+};
+
+function FeatureCard({
+  icon,
+  title,
+  isNew = false,
+  text,
+  children,
+  demoClass = "grid content-center gap-[7px] p-3",
+}: {
+  icon: string;
+  title: string;
+  isNew?: boolean;
+  text: string;
+  children: React.ReactNode;
+  demoClass?: string;
+}) {
+  return (
+    <div className="focus-card flex flex-col gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-6 sm:flex-row">
+      <div className="min-w-0 flex-1">
+        <span
+          aria-hidden="true"
+          className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-gradient-to-br from-primary-fixed to-secondary-fixed-dim text-on-primary-fixed-variant"
+        >
+          <span className="material-symbols-outlined text-[28px]">{icon}</span>
+        </span>
+        <h3 className="mt-3.5 text-lg font-bold">
+          {title}
+          {isNew && (
+            <span className="ml-2 inline-block rounded-full bg-[#fff1cc] px-2.5 py-0.5 align-middle text-[11px] font-bold text-[#6b4200]">
+              Mới
+            </span>
+          )}
+        </h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-on-surface-variant">{text}</p>
+      </div>
+      <div
+        aria-hidden="true"
+        className={`w-full shrink-0 overflow-hidden rounded-[18px] bg-surface-container-low sm:w-[14.75rem] ${demoClass}`}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -133,12 +240,15 @@ function CarScene({ color, glow }: { color: string; glow: string }) {
 export default function LandingPage({
   onLoginClick,
   onRegisterClick,
+  onGoToApp,
 }: LandingPageProps) {
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(
     () => !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const depth = useDepthPointer<HTMLElement>();
+  const revealRef = useReveal<HTMLElement>();
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -157,6 +267,9 @@ export default function LandingPage({
     <div className="min-h-dvh bg-surface font-sans text-on-surface">
       <section
         id="trang-chu"
+        ref={depth.ref}
+        onPointerMove={depth.onPointerMove}
+        onPointerLeave={depth.onPointerLeave}
         aria-roledescription="carousel"
         aria-label="Giới thiệu Servio"
         className="relative h-[100svh] min-h-[560px] overflow-hidden text-white"
@@ -184,6 +297,22 @@ export default function LandingPage({
             <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/25" />
           </div>
         ))}
+
+        {/* Thẻ kính lơ lửng ở lớp gần, chỉ hiện trên màn rộng. */}
+        <div
+          aria-hidden="true"
+          className="parallax absolute right-[34%] top-[26%] z-10 hidden items-center gap-2.5 rounded-2xl border border-white/30 bg-white/15 px-3.5 py-2.5 text-[13px] font-semibold backdrop-blur [--depth:-30] lg:flex"
+        >
+          <span className="material-symbols-outlined text-xl">schedule</span>
+          Xác nhận lịch trong 5 phút
+        </div>
+        <div
+          aria-hidden="true"
+          className="parallax absolute right-[6%] top-[22%] z-10 hidden items-center gap-2.5 rounded-2xl border border-white/30 bg-white/15 px-3.5 py-2.5 text-[13px] font-semibold shadow-[0_22px_40px_-18px_rgba(0,0,0,0.6)] backdrop-blur [--depth:34] lg:flex"
+        >
+          <span className="material-symbols-outlined text-xl">receipt_long</span>
+          Báo giá minh bạch
+        </div>
 
         <div className="absolute inset-x-0 top-0 z-20">
           <div className="mx-auto hidden max-w-6xl items-center justify-between px-lg py-2 text-xs text-white/85 md:flex">
@@ -232,20 +361,32 @@ export default function LandingPage({
             </nav>
 
             <div className="flex items-center gap-sm">
-              <button
-                type="button"
-                onClick={onLoginClick}
-                className="hidden min-h-11 rounded-full border border-white/70 px-5 text-sm font-bold text-white transition-colors hover:bg-white/15 sm:block"
-              >
-                Đăng nhập
-              </button>
-              <button
-                type="button"
-                onClick={onRegisterClick}
-                className="hidden min-h-11 rounded-full bg-primary px-5 text-sm font-bold text-on-primary sm:block"
-              >
-                Đăng ký
-              </button>
+              {onGoToApp ? (
+                <button
+                  type="button"
+                  onClick={onGoToApp}
+                  className="hidden min-h-11 rounded-full bg-primary px-5 text-sm font-bold text-on-primary sm:block"
+                >
+                  Vào ứng dụng
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={onLoginClick}
+                    className="hidden min-h-11 rounded-full border border-white/70 px-5 text-sm font-bold text-white transition-colors hover:bg-white/15 sm:block"
+                  >
+                    Đăng nhập
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onRegisterClick}
+                    className="hidden min-h-11 rounded-full bg-primary px-5 text-sm font-bold text-on-primary sm:block"
+                  >
+                    Đăng ký
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 aria-label="Mở menu"
@@ -275,22 +416,32 @@ export default function LandingPage({
                   {item.label}
                 </a>
               ))}
-              <div className="mt-2 grid grid-cols-2 gap-2">
+              {onGoToApp ? (
                 <button
                   type="button"
-                  onClick={onLoginClick}
-                  className="min-h-11 rounded-full border border-white/70 text-sm font-bold"
+                  onClick={onGoToApp}
+                  className="mt-2 min-h-11 w-full rounded-full bg-primary text-sm font-bold text-on-primary"
                 >
-                  Đăng nhập
+                  Vào ứng dụng
                 </button>
-                <button
-                  type="button"
-                  onClick={onRegisterClick}
-                  className="min-h-11 rounded-full bg-primary text-sm font-bold text-on-primary"
-                >
-                  Đăng ký
-                </button>
-              </div>
+              ) : (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={onLoginClick}
+                    className="min-h-11 rounded-full border border-white/70 text-sm font-bold"
+                  >
+                    Đăng nhập
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onRegisterClick}
+                    className="min-h-11 rounded-full bg-primary text-sm font-bold text-on-primary"
+                  >
+                    Đăng ký
+                  </button>
+                </div>
+              )}
             </nav>
           )}
         </div>
@@ -310,10 +461,10 @@ export default function LandingPage({
             <div className="mt-7 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={onRegisterClick}
+                onClick={onGoToApp ?? onRegisterClick}
                 className="min-h-12 rounded-full bg-primary px-7 text-sm font-bold text-on-primary"
               >
-                Bắt đầu ngay
+                {onGoToApp ? "Vào ứng dụng" : "Bắt đầu ngay"}
               </button>
               <a
                 href="#gioi-thieu"
@@ -389,11 +540,11 @@ export default function LandingPage({
             dụng duy nhất, còn garage quản lý lịch hẹn và công việc dễ dàng hơn.
           </p>
         </div>
-        <div className="mt-12 grid gap-lg md:grid-cols-3">
+        <div className="lift-grid mt-12 grid gap-lg md:grid-cols-3">
           {FEATURES.map((feature) => (
             <div
               key={feature.title}
-              className="rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-lg"
+              className="lift-card rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-lg"
             >
               <span
                 aria-hidden="true"
@@ -408,7 +559,113 @@ export default function LandingPage({
         </div>
       </section>
 
-      <section id="dich-vu" className="scroll-mt-4 bg-primary-fixed/50 py-20">
+      <section id="tinh-nang" className="scroll-mt-4 bg-primary-fixed/50 py-20">
+        <div className="mx-auto max-w-6xl px-lg">
+          <div className="mx-auto max-w-[42rem] text-center">
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">Tính năng nổi bật</p>
+            <h2 className="mt-2 text-[30px] font-extrabold tracking-tight md:text-[36px]">
+              Hiểu xe của bạn trước khi đến garage
+            </h2>
+            <p className="mt-3 text-body-lg text-on-surface-variant">
+              Hỏi AI về triệu chứng, nhận nhắc bảo dưỡng đúng hạn, trao đổi với garage và gặp kỹ
+              thuật viên qua video khi cần.
+            </p>
+          </div>
+          <div className="focus-grid mt-12 grid gap-6 md:grid-cols-2">
+            <FeatureCard
+              icon="smart_toy"
+              title="Chẩn đoán xe bằng AI"
+              text="Mô tả tiếng ồn, đèn báo hay triệu chứng. AI hỏi thêm vài câu rồi gợi ý nguyên nhân thường gặp và mức độ khẩn cấp."
+            >
+              <div className={bubble.me}>Xe rung mạnh khi phanh</div>
+              <div className={bubble.other}>Bạn thấy rung ở vô lăng hay bàn đạp?</div>
+              <div className={bubble.me}>Ở vô lăng, lúc chạy nhanh</div>
+              <div className={bubble.other}>
+                <b className="text-primary">Có thể do đĩa phanh cong.</b> Nên kiểm tra sớm.
+              </div>
+            </FeatureCard>
+
+            <FeatureCard
+              icon="event_repeat"
+              title="Nhắc bảo dưỡng & thông báo"
+              isNew
+              text="Servio tính hạn thay nhớt, phanh, lốp từ lần làm gần nhất và gửi thông báo khi sắp đến hạn hoặc quá hạn, kèm nút đặt lịch một chạm. Lịch hẹn đổi trạng thái cũng được báo ngay."
+              demoClass="grid content-center gap-2 p-3"
+            >
+              <div className="flex items-center gap-2 text-[11px] font-bold text-outline">
+                <span className="relative inline-flex">
+                  <span className="material-symbols-outlined text-xl text-primary">notifications</span>
+                  <i className="absolute -right-0.5 -top-0.5 h-[9px] w-[9px] rounded-full border-2 border-surface-container-low bg-error" />
+                </span>
+                Honda Vision · 59A-123.45
+              </div>
+              <MaintenanceRow label="Thay nhớt" remaining="Còn 12 ngày" percent={82} tone="amber" />
+              <MaintenanceRow label="Kiểm tra phanh" remaining="Còn 2 tháng" percent={34} tone="green" />
+              <MaintenanceRow
+                label="Thay lốp"
+                remaining="Quá hạn 5 ngày"
+                percent={100}
+                tone="red"
+                action="Đặt lịch ngay"
+              />
+            </FeatureCard>
+
+            <FeatureCard
+              icon="forum"
+              title="Nhắn tin với garage"
+              text="Mỗi lịch hẹn có một cuộc trò chuyện riêng với lễ tân và kỹ thuật viên: hỏi tiến độ, gửi ảnh, duyệt hạng mục phát sinh."
+            >
+              <div className={bubble.other}>
+                <b>Kỹ thuật viên Minh</b>
+                <br />
+                Đã thay má phanh, xe xong lúc 16:30.
+              </div>
+              <div className={bubble.me}>Em ghé lấy lúc 17:00 nhé</div>
+              <div className={`${bubble.other} flex items-center gap-1.5`}>
+                <span className="material-symbols-outlined text-base text-primary">image</span>
+                Ảnh má phanh cũ (2)
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-outline">
+                <div className="flex h-[30px] flex-1 items-center rounded-full border border-outline-variant bg-surface-container-lowest px-3">
+                  Nhập tin nhắn…
+                </div>
+                <span className="material-symbols-outlined text-xl text-primary">send</span>
+              </div>
+            </FeatureCard>
+
+            <FeatureCard
+              icon="videocam"
+              title="Gọi video với kỹ thuật viên"
+              isNew
+              text="Cho kỹ thuật viên xem tình trạng xe ngay trên điện thoại để được tư vấn nhanh, không cần chạy tới garage."
+              demoClass="relative h-[200px] bg-gradient-to-br from-[#2a3038] to-[#0b0d11]"
+            >
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primary-fixed text-3xl font-extrabold text-on-primary-fixed-variant">
+                  M
+                </span>
+              </div>
+              <span className="absolute left-2.5 top-2.5 rounded-full bg-black/40 px-2 py-0.5 text-[11px] font-semibold text-white">
+                Kỹ thuật viên Minh · 02:14
+              </span>
+              <span className="absolute right-2.5 top-10 h-[72px] w-[54px] rounded-[10px] border border-white/30 bg-gradient-to-br from-[#3b4452] to-[#1b2027]" />
+              <div className="absolute inset-x-0 bottom-2.5 flex justify-center gap-2.5 text-white">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                  <span className="material-symbols-outlined text-[22px]">mic</span>
+                </span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                  <span className="material-symbols-outlined text-[22px]">cameraswitch</span>
+                </span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-error">
+                  <span className="material-symbols-outlined text-[22px]">call_end</span>
+                </span>
+              </div>
+            </FeatureCard>
+          </div>
+        </div>
+      </section>
+
+      <section id="dich-vu" className="scroll-mt-4 bg-surface-container-low py-20">
         <div className="mx-auto max-w-6xl px-lg">
           <div className="mx-auto max-w-[42rem] text-center">
             <p className="text-sm font-bold uppercase tracking-widest text-primary">Dịch vụ</p>
@@ -435,16 +692,20 @@ export default function LandingPage({
         </div>
       </section>
 
-      <section id="quy-trinh" className="mx-auto max-w-6xl scroll-mt-4 px-lg py-20">
+      <section id="quy-trinh" ref={revealRef} className="mx-auto max-w-6xl scroll-mt-4 px-lg py-20">
         <div className="mx-auto max-w-[42rem] text-center">
           <p className="text-sm font-bold uppercase tracking-widest text-primary">Quy trình</p>
           <h2 className="mt-2 text-[30px] font-extrabold tracking-tight md:text-[36px]">
             Bốn bước đơn giản
           </h2>
         </div>
-        <ol className="mt-12 grid gap-lg md:grid-cols-4">
+        <ol className="reveal-stage mt-12 grid gap-lg md:grid-cols-4">
           {STEPS.map((step, i) => (
-            <li key={step.title} className="relative rounded-3xl bg-surface-container-lowest p-lg shadow-sm">
+            <li
+              key={step.title}
+              style={{ "--delay": `${i * 80}ms` } as React.CSSProperties}
+              className="reveal relative rounded-3xl bg-surface-container-lowest p-lg shadow-sm"
+            >
               <span
                 aria-hidden="true"
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-base font-extrabold text-on-primary"
@@ -457,6 +718,8 @@ export default function LandingPage({
           ))}
         </ol>
       </section>
+
+      <WebFeedbackSection onLoginClick={onLoginClick} />
 
       <section
         id="lien-he"
@@ -471,20 +734,32 @@ export default function LandingPage({
             tài khoản.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <button
-              type="button"
-              onClick={onRegisterClick}
-              className="min-h-12 rounded-full bg-white px-8 text-sm font-bold text-primary"
-            >
-              Đăng ký ngay
-            </button>
-            <button
-              type="button"
-              onClick={onLoginClick}
-              className="min-h-12 rounded-full border border-white/70 px-8 text-sm font-bold hover:bg-white/15"
-            >
-              Đăng nhập
-            </button>
+            {onGoToApp ? (
+              <button
+                type="button"
+                onClick={onGoToApp}
+                className="min-h-12 rounded-full bg-white px-8 text-sm font-bold text-primary"
+              >
+                Vào ứng dụng
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onRegisterClick}
+                  className="min-h-12 rounded-full bg-white px-8 text-sm font-bold text-primary"
+                >
+                  Đăng ký ngay
+                </button>
+                <button
+                  type="button"
+                  onClick={onLoginClick}
+                  className="min-h-12 rounded-full border border-white/70 px-8 text-sm font-bold hover:bg-white/15"
+                >
+                  Đăng nhập
+                </button>
+              </>
+            )}
           </div>
           <p className="mt-6 text-xs text-white/70">
             {CONTACT.email} · © Servio. Tất cả quyền được bảo lưu.

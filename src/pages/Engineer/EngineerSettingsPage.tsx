@@ -81,24 +81,24 @@ export default function EngineerSettingsPage({
       >
 
         {/* Page Content */}
-        <div className="mx-auto max-w-3xl p-margin-mobile md:p-margin-desktop">
+        <div className="mx-auto max-w-3xl p-6 md:p-8">
           <div className="border-b border-outline-variant pb-5">
             <h1 className="text-3xl font-extrabold tracking-tight">
               Cài đặt tài khoản
             </h1>
-            <p className="mt-1 text-body-sm text-on-surface-variant">
+            <p className="mt-1 text-sm text-on-surface-variant">
               Quản lý thông tin cá nhân của bạn.
             </p>
           </div>
 
           {isLoading && (
-            <p className="mt-6 text-body-sm text-on-surface-variant">
+            <p className="mt-6 text-sm text-on-surface-variant">
               Đang tải thông tin cá nhân...
             </p>
           )}
 
           {!isLoading && loadError && (
-            <p className="mt-6 text-body-sm text-error">{loadError}</p>
+            <p className="mt-6 text-sm text-error">{loadError}</p>
           )}
 
           {!isLoading && !loadError && profile && (
@@ -109,7 +109,7 @@ export default function EngineerSettingsPage({
                   <span className="material-symbols-outlined text-xl">
                     badge
                   </span>
-                  <h2 className="font-headline-md text-lg">Thông tin cá nhân</h2>
+                  <h2 className="text-lg font-extrabold">Thông tin cá nhân</h2>
                 </div>
 
                 <form onSubmit={handleSaveProfile} className="space-y-4">
@@ -122,7 +122,7 @@ export default function EngineerSettingsPage({
                       required
                       value={fullNameInput}
                       onChange={(e) => setFullNameInput(e.target.value)}
-                      className="w-full rounded-2xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                      className="w-full rounded-[14px] border border-outline-variant bg-surface-container-lowest px-3.5 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
 
@@ -134,7 +134,7 @@ export default function EngineerSettingsPage({
                       type="email"
                       readOnly
                       value={profile.email}
-                      className="w-full cursor-not-allowed rounded-lg border border-outline-variant bg-surface-container-high px-3 py-2 text-body-sm text-on-surface-variant"
+                      className="w-full cursor-not-allowed rounded-xl border border-outline-variant bg-surface-container-high px-3 py-2 text-sm text-on-surface-variant"
                     />
                   </div>
 
@@ -146,7 +146,7 @@ export default function EngineerSettingsPage({
                       type="text"
                       readOnly
                       value={profile.phone ?? "—"}
-                      className="w-full cursor-not-allowed rounded-lg border border-outline-variant bg-surface-container-high px-3 py-2 text-body-sm text-on-surface-variant"
+                      className="w-full cursor-not-allowed rounded-xl border border-outline-variant bg-surface-container-high px-3 py-2 text-sm text-on-surface-variant"
                     />
                   </div>
 
@@ -154,7 +154,7 @@ export default function EngineerSettingsPage({
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-2 font-label-md text-xs font-semibold text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+                      className="rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-2 text-xs font-bold text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
                     >
                       {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
                     </button>
@@ -169,7 +169,7 @@ export default function EngineerSettingsPage({
       {/* Notice Toast */}
       {notice && (
         <div
-          className="fixed bottom-5 right-5 z-50 rounded-lg bg-inverse-surface px-4 py-3 text-body-sm text-inverse-on-surface shadow-lg"
+          className="fixed bottom-5 right-5 z-50 rounded-2xl bg-inverse-surface px-4 py-3 text-sm text-inverse-on-surface shadow-[0_18px_40px_-16px_rgba(25,28,29,0.5)]"
           role="status"
         >
           {notice}
