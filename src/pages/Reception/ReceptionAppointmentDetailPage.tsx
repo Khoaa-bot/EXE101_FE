@@ -2,6 +2,7 @@ import StaffShell from "../../components/StaffShell";
 import { useEffect, useState } from "react";
 import AppointmentChat from "../../components/AppointmentChat";
 import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
+import NoShowDialog from "../../components/NoShowDialog";
 import {
   decideExtraAsReception,
   getReceptionAppointment,
@@ -10,6 +11,7 @@ import {
   type AppointmentDto,
   type AppointmentExtra,
 } from "../../services/api";
+import { isSlotUpcoming } from "../../utils/schedule";
 import { mapStatus, STATUS_MAP, type Appt } from "./ReceptionAppointmentsPage";
 
 const FINAL_STATUSES: Appt["status"][] = ["done", "handed_over", "canceled", "no_show"];
@@ -46,6 +48,7 @@ export default function ReceptionAppointmentDetailPage({
   const [status, setStatus] = useState<Appt["status"]>("pending");
   const [notice, setNotice] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showNoShow, setShowNoShow] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,7 +115,7 @@ export default function ReceptionAppointmentDetailPage({
   };
 
   const updateStatus = async (
-    next: "confirmed" | "cancelled" | "successful",
+    next: "confirmed" | "cancelled" | "successful" | "no_show",
     successMsg: string,
   ) => {
     if (isUpdating) return;
@@ -133,6 +136,7 @@ export default function ReceptionAppointmentDetailPage({
       );
     } finally {
       setIsUpdating(false);
+      setShowNoShow(false);
     }
   };
 
@@ -143,6 +147,12 @@ export default function ReceptionAppointmentDetailPage({
   const onCancel = () => {
     void updateStatus("cancelled", `Đã hủy lịch #${appointmentId} giúp khách`);
   };
+
+  // Chỉ ghi nhận không đến khi lịch đang chờ/đã xác nhận và khung giờ đã bắt đầu (BE cũng kiểm tra).
+  const canMarkNoShow =
+    appt !== null &&
+    (status === "pending" || status === "confirmed") &&
+    !isSlotUpcoming(appt.scheduleDate, appt.timeFrame ?? "");
 
   const { label: statusLabel, cls: statusCls } = STATUS_MAP[status];
   const scheduleDate = appt
@@ -378,6 +388,17 @@ export default function ReceptionAppointmentDetailPage({
                       <span className="material-symbols-outlined text-lg">cancel</span>
                       Hủy lịch giúp khách
                     </button>
+                    {canMarkNoShow && (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-lg bg-[#fff1cc] px-4 py-2.5 text-sm font-medium text-[#6b4200] ring-1 ring-[#c47f00]/40 transition-colors hover:brightness-95 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => setShowNoShow(true)}
+                        disabled={isUpdating}
+                      >
+                        <span className="material-symbols-outlined text-lg">person_off</span>
+                        Khách không đến
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -386,6 +407,15 @@ export default function ReceptionAppointmentDetailPage({
           )}
         </div>
       </StaffShell>
+
+      {showNoShow && appt && (
+        <NoShowDialog
+          appointment={appt}
+          isBusy={isUpdating}
+          onKeep={() => setShowNoShow(false)}
+          onConfirm={() => void updateStatus("no_show", `Đã ghi nhận khách không đến cho lịch #${appointmentId}`)}
+        />
+      )}
 
       {notice && (
         <div
