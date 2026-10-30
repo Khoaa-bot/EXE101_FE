@@ -6,6 +6,8 @@ import {
   getAvailableSchedules,
   getReceptionDashboard,
   getVehicles,
+  searchReceptionCustomers,
+  type CustomerSearchResult,
   type MaintenanceService,
   type Schedule,
   type Vehicle,
@@ -48,6 +50,12 @@ export default function ReceptionNewAppointmentPage({
   const [optionsError, setOptionsError] = useState<string | null>(null);
 
   const [customerId, setCustomerId] = useState("");
+  const [selectedCustomerName, setSelectedCustomerName] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [searchResults, setSearchResults] = useState<CustomerSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [vehicleId, setVehicleId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [scheduleId, setScheduleId] = useState("");
@@ -66,19 +74,17 @@ export default function ReceptionNewAppointmentPage({
       .then((dashboard) =>
         Promise.all([
           dashboard,
-          getVehicles(),
           getAllServices(dashboard.garageId),
           getAvailableSchedules(dashboard.garageId),
         ]),
       )
-      .then(([dashboard, vehicleData, serviceData, scheduleData]) => {
+      .then(([dashboard, serviceData, scheduleData]) => {
         if (cancelled) return;
         const map = new Map<number, string>();
         dashboard.appointments.forEach((a) => {
           if (!map.has(a.customerId)) map.set(a.customerId, a.customerName);
         });
         setDashboardCustomers([...map.entries()].map(([id, name]) => ({ id, name })));
-        setVehicles(vehicleData);
         setServices(serviceData);
         // Khung giờ đã bắt đầu không còn đặt được (BE cũng từ chối), nên không đưa vào danh sách chọn.
         setSchedules(scheduleData.filter((schedule) => isSlotUpcoming(schedule.date, schedule.timeFrame)));
@@ -99,15 +105,58 @@ export default function ReceptionNewAppointmentPage({
     };
   }, []);
 
-  const customers = useMemo(
-    () => dashboardCustomers.filter((c) => vehicles.some((v) => v.customerId === c.id)),
-    [dashboardCustomers, vehicles],
-  );
+  // Tìm khách sau khi ngừng gõ 300ms (tối thiểu 3 ký tự); bỏ kết quả của lần gõ cũ khi có lần gõ mới.
+  useEffect(() => {
+    const q = searchText.trim();
+    if (q.length < 3) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setIsSearching(true);
+      searchReceptionCustomers(q)
+        .then((results) => {
+          if (cancelled) return;
+          setSearchResults(results);
+          setSearchError(null);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          setSearchResults([]);
+          setSearchError(err instanceof Error ? err.message : "Không tìm được khách hàng.");
+        })
+        .finally(() => {
+          if (!cancelled) setIsSearching(false);
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [searchText]);
 
-  const customerVehicles = useMemo(
-    () => vehicles.filter((v) => String(v.customerId) === customerId),
-    [vehicles, customerId],
-  );
+  // Chọn khách rồi mới tải xe của đúng khách đó (không còn tải toàn bộ xe của hệ thống).
+  const chooseCustomer = (id: number, name: string) => {
+    setCustomerId(String(id));
+    setSelectedCustomerName(name);
+    setVehicleId("");
+    setVehicles([]);
+    setSubmitError(null);
+    setIsLoadingVehicles(true);
+    getVehicles(id)
+      .then((data) => setVehicles(data))
+      .catch((err) =>
+        setSubmitError(err instanceof Error ? err.message : "Không tải được xe của khách."),
+      )
+      .finally(() => setIsLoadingVehicles(false));
+  };
+
+  const clearCustomer = () => {
+    setCustomerId("");
+    setSelectedCustomerName("");
+    setVehicleId("");
+    setVehicles([]);
+  };
+
+  const customerVehicles = vehicles;
 
   const selectedService = useMemo(
     () => services.find((s) => String(s.id) === serviceId),
@@ -214,28 +263,95 @@ export default function ReceptionNewAppointmentPage({
                       </h2>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <Field label="Khách hàng">
-                          <select aria-label="Khách hàng"
-                            value={customerId}
-                            onChange={(e) => {
-                              setCustomerId(e.target.value);
-                              setVehicleId("");
-                            }}
-                            className="w-full h-11 rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 text-sm outline-none focus:border-primary"
-                          >
-                            <option value="">Chọn khách hàng</option>
-                            {customers.map((c) => (
-                              <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                          </select>
+                          {customerId ? (
+                            <div className="flex h-11 items-center justify-between gap-2 rounded-2xl border border-primary bg-primary-container/10 px-4 text-sm">
+                              <span className="truncate font-medium">{selectedCustomerName}</span>
+                              <button
+                                type="button"
+                                onClick={clearCustomer}
+                                className="shrink-0 text-xs font-semibold text-primary hover:underline"
+                              >
+                                Đổi khách
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="relative">
+                                <span
+                                  aria-hidden="true"
+                                  className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-on-surface-variant"
+                                >
+                                  search
+                                </span>
+                                <input
+                                  type="search"
+                                  aria-label="Tìm khách theo tên, SĐT hoặc email"
+                                  value={searchText}
+                                  onChange={(e) => setSearchText(e.target.value)}
+                                  placeholder="Tìm theo tên, SĐT hoặc email (từ 3 ký tự)"
+                                  className="w-full h-11 rounded-2xl border border-outline-variant bg-surface-container-lowest pl-10 pr-4 text-sm outline-none focus:border-primary"
+                                />
+                              </div>
+                              {searchText.trim().length >= 3 && (
+                                <ul
+                                  aria-label="Kết quả tìm khách"
+                                  className="overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest text-sm"
+                                >
+                                  {isSearching && <li className="px-4 py-2 text-on-surface-variant">Đang tìm...</li>}
+                                  {!isSearching && searchError && <li className="px-4 py-2 text-error">{searchError}</li>}
+                                  {!isSearching && !searchError && searchResults.length === 0 && (
+                                    <li className="px-4 py-2 text-on-surface-variant">Không tìm thấy khách phù hợp.</li>
+                                  )}
+                                  {!isSearching &&
+                                    searchResults.map((c) => (
+                                      <li key={c.id} className="border-t border-outline-variant/50 first:border-t-0">
+                                        <button
+                                          type="button"
+                                          onClick={() => chooseCustomer(c.id, c.fullName)}
+                                          disabled={c.blocked}
+                                          className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                          <span className="truncate font-medium">{c.fullName}</span>
+                                          <span className="shrink-0 text-xs text-on-surface-variant">
+                                            {c.blocked ? "Bị chặn (3 lần không đến)" : c.phoneMasked || c.emailMasked}
+                                          </span>
+                                        </button>
+                                      </li>
+                                    ))}
+                                </ul>
+                              )}
+                              {searchText.trim().length < 3 && dashboardCustomers.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-xs text-on-surface-variant">Khách gần đây:</span>
+                                  {dashboardCustomers.slice(0, 5).map((c) => (
+                                    <button
+                                      key={c.id}
+                                      type="button"
+                                      onClick={() => chooseCustomer(c.id, c.name)}
+                                      className="rounded-full border border-outline-variant px-3 py-1 text-xs font-semibold hover:bg-surface-container-low"
+                                    >
+                                      {c.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </Field>
                         <Field label="Xe">
                           <select aria-label="Xe của khách"
                             value={vehicleId}
                             onChange={(e) => setVehicleId(e.target.value)}
-                            disabled={!customerId}
+                            disabled={!customerId || isLoadingVehicles}
                             className="w-full h-11 rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 text-sm outline-none focus:border-primary disabled:opacity-50"
                           >
-                            <option value="">Chọn xe</option>
+                            <option value="">
+                              {isLoadingVehicles
+                                ? "Đang tải xe..."
+                                : customerId && customerVehicles.length === 0
+                                  ? "Khách chưa có xe"
+                                  : "Chọn xe"}
+                            </option>
                             {customerVehicles.map((v) => (
                               <option key={v.id} value={v.id}>
                                 {v.model} — {v.vin}

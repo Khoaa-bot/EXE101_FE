@@ -922,6 +922,21 @@ export type ReceptionAppointmentStatusPayload = {
 };
 
 // PUT /api/reception/appointments/{id}/status — cập nhật trạng thái lịch hẹn.
+// GET /api/reception/customers/search?q= — tìm khách (tên, SĐT, email; tối thiểu 3 ký tự, tối đa 10 kết quả)
+// để đặt lịch hộ. SĐT và email đã được BE che bớt.
+export type CustomerSearchResult = {
+  id: number;
+  fullName: string;
+  phoneMasked: string;
+  emailMasked: string;
+  noShow: number;
+  blocked: boolean;
+};
+
+export function searchReceptionCustomers(query: string) {
+  return apiRequest<CustomerSearchResult[]>("/reception/customers/search", { query: { q: query } });
+}
+
 export function updateReceptionAppointmentStatus(
   appointmentId: number | string,
   payload: ReceptionAppointmentStatusPayload,
