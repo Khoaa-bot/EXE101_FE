@@ -4,12 +4,10 @@ import {
   getAdminEmployees,
   getMyGarageReviews,
   getReceptionDashboard,
-  getWalletSummary,
   type AdminEmployee,
   type AppointmentDto,
   type GarageOwnerReviews,
   type ReceptionDashboard,
-  type WalletSummary,
 } from "../../services/api";
 import AdminShell, { type AdminNavProps, StatusPill } from "./AdminShell";
 
@@ -31,7 +29,6 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function AdminDashboardPage(props: AdminDashboardPageProps) {
   const [notice, setNotice] = useState("");
-  const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [reviews, setReviews] = useState<GarageOwnerReviews | null>(null);
   // null = đang tải; có giá trị = đã tải xong (thành công hoặc lỗi).
   const [loaded, setLoaded] = useState<{
@@ -64,13 +61,6 @@ export default function AdminDashboardPage(props: AdminDashboardPageProps) {
           error: err instanceof Error ? err.message : "Không tải được dữ liệu dashboard.",
         });
       });
-
-    // Ví không chặn dashboard: lỗi thì chỉ ẩn thẻ số dư.
-    getWalletSummary()
-      .then((data) => {
-        if (!cancelled) setWallet(data);
-      })
-      .catch(() => undefined);
 
     // Đánh giá cũng không chặn dashboard: lỗi thì chỉ ẩn thẻ đánh giá.
     getMyGarageReviews({ mode: "all", page: 0, size: 3 })
@@ -133,10 +123,9 @@ export default function AdminDashboardPage(props: AdminDashboardPageProps) {
 
       {!isLoading && !loadError && dashboard && (
         <>
-          {/* Hàng 1: Tài chính (doanh thu + ví) */}
-          <section className="mb-4 grid gap-4 md:grid-cols-2">
+          {/* Hàng 1: Doanh thu dịch vụ hoàn thành */}
+          <section className="mb-4 grid gap-4">
             <RevenueCard total={totalRevenue} />
-            <WalletCard wallet={wallet} onWalletClick={props.onWalletClick} />
           </section>
 
           {/* Hàng 2: Trạng thái lịch hẹn theo thứ tự quy trình */}
@@ -327,53 +316,6 @@ function ReviewsCard({
             </li>
           )}
         </ul>
-      </div>
-    </article>
-  );
-}
-
-function WalletCard({
-  wallet,
-  onWalletClick,
-}: {
-  wallet: WalletSummary | null;
-  onWalletClick?: () => void;
-}) {
-  return (
-    <article className="flex flex-col justify-between rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
-      <div className="flex items-center gap-3.5">
-        <span
-          aria-hidden="true"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[#e6defa] text-[#3b2a7a]"
-        >
-          <span className="material-symbols-outlined">account_balance_wallet</span>
-        </span>
-        <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-            Số dư ví garage
-          </p>
-          <p
-            className="mt-0.5 text-2xl font-extrabold text-on-surface"
-            data-testid="garage-wallet-balance"
-          >
-            {wallet ? formatPrice(wallet.balance) : "..."}
-          </p>
-        </div>
-      </div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant/40 pt-3">
-        <p className="text-xs text-on-surface-variant">
-          Tổng nhận: {formatPrice(wallet?.totalEarned ?? 0)}
-        </p>
-        {onWalletClick && (
-          <button
-            type="button"
-            onClick={onWalletClick}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-primary/50 bg-primary-fixed/20 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-on-primary"
-          >
-            <span className="material-symbols-outlined text-[16px]">account_balance_wallet</span>
-            Xem ví &amp; rút tiền
-          </button>
-        )}
       </div>
     </article>
   );

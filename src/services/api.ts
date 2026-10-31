@@ -602,13 +602,6 @@ export type AppointmentDto = {
   extras?: AppointmentExtra[];
   parts?: AppointmentPart[];
   totalAmount?: number;
-  amountPaid?: number;
-  amountDue?: number;
-  // Chỉ có ngay sau khi đặt lịch: liên kết/QR PayOS để thanh toán; paymentExpiresAt = hạn trả (lịch tự huỷ nếu quá hạn).
-  paymentUrl?: string | null;
-  qrCode?: string | null;
-  orderCode?: number | null;
-  paymentExpiresAt?: string | null;
   garagePhone?: string | null;
   // Đánh giá khách đã gửi cho lịch hẹn này (null nếu chưa đánh giá). BE trả `review`
   // lồng; api.ts tách sang các trường review* bên dưới.
@@ -1366,8 +1359,6 @@ export type SuperAdminGarage = {
   ownerName: string | null;
   employeeCount: number;
   appointmentCount: number;
-  commissionRate: number | null;
-  effectiveCommissionRate: number;
   rating: number | null;
   reviewCount: number;
   createdAt: string;
@@ -1475,14 +1466,6 @@ export function setGarageHidden(garageId: number | string, hidden: boolean) {
   return apiRequest<SuperAdminGarage>(`/admin/garages/${garageId}/hidden`, {
     method: "PUT",
     body: { hidden },
-  });
-}
-
-// PUT /api/admin/garages/{id}/commission — hoa hồng riêng của garage (%); null = dùng mặc định.
-export function setGarageCommission(garageId: number | string, commissionPercent: number | null) {
-  return apiRequest<SuperAdminGarage>(`/admin/garages/${garageId}/commission`, {
-    method: "PUT",
-    body: { commissionPercent },
   });
 }
 
@@ -1609,48 +1592,6 @@ export type AppNotification = {
   isRead: boolean;
   createdAt: string;
 };
-
-// GET /api/payment/wallet-balance — số dư ví Servio Pay của người dùng đang
-// đăng nhập.
-export async function getWalletBalance() {
-  const result = await apiRequest<{ userId: number; balance: number }>(
-    "/payment/wallet-balance",
-  );
-  return result.balance;
-}
-
-type PaymentResponse = {
-  status: string;
-  message: string;
-  paymentUrl: string;
-};
-
-// POST /api/payment/top-up?amount=... — tạo link nạp tiền vào ví Servio Pay
-// qua VNPay (redirect toàn trang sang trang thanh toán, không phải fetch
-// JSON — backend nhận amount qua query param, không phải JSON body).
-export async function requestWalletTopUp(amount: number) {
-  const session = getStoredAuthSession();
-  const url = new URL(`${API_BASE_URL}/payment/top-up`);
-  url.searchParams.set("amount", String(amount));
-  const response = await fetch(url.toString(), {
-    method: "POST",
-    headers: session?.token ? { Authorization: `Bearer ${session.token}` } : {},
-  });
-  const data = (await response.json().catch(() => null)) as PaymentResponse | ApiErrorBody | null;
-  if (!response.ok) {
-    const error = data as ApiErrorBody | null;
-    throw new Error(resolveErrorMessage(error, "Không tạo được link nạp tiền."));
-  }
-  return data as PaymentResponse;
-}
-
-// GET /api/payment/create-payment-url?invoiceId=... — tạo link thanh toán hóa
-// đơn dịch vụ (lịch hẹn đã hoàn thành) qua PayOS.
-export async function requestInvoicePayment(invoiceId: number) {
-  return apiRequest<PaymentResponse>("/payment/create-payment-url", {
-    query: { invoiceId },
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Dịch vụ phát sinh, phụ tùng, thu tiền mặt và chat theo lịch hẹn.
@@ -1779,11 +1720,9 @@ export type PaymentReturnResult = {
   success: boolean;
   message: string;
   orderCode?: number;
-  bookingCancelled?: boolean;
-  // INVOICE: thanh toán hoá đơn dịch vụ; TOPUP: nạp tiền vào ví.
-  type?: "INVOICE" | "TOPUP" | string;
+  // Loại gói đã mua: PREMIUM (khách hàng) hoặc GARAGE_PRO (garage).
+  type?: "PREMIUM" | "GARAGE_PRO" | string;
   amount?: number;
-  appointmentId?: number;
 };
 
 // GET /api/payment/payos-return?orderCode=&status=&cancel= — PayOS chuyển
@@ -1805,97 +1744,6 @@ export function confirmPayosReturn(search: string) {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Ví Servio: tổng quan, lịch sử và rút tiền.
-// ---------------------------------------------------------------------------
-
-export type WalletSummary = {
-  userId: number;
-  fullName: string;
-  role: string;
-  balance: number;
-  totalTopUp: number;
-  totalSpent: number;
-  totalEarned: number;
-  heldAmount?: number;
-};
-
-export type WalletTransactionItem = {
-  id: number;
-  userId: number;
-  // TOPUP, PAYMENT, RECEIVE_PAYMENT, COMMISSION, REFUND, WITHDRAW, WITHDRAW_REFUND
-  type: string;
-  amount: number;
-  balanceBefore: number | null;
-  balanceAfter: number | null;
-  description: string | null;
-  referenceType: string | null;
-  referenceId: number | null;
-  createdAt: string;
-};
-
-export type WithdrawalStatus = "PENDING" | "COMPLETED" | "REJECTED";
-
-export type WithdrawalRequestItem = {
-  id: number;
-  userId: number;
-  amount: number;
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
-  status: WithdrawalStatus;
-  note: string | null;
-  qrImageUrl?: string | null;
-  requesterRole?: string | null;
-  processedAt: string | null;
-  createdAt: string;
-};
-
-export type WithdrawPayload = {
-  amount: number;
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
-  qrImage?: File | null;
-};
-
-export type WithdrawalEligibility = {
-  eligible: boolean;
-  nextAvailableAt: string | null;
-  message: string | null;
-};
-
-// Yêu cầu rút tiền dưới góc nhìn admin: kèm thông tin người yêu cầu.
-export type WithdrawalAdminItem = WithdrawalRequestItem & {
-  requesterName: string | null;
-  requesterPhone: string | null;
-  requesterEmail: string | null;
-  garageName: string | null;
-  processedById: number | null;
-};
-
-export type WithdrawalAdminFilter = {
-  status?: WithdrawalStatus | "ALL";
-  requesterType?: "customer" | "garage";
-};
-
-export type PlatformWallet = {
-  balance: number;
-  totalCommission: number;
-  heldForCustomers: number;
-  pendingWithdrawals: number;
-  totalUserBalances: number;
-  cashInViaPayos: number;
-  cashOutWithdrawals: number;
-  difference: number;
-  balanced: boolean;
-};
-
-// GET /api/admin/platform-wallet — ví nền tảng và đối soát (Super Admin).
-export function getPlatformWallet() {
-  return apiRequest<PlatformWallet>("/admin/platform-wallet");
-}
-
 export type AdminOverview = {
   customerCount: number;
   blockedCustomerCount: number;
@@ -1904,10 +1752,7 @@ export type AdminOverview = {
   blockedGarageCount: number;
   hiddenGarageCount: number;
   garagesWithoutOwner: Array<{ id: number; name: string }>;
-  pendingWithdrawalCount: number;
-  pendingWithdrawalAmount: number;
   successfulTransactionCount: number;
-  wallet: PlatformWallet;
 };
 
 // GET /api/admin/overview — số liệu KPI trang Tổng quan trong một lần gọi (Super Admin).
@@ -2278,73 +2123,6 @@ export function setWebFeedbackHidden(id: number, hidden: boolean) {
 // PUT /api/admin/web-reviews/{id}/reply — trả lời hoặc sửa phản hồi (Super Admin).
 export function replyWebFeedback(id: number, reply: string) {
   return apiRequest<WebFeedback>(`/admin/web-reviews/${id}/reply`, { method: "PUT", body: { reply } });
-}
-
-// GET /api/payment/wallet-summary — số dư và tổng nạp/chi/nhận.
-export function getWalletSummary() {
-  return apiRequest<WalletSummary>("/payment/wallet-summary");
-}
-
-// GET /api/payment/wallet-history — lịch sử giao dịch ví, mới nhất trước.
-export function getWalletHistory() {
-  return apiRequest<WalletTransactionItem[]>("/payment/wallet-history");
-}
-
-// POST /api/payment/withdraw — tạo yêu cầu rút tiền; tiền bị giữ khỏi ví ngay
-// và admin sẽ chuyển khoản thủ công.
-export function requestWithdrawal(payload: WithdrawPayload) {
-  const formData = new FormData();
-  formData.append("amount", String(payload.amount));
-  formData.append("bankName", payload.bankName);
-  formData.append("accountNumber", payload.accountNumber);
-  formData.append("accountHolder", payload.accountHolder);
-  if (payload.qrImage) formData.append("qrImage", payload.qrImage);
-  return apiRequest<WithdrawalRequestItem>("/payment/withdraw", {
-    method: "POST",
-    body: formData,
-  });
-}
-
-// GET /api/payment/withdrawal-eligibility — garage chỉ được rút 1 lần/7 ngày.
-export function getWithdrawalEligibility() {
-  return apiRequest<WithdrawalEligibility>("/payment/withdrawal-eligibility");
-}
-
-// GET /api/admin/withdrawals — danh sách yêu cầu rút tiền (admin).
-export function getAdminWithdrawals(filter: WithdrawalAdminFilter = {}) {
-  return apiRequest<WithdrawalAdminItem[]>("/admin/withdrawals", {
-    query: {
-      status: filter.status === "ALL" ? undefined : filter.status,
-      requesterType: filter.requesterType,
-    },
-  });
-}
-
-// GET /api/admin/withdrawals/pending-count — số yêu cầu đang chờ.
-export async function getPendingWithdrawalCount() {
-  const result = await apiRequest<{ count: number }>("/admin/withdrawals/pending-count");
-  return result.count;
-}
-
-// PUT /api/admin/withdrawals/{id}/complete — xác nhận đã chuyển khoản (note = mã giao dịch, tuỳ chọn).
-export function completeWithdrawal(id: number, note?: string) {
-  return apiRequest<WithdrawalAdminItem>(`/admin/withdrawals/${id}/complete`, {
-    method: "PUT",
-    body: { note: note?.trim() || null },
-  });
-}
-
-// PUT /api/admin/withdrawals/{id}/reject — từ chối, tiền hoàn lại ví.
-export function rejectWithdrawal(id: number, reason: string) {
-  return apiRequest<WithdrawalAdminItem>(`/admin/withdrawals/${id}/reject`, {
-    method: "PUT",
-    body: { note: reason.trim() },
-  });
-}
-
-// GET /api/payment/withdrawals — các yêu cầu rút tiền của tôi.
-export function getMyWithdrawals() {
-  return apiRequest<WithdrawalRequestItem[]>("/payment/withdrawals");
 }
 
 // GET /api/notifications/me — danh sách thông báo của người dùng đang đăng

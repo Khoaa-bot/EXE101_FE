@@ -4,14 +4,11 @@ import AppointmentChat from "../../components/AppointmentChat";
 import CancelBookingDialog from "../../components/CancelBookingDialog";
 import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
 import OdometerSummary from "../../components/OdometerSummary";
-import PaymentCountdown from "../../components/PaymentCountdown";
-import { formatVnd } from "../../utils/format";
 import {
   cancelAppointment,
   decideExtraAsCustomer,
   getActiveAppointments,
   getMyFleet,
-  requestInvoicePayment,
   type AppointmentExtra,
   type AppointmentDto,
   type Vehicle,
@@ -90,7 +87,6 @@ export default function TrackingPage({
   const [cancelTarget, setCancelTarget] = useState<AppointmentDto | null>(null);
   const [cancelMessage, setCancelMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [busyExtraId, setBusyExtraId] = useState<number | null>(null);
-  const [isPaying, setIsPaying] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -136,14 +132,7 @@ export default function TrackingPage({
       await cancelAppointment(target.id);
       setAppointments((current) => current.filter((item) => item.id !== target.id));
       setSelectedId(null);
-      const paid = target.amountPaid ?? 0;
-      setCancelMessage({
-        type: "success",
-        text:
-          paid > 0
-            ? `Đã huỷ lịch. ${formatVnd(paid)} đã được hoàn vào Ví Servio của bạn. Bạn có thể rút tại Cá nhân > Ví Servio.`
-            : "Khách hàng đã huỷ lịch thành công.",
-      });
+      setCancelMessage({ type: "success", text: "Khách hàng đã huỷ lịch thành công." });
     } catch (err) {
       setCancelMessage({
         type: "error",
@@ -166,19 +155,6 @@ export default function TrackingPage({
       setActionError(err instanceof Error ? err.message : "Không gửi được phản hồi. Vui lòng thử lại.");
     } finally {
       setBusyExtraId(null);
-    }
-  };
-
-  const handlePay = async (target: AppointmentDto) => {
-    if (!target.invoiceId || isPaying) return;
-    setIsPaying(true);
-    setActionError(null);
-    try {
-      const response = await requestInvoicePayment(target.invoiceId);
-      window.location.href = response.paymentUrl;
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Không tạo được link thanh toán.");
-      setIsPaying(false);
     }
   };
 
@@ -445,29 +421,9 @@ export default function TrackingPage({
                   <CostBreakdown appointment={appointment} />
 
                   {appointment.invoiceId && appointment.invoicePaymentStatus === "unpaid" && (
-                    <div className="mt-5 space-y-2">
-                      <PaymentCountdown
-                        expiresAt={appointment.paymentExpiresAt}
-                        onExpired={() => {
-                          void getActiveAppointments().then(setAppointments);
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => void handlePay(appointment)}
-                        disabled={isPaying}
-                        className="min-h-12 w-full rounded-xl bg-gradient-to-br from-primary to-primary-container text-sm font-bold text-on-primary transition hover:opacity-90 disabled:opacity-50"
-                      >
-                        {isPaying
-                          ? "Đang chuyển sang trang thanh toán..."
-                          : `Thanh toán online${appointment.amountDue ? ` ${formatVnd(appointment.amountDue)}` : ""}`}
-                      </button>
-                      {!appointment.paymentExpiresAt && (
-                        <p className="text-center text-xs text-on-surface-variant">
-                          Hoặc thanh toán tiền mặt tại quầy lễ tân khi nhận xe.
-                        </p>
-                      )}
-                    </div>
+                    <p className="mt-5 rounded-xl bg-surface-container-low p-3 text-center text-xs text-on-surface-variant">
+                      Chi phí sửa chữa được thanh toán trực tiếp tại garage khi bạn nhận xe.
+                    </p>
                   )}
 
                   {actionError && <p className="mt-3 text-sm text-error">{actionError}</p>}

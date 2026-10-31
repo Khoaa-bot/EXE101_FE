@@ -4,14 +4,11 @@ import { formatVnd } from "../../utils/format";
 
 type PaymentResultPageProps = {
   onHomeClick: () => void;
-  onTrackingClick: () => void;
 };
 
 // PayOS đôi khi báo "đang xử lý" vài giây sau khi khách đã trả; hỏi lại vài lần trước khi kết luận.
 const MAX_ATTEMPTS = 5;
 const RETRY_DELAY_MS = 2000;
-
-const REDIRECT_SECONDS = 3;
 
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
@@ -41,7 +38,6 @@ function Detail({ rows }: { rows: Array<{ label: string; value: ReactNode }> }) 
 
 export default function PaymentResultPage({
   onHomeClick,
-  onTrackingClick,
 }: PaymentResultPageProps) {
   const search = window.location.search;
   const params = new URLSearchParams(search);
@@ -101,53 +97,16 @@ export default function PaymentResultPage({
     };
   }, [attemptKey, hasOrderCode, search, wasCancelledAtPayos]);
 
-  // Hóa đơn đặt lịch: thành công thì sang Theo dõi; không thành công (lịch bị huỷ) thì về trang chủ. Tự chuyển sau vài giây.
-  const redirectTo: "tracking" | "home" | null =
-    result?.type === "INVOICE"
-      ? outcome === "success"
-        ? "tracking"
-        : outcome === "cancelled"
-          ? result.bookingCancelled
-            ? "home"
-            : "tracking"
-          : null
-      : null;
-  const [secondsLeft, setSecondsLeft] = useState(REDIRECT_SECONDS);
-
-  useEffect(() => {
-    if (!redirectTo) return;
-    const id = window.setInterval(() => setSecondsLeft((value) => value - 1), 1000);
-    return () => window.clearInterval(id);
-  }, [redirectTo]);
-
-  useEffect(() => {
-    if (redirectTo && secondsLeft <= 0) {
-      (redirectTo === "home" ? onHomeClick : onTrackingClick)();
-    }
-  }, [redirectTo, secondsLeft, onHomeClick, onTrackingClick]);
-
   const retry = () => {
     setOutcome("loading");
     setError(null);
     setAttemptKey((key) => key + 1);
   };
 
-  const isInvoice = result?.type === "INVOICE";
-  const isTopUp = result?.type === "TOPUP";
-
-  // Nút chính đưa khách về nơi hợp lý nhất theo loại giao dịch.
-  const primaryAction = isInvoice
-    ? result?.bookingCancelled
-      ? { label: "Về trang chủ", onClick: onHomeClick }
-      : { label: "Xem lịch hẹn của tôi", onClick: onTrackingClick }
-    : { label: "Về trang chủ", onClick: onHomeClick };
-
   // Chỉ hiện những dòng chi tiết mà API thực sự trả về.
   const detailRows: Array<{ label: string; value: ReactNode }> = [];
   if (result?.orderCode !== undefined) detailRows.push({ label: "Mã giao dịch", value: `#${result.orderCode}` });
-  if (isInvoice && result?.appointmentId !== undefined) {
-    detailRows.push({ label: "Lịch hẹn", value: `#${result.appointmentId}` });
-  }
+  if (result?.type) detailRows.push({ label: "Gói", value: result.type === "GARAGE_PRO" ? "Garage Pro" : "Premium" });
 
   const outlineButton =
     "min-h-12 w-full rounded-2xl border-[1.5px] border-primary text-sm font-bold text-on-primary-fixed-variant transition hover:bg-primary-fixed/40";
@@ -196,49 +155,27 @@ export default function PaymentResultPage({
         {outcome === "success" && result && (
           <>
             <span className="rounded-full ring-[10px] ring-[#008730]/10">
-              <Badge icon={isInvoice ? "receipt_long" : "check"} tone="bg-[#d9f7dd] text-[#008730]" />
+              <Badge icon="workspace_premium" tone="bg-[#d9f7dd] text-[#008730]" />
             </span>
-            <h1 className="mt-1.5 text-[22px] font-extrabold">
-              {isInvoice ? "Thanh toán thành công" : "Nạp tiền thành công!"}
-            </h1>
+            <h1 className="mt-1.5 text-[22px] font-extrabold">Kích hoạt gói thành công</h1>
             {result.amount !== undefined && (
-              <p className={`text-4xl font-extrabold tracking-tight ${isInvoice ? "text-on-primary-fixed-variant" : "text-[#008730]"}`}>
-                {isTopUp ? "+" : ""}
+              <p className="text-4xl font-extrabold tracking-tight text-on-primary-fixed-variant">
                 {formatVnd(result.amount)}
               </p>
             )}
-            <p className="text-sm text-on-surface-variant">
-              {result.message}
-              {isInvoice ? " Lịch hẹn của bạn đã được ghi nhận." : ""}
-            </p>
+            <p className="text-sm text-on-surface-variant">{result.message}</p>
             <Detail rows={detailRows} />
-            {redirectTo === "tracking" && (
-              <p className="text-xs text-on-surface-variant" role="status">
-                Tự chuyển sang màn Theo dõi sau {Math.max(0, secondsLeft)} giây
-              </p>
-            )}
           </>
         )}
 
         {outcome === "cancelled" && (
           <>
             <Badge icon="block" tone="bg-[#e9eaeb] text-[#3a3f4b]" />
-            <h1 className="mt-1.5 text-[22px] font-extrabold">
-              {result?.bookingCancelled ? "Đặt lịch không thành công" : "Bạn đã huỷ thanh toán"}
-            </h1>
+            <h1 className="mt-1.5 text-[22px] font-extrabold">Bạn đã huỷ thanh toán</h1>
             <p className="max-w-[18.75rem] text-sm text-on-surface-variant">
-              {result?.bookingCancelled
-                ? "Bạn chưa hoàn tất thanh toán nên lịch hẹn không được giữ. Bạn có thể đặt lại bất cứ lúc nào."
-                : isInvoice
-                ? "Hoá đơn vẫn chưa được thanh toán. Bạn có thể thanh toán lại trong mục Theo dõi."
-                : "Chưa có khoản tiền nào được trừ hoặc nạp vào ví. Bạn có thể thử lại bất cứ lúc nào."}
+              Gói chưa được kích hoạt và chưa có khoản tiền nào bị trừ. Bạn có thể thử lại bất cứ lúc nào.
             </p>
             <Detail rows={detailRows} />
-            {redirectTo && (
-              <p className="text-xs text-on-surface-variant" role="status">
-                {redirectTo === "home" ? "Tự về trang chủ" : "Tự chuyển sang màn Theo dõi"} sau {Math.max(0, secondsLeft)} giây
-              </p>
-            )}
           </>
         )}
 
@@ -261,20 +198,11 @@ export default function PaymentResultPage({
           <div className="mt-auto w-full space-y-3 pt-4">
             <button
               type="button"
-              onClick={primaryAction.onClick}
+              onClick={onHomeClick}
               className="min-h-12 w-full rounded-2xl bg-gradient-to-br from-primary to-primary-container text-sm font-bold text-on-primary shadow-[0_12px_22px_-14px_rgba(0,89,187,0.9)] transition active:scale-[0.98]"
             >
-              {primaryAction.label}
+              Về trang chủ
             </button>
-            {primaryAction.onClick !== onHomeClick && (
-              <button
-                type="button"
-                onClick={onHomeClick}
-                className="min-h-12 w-full rounded-2xl border-[1.5px] border-outline-variant text-sm font-bold text-on-surface-variant transition hover:bg-surface-container"
-              >
-                Về trang chủ
-              </button>
-            )}
           </div>
         )}
       </div>

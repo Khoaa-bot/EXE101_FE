@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { useDialogA11y } from "../hooks/useDialogA11y";
 import type { AppointmentDto } from "../services/api";
-import { formatVnd } from "../utils/format";
 
 type NoShowDialogProps = {
   appointment: AppointmentDto;
@@ -10,16 +9,10 @@ type NoShowDialogProps = {
   onConfirm: () => void;
 };
 
-// Khớp cấu hình BE servio.no-show.retain-rate (mặc định 20%). Thông báo gửi khách luôn dùng số thật của BE.
-const NO_SHOW_RETAIN_RATE = 0.2;
-
-// Cảnh báo trước khi lễ tân ghi nhận khách không đến: nói rõ tiền giữ lại, tiền hoàn và hậu quả với khách.
+// Cảnh báo trước khi lễ tân ghi nhận khách không đến: nói rõ hậu quả với khách.
 export default function NoShowDialog({ appointment, isBusy, onKeep, onConfirm }: NoShowDialogProps) {
   const ref = useRef<HTMLDivElement>(null);
   useDialogA11y(true, ref, onKeep);
-
-  const paid = appointment.amountPaid ?? 0;
-  const retained = Math.round(paid * NO_SHOW_RETAIN_RATE);
 
   return (
     <div
@@ -46,14 +39,6 @@ export default function NoShowDialog({ appointment, isBusy, onKeep, onConfirm }:
         </p>
 
         <ul className="mt-4 list-disc space-y-1.5 pl-5 text-[13px]">
-          {paid > 0 ? (
-            <li>
-              Garage giữ lại <b>{formatVnd(retained)}</b> ({Math.round(NO_SHOW_RETAIN_RATE * 100)}%), hoàn{" "}
-              <b>{formatVnd(paid - retained)}</b> vào Ví Servio của khách.
-            </li>
-          ) : (
-            <li>Khách chưa thanh toán nên không có khoản nào giữ lại hay hoàn.</li>
-          )}
           <li>Khách bị tính 1 lần không đến. Đủ 3 lần, khách bị chặn đặt lịch.</li>
           <li>Khung giờ được nhả cho khách khác. Khách sẽ nhận thông báo.</li>
         </ul>

@@ -22,7 +22,6 @@ import LandingPage from "./Landing/pages/LandingPage";
 import ForgotPasswordPage from "./Auth/pages/ForgotPasswordPage";
 import NotificationsPage from "./pages/Customer/NotificationsPage";
 import ProfilePage from "./pages/Customer/ProfilePage";
-import WalletPage from "./pages/Customer/WalletPage";
 import PremiumMemberPage from "./pages/Customer/PremiumMemberPage";
 import PremiumCheckoutPage from "./pages/Customer/PremiumCheckoutPage";
 import type { BillingCycle } from "./pages/Customer/premiumPlans";
@@ -37,7 +36,6 @@ import TrackingPage from "./pages/Customer/TrackingPage";
 import FindGaragePage from "./pages/Customer/FindGaragePage";
 import GarageDetailPage from "./pages/Customer/GarageDetailPage";
 import PaymentResultPage from "./pages/Customer/PaymentResultPage";
-import AdminWalletPage from "./pages/Admin/AdminWalletPage";
 import AdminAppointmentsPage from "./pages/Admin/AdminAppointmentsPage";
 import AdminPremiumMemberPage from "./pages/Admin/AdminPremiumMemberPage";
 import AdminPremiumCheckoutPage from "./pages/Admin/AdminPremiumCheckoutPage";
@@ -61,7 +59,6 @@ const appRoutes = new Set([
   "/notifications",
   "/tracking",
   "/profile",
-  "/wallet",
   "/premium",
   "/premium/checkout",
   "/add-vehicle",
@@ -76,7 +73,6 @@ const appRoutes = new Set([
   "/admin/inventory",
   "/admin/pricing",
   "/admin/garage",
-  "/admin/wallet",
   "/admin/appointments",
   "/admin/reviews",
   "/admin/premium",
@@ -125,7 +121,7 @@ const roleRoutes: Record<string, Set<string>> = {
   // "garage_owner" = admin của 1 garage (trước đây gọi là "admin" bên
   // backend, đã đổi tên). "admin" giờ là Super Admin toàn hệ thống.
   GARAGE_OWNER: new Set([
-    "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing", "/admin/garage", "/admin/wallet", "/admin/reviews", "/admin/appointments",
+    "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing", "/admin/garage", "/admin/reviews", "/admin/appointments",
     "/admin/premium", "/admin/premium/checkout",
   ]),
   ADMIN: new Set(["/super-admin"]),
@@ -138,7 +134,7 @@ const roleRoutes: Record<string, Set<string>> = {
     "/reception/appointments/new", "/reception/appointments/detail", "/reception/customers",
   ]),
   CUSTOMER: new Set([
-    "/home", "/history", "/notifications", "/tracking", "/profile", "/wallet",
+    "/home", "/history", "/notifications", "/tracking", "/profile",
     "/premium", "/premium/checkout",
     "/add-vehicle", "/diagnose", "/booking", "/find-garage", "/garage-detail", "/payment-result",
   ]),
@@ -481,7 +477,6 @@ function App() {
     onInventoryClick: () => navigate("/admin/inventory"),
     onPricingClick: () => navigate("/admin/pricing"),
     onGarageClick: () => navigate("/admin/garage"),
-    onWalletClick: () => navigate("/admin/wallet"),
     onAppointmentsClick: () => navigate("/admin/appointments"),
     onReviewsClick: () => navigate("/admin/reviews"),
     onPremiumClick: () => navigate("/admin/premium"),
@@ -553,10 +548,6 @@ function App() {
 
   if (routePath === "/admin/appointments") {
     return <AdminAppointmentsPage {...adminProps} />;
-  }
-
-  if (routePath === "/admin/wallet") {
-    return <AdminWalletPage {...adminProps} />;
   }
 
   if (routePath === "/admin/reviews") {
@@ -713,7 +704,6 @@ function App() {
         <ProfilePage
           onHomeClick={shellProps.onHomeClick}
           onAddVehicleClick={() => navigate("/add-vehicle")}
-          onWalletClick={() => navigate("/wallet")}
           onBookingClick={openBooking}
           onDiagnoseClick={(vehicleId) => {
             setDiagnoseVehicleId(vehicleId);
@@ -723,14 +713,6 @@ function App() {
           onTrackingClick={shellProps.onTrackingClick}
           onNotificationsClick={shellProps.onNotificationsClick}
         />
-      </AppShell>
-    );
-  }
-
-  if (routePath === "/wallet") {
-    return (
-      <AppShell active="profile" title="Ví Servio" {...shellProps}>
-        <WalletPage />
       </AppShell>
     );
   }
@@ -831,7 +813,6 @@ function App() {
     return (
       <PaymentResultPage
         onHomeClick={() => navigate("/home", true)}
-        onTrackingClick={() => navigate("/tracking", true)}
       />
     );
   }

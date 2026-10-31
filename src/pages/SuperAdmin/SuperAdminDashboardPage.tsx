@@ -1,15 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
-import { getPendingWithdrawalCount, type SuperAdminUser } from "../../services/api";
+import { useState } from "react";
+import { type SuperAdminUser } from "../../services/api";
 import AdminShell, { type ShellNavigationItem } from "../Admin/AdminShell";
 import SuperAdminAppointmentsTab from "./SuperAdminAppointmentsTab";
 import SuperAdminCustomersTab from "./SuperAdminCustomersTab";
 import SuperAdminGaragesTab from "./SuperAdminGaragesTab";
 import SuperAdminOverviewTab from "./SuperAdminOverviewTab";
 import SuperAdminReviewsHub from "./SuperAdminReviewsHub";
-import SuperAdminWalletTab from "./SuperAdminWalletTab";
-import SuperAdminWithdrawalsTab from "./SuperAdminWithdrawalsTab";
 
-type TabKey = "overview" | "customers" | "garages" | "appointments" | "reviews" | "withdrawals" | "wallet";
+type TabKey = "overview" | "customers" | "garages" | "appointments" | "reviews";
 
 const TABS: { key: TabKey; icon: string; label: string; description: string }[] = [
   {
@@ -42,18 +40,6 @@ const TABS: { key: TabKey; icon: string; label: string; description: string }[] 
     label: "Đánh giá",
     description: "Đánh giá garage và góp ý về website Servio. Chỉ ẩn hoặc hiện, không xóa.",
   },
-  {
-    key: "withdrawals",
-    icon: "payments",
-    label: "Yêu cầu chuyển tiền",
-    description: "Yêu cầu rút tiền của khách hàng và garage: chuyển khoản thủ công rồi bấm xác nhận.",
-  },
-  {
-    key: "wallet",
-    icon: "account_balance_wallet",
-    label: "Ví nền tảng",
-    description: "Hoa hồng đã nhận, tiền đang giữ hộ khách và đối soát tiền vào/ra.",
-  },
 ];
 
 const ERROR_TRANSLATIONS: Record<string, string> = {
@@ -80,17 +66,6 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
   const [tab, setTab] = useState<TabKey>("overview");
   const [appointmentCustomer, setAppointmentCustomer] = useState<{ id: number; name: string } | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
-  const [pendingWithdrawals, setPendingWithdrawals] = useState(0);
-
-  const refreshPending = useCallback(() => {
-    getPendingWithdrawalCount()
-      .then(setPendingWithdrawals)
-      .catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
-    refreshPending();
-  }, [refreshPending]);
 
   const notify = (message: string, type: Notice["type"] = "success") => {
     setNotice({ type, message: type === "error" ? translateError(message) : message });
@@ -103,15 +78,7 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
   };
 
   const active = TABS.find((t) => t.key === tab) ?? TABS[0];
-  const navigationItems: ShellNavigationItem[] = TABS.map((item) => ({
-    ...item,
-    endAdornment:
-      item.key === "withdrawals" && pendingWithdrawals > 0 ? (
-        <span className="ml-auto rounded-full bg-error px-2 py-0.5 text-[11px] font-bold text-on-error">
-          {pendingWithdrawals}
-        </span>
-      ) : undefined,
-  }));
+  const navigationItems: ShellNavigationItem[] = TABS;
 
   return (
     <AdminShell
@@ -129,14 +96,6 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
             )}
             {tab === "garages" && <SuperAdminGaragesTab notify={notify} />}
             {tab === "reviews" && <SuperAdminReviewsHub notify={notify} />}
-            {tab === "withdrawals" && (
-              <SuperAdminWithdrawalsTab
-                notify={notify}
-                onChanged={refreshPending}
-                pendingCount={pendingWithdrawals}
-              />
-            )}
-            {tab === "wallet" && <SuperAdminWalletTab onNavigate={setTab} />}
             {tab === "appointments" && (
               <SuperAdminAppointmentsTab
                 key={appointmentCustomer?.id ?? "all"}

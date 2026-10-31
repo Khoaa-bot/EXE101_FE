@@ -198,8 +198,6 @@ export default function BookingPage({
   );
   const bookingStep = !selectedVehicleId || !selectedGarageId ? 0 : !selectedServiceId || !selectedScheduleId ? 1 : 2;
 
-  const servicePrice = selectedService?.price ?? 0;
-
   const canSubmit =
     Boolean(selectedVehicleId) &&
     Boolean(selectedGarageId) &&
@@ -213,20 +211,13 @@ export default function BookingPage({
     setSubmitError(null);
 
     try {
-      const booking = await createAppointment({
+      await createAppointment({
         vehicleId: Number(selectedVehicleId),
         serviceId: Number(selectedServiceId),
         scheduleId: Number(selectedScheduleId),
         notes: notes.trim() || undefined,
       });
-      if (servicePrice > 0) {
-        // Dịch vụ có phí: chuyển sang PayOS để trả ngay; kết quả được xử lý ở trang /payment-result.
-        if (!booking.paymentUrl) {
-          throw new Error("Không nhận được liên kết thanh toán. Vui lòng thử lại.");
-        }
-        window.location.href = booking.paymentUrl;
-        return;
-      }
+      // Đặt lịch miễn phí, không thu tiền trước: sang màn Theo dõi để xem lịch vừa đặt.
       onTrackingClick();
       return;
     } catch (err) {
@@ -622,17 +613,15 @@ export default function BookingPage({
                   * Phí cuối cùng được báo chính xác sau khi kỹ thuật viên kiểm tra thực tế tình trạng xe.
                 </p>
 
-                {servicePrice > 0 && (
-                  <p
-                    data-testid="booking-payment"
-                    className="flex items-start gap-2 rounded-2xl bg-primary-fixed/50 p-3 text-xs leading-relaxed text-on-primary-fixed-variant"
-                  >
-                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-                      qr_code_2
-                    </span>
-                    Sau khi bấm "Xác nhận và thanh toán", bạn được chuyển sang PayOS để trả {formatCurrency(servicePrice)}. Lịch chỉ được giữ khi thanh toán thành công; bạn có 15 phút để hoàn tất.
-                  </p>
-                )}
+                <p
+                  data-testid="booking-payment"
+                  className="flex items-start gap-2 rounded-2xl bg-primary-fixed/50 p-3 text-xs leading-relaxed text-on-primary-fixed-variant"
+                >
+                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+                    verified
+                  </span>
+                  Đặt lịch miễn phí, không cần trả trước. Chi phí sửa chữa được thanh toán trực tiếp tại garage khi bạn nhận xe.
+                </p>
 
                 {submitError && (
                   <p role="alert" className="text-sm text-error">
@@ -645,13 +634,7 @@ export default function BookingPage({
                   type="submit"
                   disabled={!canSubmit}
                 >
-                  {isSubmitting
-                    ? servicePrice > 0
-                      ? "Đang chuyển sang PayOS..."
-                      : "Đang gửi..."
-                    : servicePrice > 0
-                      ? "Xác nhận và thanh toán"
-                      : "Xác nhận đặt lịch"}
+                  {isSubmitting ? "Đang gửi..." : "Xác nhận đặt lịch"}
                   <span aria-hidden="true" className="material-symbols-outlined">
                     arrow_forward
                   </span>

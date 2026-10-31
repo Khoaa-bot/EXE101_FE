@@ -375,11 +375,6 @@ export default function ReceptionAppointmentDetailPage({
                       appointmentId={appt.id}
                       status={status}
                       currentEngineerName={appt.engineerName}
-                      blockedReason={
-                        Boolean(appt.paymentExpiresAt) && appt.invoicePaymentStatus === "unpaid"
-                          ? "Khách chưa thanh toán nên chưa thể xác nhận. Lịch tự huỷ nếu quá hạn thanh toán."
-                          : null
-                      }
                       onAssigned={(updated) => {
                         setAppt(updated);
                         setStatus(mapStatus(updated.status));

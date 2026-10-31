@@ -12,7 +12,6 @@ export type AdminTabKey =
   | "inventory"
   | "pricing"
   | "garage"
-  | "wallet"
   | "premium";
 
 export interface AdminNavProps {
@@ -24,7 +23,6 @@ export interface AdminNavProps {
   onInventoryClick?: () => void;
   onPricingClick?: () => void;
   onGarageClick?: () => void;
-  onWalletClick?: () => void;
   onPremiumClick?: () => void;
   onLogout?: () => void;
 }
@@ -103,12 +101,6 @@ const ADMIN_TABS: {
     icon: "storefront",
     label: "Thông tin garage",
     description: "Cập nhật hồ sơ, số điện thoại, địa chỉ và hình ảnh garage.",
-  },
-  {
-    key: "wallet",
-    icon: "account_balance_wallet",
-    label: "Ví garage",
-    description: "Số dư ví, yêu cầu rút tiền về tài khoản ngân hàng và lịch sử giao dịch.",
   },
   {
     key: "premium",
@@ -192,7 +184,6 @@ export default function AdminShell({
   onInventoryClick,
   onPricingClick,
   onGarageClick,
-  onWalletClick,
   onPremiumClick,
   onLogout,
   navigationItems,
@@ -240,9 +231,6 @@ export default function AdminShell({
         break;
       case "garage":
         onGarageClick?.();
-        break;
-      case "wallet":
-        onWalletClick?.();
         break;
       case "premium":
         onPremiumClick?.();
