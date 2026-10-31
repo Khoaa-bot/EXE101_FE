@@ -180,8 +180,8 @@ export default function YearStats() {
         <StatCard
           icon="account_balance"
           tone="bg-[#e6defa] text-[#3b2a7a]"
-          title="Doanh thu nền tảng"
-          subtitle={`Hoa hồng ghi vào ví ${periodText.toLowerCase()}`}
+          title="Doanh thu bán gói"
+          subtitle={`Tiền thực thu từ bán gói qua PayOS ${periodText.toLowerCase()}`}
         >
           {data ? (
             <>

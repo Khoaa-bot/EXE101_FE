@@ -34,7 +34,7 @@ const OUTCOMES: Array<{
 
 type StatsState = { key: Period; data: AdminPeriodStats | null; failed: boolean };
 
-// Thống kê đăng ký mới, lịch hẹn và doanh thu (hoa hồng nền tảng) theo hôm nay / tuần này / tháng này.
+// Thống kê đăng ký mới, lịch hẹn và doanh thu (tiền thực thu từ bán gói qua PayOS) theo hôm nay / tuần này / tháng này.
 // Số liệu do backend gom sẵn theo giờ Việt Nam; giao diện chỉ vẽ.
 export default function OverviewStatsSection() {
   const [period, setPeriod] = useState<Period>("week");
@@ -229,8 +229,8 @@ export default function OverviewStatsSection() {
             <StatCard
               icon="account_balance"
               tone="bg-[#e6defa] text-[#3b2a7a]"
-              title="Doanh thu nền tảng"
-              subtitle={`Hoa hồng ghi vào ví ${ranges.periodWord}`}
+              title="Doanh thu bán gói"
+              subtitle={`Tiền thực thu từ bán gói qua PayOS ${ranges.periodWord}`}
             >
               {stats ? (
                 <>
