@@ -2,7 +2,6 @@ import StaffShell from "../../components/StaffShell";
 import { useEffect, useState } from "react";
 import {
   getEngineerDashboard,
-  acceptEngineerAppointment,
   type AppointmentDto,
 } from "../../services/api";
 import { isTerminalStatus, statusBadgeClass, statusLabel } from "./engineerStatus";
@@ -41,13 +40,6 @@ export default function EngineerDashboardPage({
   const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [acceptingId, setAcceptingId] = useState<number | null>(null);
-  const [notice, setNotice] = useState("");
-
-  const showNotice = (msg: string) => {
-    setNotice(msg);
-    window.setTimeout(() => setNotice(""), 3000);
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -74,21 +66,6 @@ export default function EngineerDashboardPage({
       cancelled = true;
     };
   }, []);
-
-  const acceptJob = (id: number) => {
-    setAcceptingId(id);
-    acceptEngineerAppointment(id)
-      .then((updated) => {
-        setAppointments((prev) => prev.map((a) => (a.id === id ? updated : a)));
-        showNotice(`Đã tiếp nhận thành công lịch làm việc #${id}`);
-      })
-      .catch((err) => {
-        showNotice(
-          err instanceof Error ? err.message : "Không thể tiếp nhận công việc này.",
-        );
-      })
-      .finally(() => setAcceptingId(null));
-  };
 
 
   // Chỉ hiện công việc còn cần xử lý (chưa hoàn thành/hủy) từ hôm nay trở
@@ -180,14 +157,14 @@ export default function EngineerDashboardPage({
 
                 {visibleAppointments.length === 0 && (
                   <p className="rounded-xl border border-dashed border-outline-variant p-6 text-center text-sm text-on-surface-variant">
-                    Không có công việc nào cần xử lý từ hôm nay. Xem lịch sử ở mục
-                    "Lịch hẹn".
+                    Chưa có lịch nào được giao. Lễ tân sẽ xác nhận lịch và giao việc
+                    phù hợp với khung giờ của bạn, bạn sẽ nhận được thông báo. Xem
+                    lịch sử ở mục "Lịch hẹn".
                   </p>
                 )}
 
                 {visibleAppointments.map((job) => {
                   const status = job.status.toLowerCase();
-                  const isPending = status === "pending";
 
                   return (
                     <article
@@ -232,25 +209,22 @@ export default function EngineerDashboardPage({
 
                       {/* Actions Row */}
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/60 pt-4">
-                        <button
-                          type="button"
-                          disabled={!isPending || acceptingId === job.id}
-                          onClick={() => acceptJob(job.id)}
-                          className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
-                            !isPending
-                              ? "bg-surface-container-high text-outline cursor-not-allowed"
-                              : "bg-primary text-on-primary hover:opacity-90 active:scale-[0.98]"
-                          }`}
-                        >
-                          <span className="material-symbols-outlined text-base">
-                            play_arrow
+                        {status === "confirmed" ? (
+                          <button
+                            type="button"
+                            onClick={() => onJobDetailClick?.(String(job.id))}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary transition hover:opacity-90 active:scale-[0.98]"
+                          >
+                            <span className="material-symbols-outlined text-base">
+                              play_arrow
+                            </span>
+                            Bắt đầu xử lý
+                          </button>
+                        ) : (
+                          <span className="rounded-full bg-surface-container-high px-3 py-1 text-xs font-semibold text-on-surface-variant">
+                            Lễ tân giao
                           </span>
-                          {acceptingId === job.id
-                            ? "Đang xử lý..."
-                            : isPending
-                              ? "Nhận việc"
-                              : "Đã nhận việc"}
-                        </button>
+                        )}
 
                         <button
                           type="button"
@@ -271,16 +245,6 @@ export default function EngineerDashboardPage({
           )}
         </div>
       </StaffShell>
-
-      {/* Notice Toast */}
-      {notice && (
-        <div
-          className="fixed bottom-5 right-5 z-50 rounded-2xl bg-inverse-surface px-4 py-3 text-sm text-inverse-on-surface shadow-[0_18px_40px_-16px_rgba(25,28,29,0.5)]"
-          role="status"
-        >
-          {notice}
-        </div>
-      )}
     </div>
   );
 }
