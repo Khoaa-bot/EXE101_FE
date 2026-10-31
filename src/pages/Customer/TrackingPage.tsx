@@ -3,6 +3,7 @@ import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import AppointmentChat from "../../components/AppointmentChat";
 import CancelBookingDialog from "../../components/CancelBookingDialog";
 import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
+import OdometerSummary from "../../components/OdometerSummary";
 import PaymentCountdown from "../../components/PaymentCountdown";
 import { formatVnd } from "../../utils/format";
 import {
@@ -418,6 +419,11 @@ export default function TrackingPage({
                     </span>
                     Ghi chú kỹ thuật viên
                   </h2>
+                  <OdometerSummary
+                    before={appointment.odometerBefore}
+                    after={appointment.odometerAtService}
+                    className="mb-3"
+                  />
                   <p className="text-sm text-on-surface-variant">
                     {appointment.engineerNotes || "Chưa có ghi chú mới từ kỹ thuật viên."}
                   </p>

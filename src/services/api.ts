@@ -613,6 +613,10 @@ export type AppointmentDto = {
   // Đánh giá khách đã gửi cho lịch hẹn này (null nếu chưa đánh giá). BE trả `review`
   // lồng; api.ts tách sang các trường review* bên dưới.
   review?: ReviewDto | null;
+  // Số km ghi nhận lúc bắt đầu xử lý, lúc hoàn thành và km đang lưu của xe (null nếu chưa có).
+  odometerBefore?: number | null;
+  odometerAtService?: number | null;
+  vehicleOdometer?: number | null;
   reviewId?: number | null;
   reviewRating?: number | null;
   reviewComment?: string | null;
@@ -824,9 +828,10 @@ export function acceptEngineerAppointment(appointmentId: number | string) {
 }
 
 // PUT /api/engineer/appointments/{id}/processing — bắt đầu xử lý (chỉ từ confirmed).
-export function startEngineerAppointment(appointmentId: number | string) {
+export function startEngineerAppointment(appointmentId: number | string, payload: { odometerBefore: number }) {
   return apiRequest<AppointmentDto>(`/engineer/appointments/${appointmentId}/processing`, {
     method: "PUT",
+    body: payload,
   });
 }
 

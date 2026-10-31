@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useDialogA11y } from "../../hooks/useDialogA11y";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import OdometerSummary from "../../components/OdometerSummary";
 import StarRating from "../../components/StarRating";
 import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCount";
 import {
@@ -498,6 +499,11 @@ export default function HistoryPage({
                                 </button>
                               ))}
                           </div>
+                          <OdometerSummary
+                            before={record.odometerBefore}
+                            after={record.odometerAtService}
+                            className="basis-full"
+                          />
                           {record.reviewId ? (
                             <div className="basis-full">
                               <ReviewBlock record={record} onEdit={() => openReview(record)} />
