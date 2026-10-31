@@ -1,6 +1,7 @@
 import StaffShell from "../../components/StaffShell";
 import { useEffect, useState } from "react";
 import AppointmentChat from "../../components/AppointmentChat";
+import AssignEngineerPanel from "../../components/AssignEngineerPanel";
 import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
 import NoShowDialog from "../../components/NoShowDialog";
 import {
@@ -11,6 +12,7 @@ import {
   type AppointmentDto,
   type AppointmentExtra,
 } from "../../services/api";
+import OdometerSummary from "../../components/OdometerSummary";
 import { isSlotUpcoming } from "../../utils/schedule";
 import { mapStatus, STATUS_MAP, type Appt } from "./ReceptionAppointmentsPage";
 
@@ -138,10 +140,6 @@ export default function ReceptionAppointmentDetailPage({
       setIsUpdating(false);
       setShowNoShow(false);
     }
-  };
-
-  const onConfirm = () => {
-    void updateStatus("confirmed", `Đã xác nhận lịch #${appointmentId}`);
   };
 
   const onCancel = () => {
@@ -278,6 +276,18 @@ export default function ReceptionAppointmentDetailPage({
                   </div>
                 </div>
 
+                {(appt.odometerBefore != null || appt.odometerAtService != null) && (
+                  <div className="mt-6">
+                    <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-3">Số km của xe</p>
+                    <OdometerSummary before={appt.odometerBefore} after={appt.odometerAtService} />
+                    {appt.vehicleOdometer != null && (
+                      <p className="mt-2 text-xs text-on-surface-variant">
+                        Km đang lưu của xe: {appt.vehicleOdometer.toLocaleString("vi-VN")} km
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {(appt.engineerNotes || appt.partsUsed) && (
                   <div className="mt-6">
                     <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-3">Ghi chú kỹ thuật viên</p>
@@ -358,32 +368,47 @@ export default function ReceptionAppointmentDetailPage({
                   />
                 </div>
 
+                {(status === "pending" || status === "confirmed") && (
+                  <div className="mt-6">
+                    <AssignEngineerPanel
+                      key={`${appt.id}-${status}`}
+                      appointmentId={appt.id}
+                      status={status}
+                      currentEngineerName={appt.engineerName}
+                      blockedReason={
+                        Boolean(appt.paymentExpiresAt) && appt.invoicePaymentStatus === "unpaid"
+                          ? "Khách chưa thanh toán nên chưa thể xác nhận. Lịch tự huỷ nếu quá hạn thanh toán."
+                          : null
+                      }
+                      onAssigned={(updated) => {
+                        setAppt(updated);
+                        setStatus(mapStatus(updated.status));
+                        showNotice(
+                          status === "pending"
+                            ? `Đã xác nhận lịch #${appt.id} và giao cho ${updated.engineerName ?? "kỹ thuật viên"}`
+                            : `Đã đổi kỹ thuật viên phụ trách lịch #${appt.id}`,
+                        );
+                      }}
+                    />
+                  </div>
+                )}
+
                 <div className="mt-6 rounded-xl bg-surface-container p-4 flex flex-col md:flex-row md:items-center gap-4">
                   <div className="flex items-start gap-3 flex-1">
                     <span className="material-symbols-outlined text-primary shrink-0 mt-0.5">info</span>
                     <p className="text-sm text-on-surface-variant">
-                      {appt.paymentExpiresAt && appt.invoicePaymentStatus === "unpaid"
-                        ? "Khách chưa thanh toán nên chưa thể xác nhận. Lịch tự huỷ nếu quá hạn thanh toán."
-                        : "Xác nhận lịch khi khách đã đồng ý, hoặc hủy giúp khách nếu họ gọi báo bận."}
+                      {status === "in_progress"
+                        ? "Xe đang được sửa nên lễ tân không huỷ được lịch này. Hãy nhờ kỹ thuật viên hoặc chủ garage xử lý."
+                        : status === "pending"
+                          ? "Chọn kỹ thuật viên rồi bấm “Xác nhận & phân công”, hoặc hủy giúp khách nếu họ gọi báo bận."
+                          : "Có thể hủy giúp khách nếu họ gọi báo bận."}
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                     <button
-                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-2.5 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                      onClick={onConfirm}
-                      disabled={
-                        isUpdating ||
-                        status !== "pending" ||
-                        (Boolean(appt.paymentExpiresAt) && appt.invoicePaymentStatus === "unpaid")
-                      }
-                    >
-                      <span className="material-symbols-outlined text-lg">check_circle</span>
-                      {isUpdating ? "Đang cập nhật..." : "Xác nhận lịch hẹn"}
-                    </button>
-                    <button
                       className="inline-flex items-center gap-2 rounded-lg bg-error px-4 py-2.5 text-sm font-medium text-on-error hover:bg-error/90 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={onCancel}
-                      disabled={isUpdating || FINAL_STATUSES.includes(status)}
+                      disabled={isUpdating || status === "in_progress" || FINAL_STATUSES.includes(status)}
                     >
                       <span className="material-symbols-outlined text-lg">cancel</span>
                       Hủy lịch giúp khách
