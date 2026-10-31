@@ -598,7 +598,7 @@ export type AppointmentDto = {
   partsUsed: string | null;
   createdAt: string;
   invoiceId: number | null;
-  invoicePaymentStatus: "unpaid" | "paid" | "cancelled" | "refunded" | null;
+  invoicePaymentStatus: "unpaid" | "paid" | null;
   parts?: AppointmentPart[];
   totalAmount?: number;
   garagePhone?: string | null;
@@ -1324,7 +1324,6 @@ export type SuperAdminUser = {
   role: string;
   garageId: number | null;
   garageName: string | null;
-  balance: number;
   noShow: number | null;
   avatarUrl: string | null;
   status: "active" | "blocked";
