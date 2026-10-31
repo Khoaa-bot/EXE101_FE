@@ -362,9 +362,11 @@ export default function ReceptionAppointmentDetailPage({
                   <div className="flex items-start gap-3 flex-1">
                     <span className="material-symbols-outlined text-primary shrink-0 mt-0.5">info</span>
                     <p className="text-sm text-on-surface-variant">
-                      {appt.paymentExpiresAt && appt.invoicePaymentStatus === "unpaid"
-                        ? "Khách chưa thanh toán nên chưa thể xác nhận. Lịch tự huỷ nếu quá hạn thanh toán."
-                        : "Xác nhận lịch khi khách đã đồng ý, hoặc hủy giúp khách nếu họ gọi báo bận."}
+                      {status === "in_progress"
+                        ? "Xe đang được sửa nên lễ tân không huỷ được lịch này. Hãy nhờ kỹ thuật viên hoặc chủ garage xử lý."
+                        : appt.paymentExpiresAt && appt.invoicePaymentStatus === "unpaid"
+                          ? "Khách chưa thanh toán nên chưa thể xác nhận. Lịch tự huỷ nếu quá hạn thanh toán."
+                          : "Xác nhận lịch khi khách đã đồng ý, hoặc hủy giúp khách nếu họ gọi báo bận."}
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 shrink-0">
@@ -383,7 +385,7 @@ export default function ReceptionAppointmentDetailPage({
                     <button
                       className="inline-flex items-center gap-2 rounded-lg bg-error px-4 py-2.5 text-sm font-medium text-on-error hover:bg-error/90 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={onCancel}
-                      disabled={isUpdating || FINAL_STATUSES.includes(status)}
+                      disabled={isUpdating || status === "in_progress" || FINAL_STATUSES.includes(status)}
                     >
                       <span className="material-symbols-outlined text-lg">cancel</span>
                       Hủy lịch giúp khách
