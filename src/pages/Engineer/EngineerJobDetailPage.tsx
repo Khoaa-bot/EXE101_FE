@@ -173,7 +173,8 @@ export default function EngineerJobDetailPage({
   };
 
   const status = appointment?.status.toLowerCase() ?? "";
-  const allStepsCompleted = steps.length > 0 && steps.every((s) => s.isCompleted);
+  // Dịch vụ không có bước nào thì không chặn hoàn thành (giống kiểm tra ở BE).
+  const allStepsCompleted = steps.every((s) => s.isCompleted);
   // Km ghi nhận lúc bắt đầu xử lý; km sau khi sửa không được nhỏ hơn số này.
   const odometerBefore = appointment?.odometerBefore ?? null;
   const odometerAfterValue = odometerAtService.trim() === "" ? null : Number(odometerAtService);
@@ -371,6 +372,11 @@ export default function EngineerJobDetailPage({
                                   }
                                 >
                                   {step.stepName}
+                                  {step.description && (
+                                    <span className="mt-0.5 block text-xs font-normal text-on-surface-variant">
+                                      {step.description}
+                                    </span>
+                                  )}
                                 </span>
                               </label>
                             </li>

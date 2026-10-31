@@ -1016,6 +1016,13 @@ export async function uploadGarageImage(file: File): Promise<Garage> {
 // Services — ServiceController (@RequestMapping("/api/services")).
 // ---------------------------------------------------------------------------
 
+type RawServiceStep = {
+  id: number;
+  stepOrder: number;
+  stepName: string;
+  description?: string | null;
+};
+
 type RawService = {
   id: number;
   serviceName: string;
@@ -1023,6 +1030,14 @@ type RawService = {
   duration?: string;
   description?: string;
   garageId?: number | null;
+  steps?: RawServiceStep[];
+};
+
+// Một bước thực hiện của dịch vụ do garage đặt; kỹ thuật viên tích từng bước khi làm lịch hẹn.
+export type ServiceStepTemplate = {
+  id: number;
+  name: string;
+  description: string;
 };
 
 export type MaintenanceService = {
@@ -1032,6 +1047,12 @@ export type MaintenanceService = {
   description?: string;
   duration?: string;
   garageId: number | null;
+  steps: ServiceStepTemplate[];
+};
+
+export type ServiceStepInput = {
+  name: string;
+  description?: string;
 };
 
 export type NewServicePayload = {
@@ -1039,6 +1060,7 @@ export type NewServicePayload = {
   price: number;
   description?: string;
   duration?: string;
+  steps?: ServiceStepInput[];
 };
 
 function mapService(raw: RawService): MaintenanceService {
@@ -1049,33 +1071,51 @@ function mapService(raw: RawService): MaintenanceService {
     duration: raw.duration,
     description: raw.description,
     garageId: raw.garageId ?? null,
+    steps: (raw.steps ?? []).map((step) => ({
+      id: step.id,
+      name: step.stepName,
+      description: step.description ?? "",
+    })),
   };
 }
 
-// POST /api/services — thêm dịch vụ mới.
+function serviceBody(payload: NewServicePayload) {
+  return {
+    serviceName: payload.name,
+    price: payload.price,
+    duration: payload.duration,
+    description: payload.description,
+    steps: payload.steps,
+  };
+}
+
+// POST /api/services — thêm dịch vụ mới (kèm các bước thực hiện). Admin garage tạo dịch vụ riêng của garage mình.
 export async function addService(payload: NewServicePayload) {
   const raw = await apiRequest<RawService>("/services", {
     method: "POST",
-    body: {
-      serviceName: payload.name,
-      price: payload.price,
-      duration: payload.duration,
-      description: payload.description,
-    },
+    body: serviceBody(payload),
   });
   return mapService(raw);
 }
 
-// GET /api/services — danh sách dịch vụ. Truyền garageId để lấy đúng dịch vụ
-// riêng của garage đó (gộp thêm các dịch vụ dùng chung không gán garage nào);
-// không truyền thì trả về toàn bộ dịch vụ trong hệ thống.
+// PUT /api/services/{id} — sửa dịch vụ và thay toàn bộ các bước. Chỉ sửa được dịch vụ riêng của garage mình;
+// lịch hẹn đã mở trước đó giữ bản bước cũ.
+export async function updateService(serviceId: number, payload: NewServicePayload) {
+  const raw = await apiRequest<RawService>(`/services/${serviceId}`, {
+    method: "PUT",
+    body: serviceBody(payload),
+  });
+  return mapService(raw);
+}
+
+// GET /api/services — danh sách dịch vụ. Truyền garageId để lấy dịch vụ dùng chung cộng dịch vụ riêng
+// của garage đó; không truyền thì chỉ có dịch vụ dùng chung.
 export async function getAllServices(garageId?: number | string) {
   const raw = await apiRequest<RawService[]>("/services", { query: { garageId } });
   return raw.map(mapService);
 }
 
-// DELETE /api/services/{id} — chỉ xóa được dịch vụ riêng của đúng garage
-// mình (không xóa được dịch vụ dùng chung, backend sẽ chặn).
+// DELETE /api/services/{id} — ngừng bán dịch vụ riêng của garage mình (lịch hẹn cũ vẫn giữ tham chiếu).
 export function deleteService(serviceId: number) {
   return apiRequest<void>(`/services/${serviceId}`, { method: "DELETE" });
 }
