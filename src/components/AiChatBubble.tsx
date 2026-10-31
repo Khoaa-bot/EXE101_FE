@@ -63,7 +63,7 @@ export default function AiChatBubble({ onClick, showTip = false }: AiChatBubbleP
           </span>
         </span>
         <span className="max-w-0 overflow-hidden whitespace-nowrap text-[15px] font-bold transition-all duration-200 group-hover:max-w-[12rem] group-hover:pr-6 group-focus-visible:max-w-[12rem] group-focus-visible:pr-6 max-md:hidden">
-          Chẩn đoán xe bằng AI
+          Chẩn đoán xế yêu
         </span>
         <i
           aria-hidden="true"

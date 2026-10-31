@@ -116,7 +116,6 @@ export default function AdminDashboardPage(props: AdminDashboardPageProps) {
       description={`Tình hình hoạt động của ${dashboard?.garageName ?? "garage"} hôm nay.`}
       garageName={dashboard?.garageName}
       notice={notice}
-      maxWidthClass="max-w-7xl"
       {...props}
     >
       {isLoading && (

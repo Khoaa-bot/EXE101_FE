@@ -10,6 +10,7 @@ export type AppSection =
   | "tracking"
   | "notifications"
   | "profile"
+  | "premium"
   | "find_garage";
 
 type AppSidebarProps = {
@@ -29,6 +30,7 @@ const navItems: Array<{
   { label: "Tìm garage", icon: "storefront", section: "find_garage" },
   { label: "Lịch sử", icon: "history", section: "history" },
   { label: "Theo dõi", icon: "location_on", section: "tracking" },
+  { label: "Premium", icon: "workspace_premium", section: "premium" },
   { label: "Thông báo", icon: "notifications", section: "notifications" },
 ];
 
