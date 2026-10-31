@@ -9,7 +9,6 @@ export type AdminTabKey =
   | "customers"
   | "appointments"
   | "reviews"
-  | "inventory"
   | "pricing"
   | "garage"
   | "premium";
@@ -20,7 +19,6 @@ export interface AdminNavProps {
   onCustomersClick?: () => void;
   onAppointmentsClick?: () => void;
   onReviewsClick?: () => void;
-  onInventoryClick?: () => void;
   onPricingClick?: () => void;
   onGarageClick?: () => void;
   onPremiumClick?: () => void;
@@ -83,12 +81,6 @@ const ADMIN_TABS: {
     icon: "reviews",
     label: "Đánh giá",
     description: "Xem và phản hồi đánh giá của khách tại garage.",
-  },
-  {
-    key: "inventory",
-    icon: "inventory_2",
-    label: "Kho linh kiện",
-    description: "Kiểm kê, xuất nhập tồn linh kiện và phụ tùng tại garage.",
   },
   {
     key: "pricing",
@@ -181,7 +173,6 @@ export default function AdminShell({
   onCustomersClick,
   onAppointmentsClick,
   onReviewsClick,
-  onInventoryClick,
   onPricingClick,
   onGarageClick,
   onPremiumClick,
@@ -222,9 +213,6 @@ export default function AdminShell({
         break;
       case "reviews":
         onReviewsClick?.();
-        break;
-      case "inventory":
-        onInventoryClick?.();
         break;
       case "pricing":
         onPricingClick?.();

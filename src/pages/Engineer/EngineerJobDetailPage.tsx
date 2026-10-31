@@ -12,7 +12,6 @@ import {
 } from "../../services/api";
 import AppointmentChat from "../../components/AppointmentChat";
 import { CostBreakdown } from "../../components/CostBreakdown";
-import EngineerPartsPanel from "../../components/EngineerPartsPanel";
 import { MAX_ODOMETER_KM } from "../../utils/maintenance";
 import { isTerminalStatus, statusBadgeClass, statusLabel } from "./engineerStatus";
 
@@ -171,15 +170,6 @@ export default function EngineerJobDetailPage({
         );
       })
       .finally(() => setIsSaving(false));
-  };
-
-  const refreshAppointment = () => {
-    if (!appointmentId) return;
-    getEngineerAppointmentDetail(appointmentId)
-      .then(setAppointment)
-      .catch((err) => {
-        showNotice(err instanceof Error ? err.message : "Không làm mới được công việc.");
-      });
   };
 
   const status = appointment?.status.toLowerCase() ?? "";
@@ -388,22 +378,6 @@ export default function EngineerJobDetailPage({
                         </ul>
                       </article>
                     )}
-
-                  {/* Phụ tùng lấy từ kho garage */}
-                  {(status === "in_progress" || (appointment.parts ?? []).length > 0) && (
-                    <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
-                      <div className="mb-4 flex items-center gap-2 font-extrabold">
-                        <span className="material-symbols-outlined text-xl text-primary">inventory_2</span>
-                        <h2 className="text-lg">Phụ tùng từ kho</h2>
-                      </div>
-                      <EngineerPartsPanel
-                        appointmentId={appointment.id}
-                        parts={appointment.parts ?? []}
-                        editable={status === "in_progress"}
-                        onChanged={refreshAppointment}
-                      />
-                    </article>
-                  )}
 
                   <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
                     <div className="mb-4 flex items-center gap-2 font-extrabold">

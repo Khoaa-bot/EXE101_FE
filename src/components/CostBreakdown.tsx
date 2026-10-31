@@ -2,7 +2,6 @@ import type { AppointmentDto } from "../services/api";
 import { formatVnd } from "../utils/format";
 
 export function CostBreakdown({ appointment }: { appointment: AppointmentDto }) {
-  const parts = appointment.parts ?? [];
   const total = appointment.totalAmount ?? appointment.servicePrice;
   const isEstimate = appointment.invoiceId === null || appointment.invoiceId === undefined;
 
@@ -12,15 +11,6 @@ export function CostBreakdown({ appointment }: { appointment: AppointmentDto }) 
         <span className="text-on-surface-variant">{appointment.serviceName}</span>
         <span className="font-bold">{formatVnd(appointment.servicePrice)}</span>
       </div>
-
-      {parts.map((part) => (
-        <div key={`part-${part.id}`} className="flex justify-between">
-          <span className="text-on-surface-variant">
-            {part.partName} × {part.quantity}
-          </span>
-          <span className="font-bold">{formatVnd(part.lineTotal)}</span>
-        </div>
-      ))}
 
       <div className="mt-3 flex items-center justify-between border-t border-outline-variant pt-3">
         <span className="text-base font-extrabold">

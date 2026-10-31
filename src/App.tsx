@@ -6,7 +6,6 @@ import AddVehiclePage from "./pages/Customer/AddVehiclePage";
 import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
 import AdminCustomersPage from "./pages/Admin/AdminCustomersPage";
 import AdminEngineersPage from "./pages/Admin/AdminEngineersPage";
-import AdminInventoryPage from "./pages/Admin/AdminInventoryPage";
 import AdminPricingPage from "./pages/Admin/AdminPricingPage";
 import AdminGaragePage from "./pages/Admin/AdminGaragePage";
 import AdminReviewsPage from "./pages/Admin/AdminReviewsPage";
@@ -70,7 +69,6 @@ const appRoutes = new Set([
   "/admin",
   "/admin/customers",
   "/admin/engineers",
-  "/admin/inventory",
   "/admin/pricing",
   "/admin/garage",
   "/admin/appointments",
@@ -100,7 +98,6 @@ const publicRoutes = new Set([
   "/preview/admin",
   "/preview/admin/customers",
   "/preview/admin/engineers",
-  "/preview/admin/inventory",
   "/preview/admin/pricing",
   "/preview/admin/premium",
   "/preview/admin/premium/checkout",
@@ -121,7 +118,7 @@ const roleRoutes: Record<string, Set<string>> = {
   // "garage_owner" = admin của 1 garage (trước đây gọi là "admin" bên
   // backend, đã đổi tên). "admin" giờ là Super Admin toàn hệ thống.
   GARAGE_OWNER: new Set([
-    "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing", "/admin/garage", "/admin/reviews", "/admin/appointments",
+    "/admin", "/admin/customers", "/admin/engineers", "/admin/pricing", "/admin/garage", "/admin/reviews", "/admin/appointments",
     "/admin/premium", "/admin/premium/checkout",
   ]),
   ADMIN: new Set(["/super-admin"]),
@@ -259,7 +256,6 @@ function App() {
     onDashboardClick: () => navigate("/preview/admin"),
     onCustomersClick: () => navigate("/preview/admin/customers"),
     onEngineersClick: () => navigate("/preview/admin/engineers"),
-    onInventoryClick: () => navigate("/preview/admin/inventory"),
     onPricingClick: () => navigate("/preview/admin/pricing"),
     onPremiumClick: () => navigate("/preview/admin/premium"),
     onLogout: () => navigate("/login"),
@@ -297,10 +293,6 @@ function App() {
 
   if (routePath === "/preview/admin/engineers") {
     return <AdminEngineersPage {...previewAdminProps} />;
-  }
-
-  if (routePath === "/preview/admin/inventory") {
-    return <AdminInventoryPage {...previewAdminProps} />;
   }
 
   if (routePath === "/preview/admin/pricing") {
@@ -474,7 +466,6 @@ function App() {
     onDashboardClick: () => navigate("/admin"),
     onCustomersClick: () => navigate("/admin/customers"),
     onEngineersClick: () => navigate("/admin/engineers"),
-    onInventoryClick: () => navigate("/admin/inventory"),
     onPricingClick: () => navigate("/admin/pricing"),
     onGarageClick: () => navigate("/admin/garage"),
     onAppointmentsClick: () => navigate("/admin/appointments"),
@@ -532,10 +523,6 @@ function App() {
 
   if (routePath === "/admin/engineers") {
     return <AdminEngineersPage {...adminProps} />;
-  }
-
-  if (routePath === "/admin/inventory") {
-    return <AdminInventoryPage {...adminProps} />;
   }
 
   if (routePath === "/admin/pricing") {

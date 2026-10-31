@@ -88,9 +88,6 @@ const EXACT_ERROR_TRANSLATIONS: Record<string, string> = {
   "Time frame slot already exists for this garage": "Khung giờ này đã tồn tại cho garage này.",
   "Schedule slot already exists for this time frame on this date": "Khung giờ này trong ngày đã có lịch rồi.",
   "Notification not found": "Không tìm thấy thông báo.",
-  "Part name is required": "Vui lòng nhập tên linh kiện.",
-  "Part not found": "Không tìm thấy linh kiện.",
-  "Must specify quantityToAdd or new quantity": "Vui lòng nhập số lượng cần nhập thêm.",
   "Appointment not found": "Không tìm thấy lịch hẹn.",
   "Appointment does not belong to this customer": "Lịch hẹn này không thuộc về khách hàng này.",
   "This appointment has already been reviewed": "Lịch hẹn này đã được đánh giá rồi.",
@@ -116,7 +113,6 @@ const EXACT_ERROR_TRANSLATIONS: Record<string, string> = {
   "Cannot delete vehicle because it is linked to existing appointments": "Không thể xóa xe vì đã có lịch hẹn liên quan.",
   "Valid noShow count is required (0 or greater)": "Số lần không đến phải lớn hơn hoặc bằng 0.",
   "Unauthorized: Authentication required": "Vui lòng đăng nhập để tiếp tục.",
-  "Unauthorized: You can only edit inventory parts belonging to your garage": "Bạn chỉ được sửa linh kiện thuộc garage của mình.",
   "Access denied: Only Super Admins can change user roles": "Chỉ Super Admin mới được đổi role người dùng.",
   "Access denied: Only Super Admins can create garage owners": "Chỉ Super Admin mới được tạo Admin Garage.",
   "Access denied: Only Super Admins can delete users": "Chỉ Super Admin mới được xóa người dùng.",
@@ -599,7 +595,6 @@ export type AppointmentDto = {
   createdAt: string;
   invoiceId: number | null;
   invoicePaymentStatus: "unpaid" | "paid" | null;
-  parts?: AppointmentPart[];
   totalAmount?: number;
   garagePhone?: string | null;
   // Đánh giá khách đã gửi cho lịch hẹn này (null nếu chưa đánh giá). BE trả `review`
@@ -617,23 +612,6 @@ export type AppointmentDto = {
   reviewReply?: string | null; // phản hồi của garage
   reviewCanEdit?: boolean | null; // còn trong 7 ngày kể từ khi gửi
   reviewEditDaysLeft?: number | null;
-};
-
-export type AppointmentPart = {
-  id: number;
-  partId: number;
-  partName: string;
-  unitPrice: number;
-  quantity: number;
-  lineTotal: number;
-};
-
-export type GaragePart = {
-  id: number;
-  partName: string;
-  category: string | null;
-  quantity: number;
-  price: number | null;
 };
 
 export type AppointmentMessage = {
@@ -1192,58 +1170,6 @@ export function getTimeFrames(garageId?: number | string) {
   return apiRequest<TimeFrame[]>("/schedules/time-frames", { query: { garageId } });
 }
 
-// GET /api/garage-owner/parts — danh sách linh kiện (garage_owner only).
-export type AdminPart = {
-  id: number;
-  partName: string;
-  category: string;
-  sku: string;
-  location: string;
-  quantity: number;
-  maxQuantity: number;
-  price: number;
-  status: string;
-  garageId: number;
-  garageName: string;
-  createdAt: string;
-};
-
-export type CreatePartPayload = {
-  partName: string;
-  category: string;
-  sku: string;
-  location: string;
-  quantity: number;
-  maxQuantity: number;
-  price: number;
-};
-
-export function getAdminParts() {
-  return apiRequest<AdminPart[]>("/garage-owner/parts");
-  return apiRequest<AdminPart[]>("/garage-owner/parts");
-}
-
-// Backend tự gán garage của admin đang đăng nhập, không cần truyền garageId.
-export function createAdminPart(payload: CreatePartPayload) {
-  return apiRequest<AdminPart>("/garage-owner/parts", {
-    method: "POST",
-    body: payload,
-  });
-}
-
-export type RestockPartPayload = {
-  quantityToAdd: number;
-  quantity: number;
-};
-
-// PUT /api/garage-owner/parts/{id} — nhập thêm linh kiện (garage_owner only).
-export function restockAdminPart(partId: number | string, payload: RestockPartPayload) {
-  return apiRequest<AdminPart>(`/garage-owner/parts/${partId}`, {
-    method: "PUT",
-    body: payload,
-  });
-}
-
 // GET /api/garage-owner/customers — danh sách khách hàng (garage_owner only).
 export type AdminCustomer = {
   id: number;
@@ -1580,31 +1506,8 @@ export type AppNotification = {
 };
 
 // ---------------------------------------------------------------------------
-// Phụ tùng, thu tiền mặt và chat theo lịch hẹn.
+// Thu tiền mặt và chat theo lịch hẹn.
 // ---------------------------------------------------------------------------
-
-// GET /api/engineer/parts — kho phụ tùng của garage KTV đang đăng nhập.
-export function getEngineerGarageParts() {
-  return apiRequest<GaragePart[]>("/engineer/parts");
-}
-
-// POST /api/engineer/appointments/{id}/parts — lấy phụ tùng từ kho cho lịch hẹn.
-export function addAppointmentPart(
-  appointmentId: number | string,
-  payload: { partId: number; quantity: number },
-) {
-  return apiRequest<AppointmentPart>(`/engineer/appointments/${appointmentId}/parts`, {
-    method: "POST",
-    body: payload,
-  });
-}
-
-// DELETE /api/engineer/appointments/{id}/parts/{usageId} — gỡ phụ tùng, hoàn lại kho.
-export function removeAppointmentPart(appointmentId: number | string, usageId: number) {
-  return apiRequest<void>(`/engineer/appointments/${appointmentId}/parts/${usageId}`, {
-    method: "DELETE",
-  });
-}
 
 // PUT /api/reception/appointments/{id}/pay-cash — lễ tân xác nhận đã thu tiền mặt.
 export function markInvoicePaidCash(appointmentId: number | string) {
