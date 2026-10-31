@@ -820,10 +820,29 @@ export function getEngineerAppointmentDetail(appointmentId: number | string) {
 // pending -> (accept) -> confirmed -> (processing) -> in_progress -> (complete,
 // yêu cầu mọi bước bảo dưỡng đã tích) -> completed.
 
-// PUT /api/engineer/appointments/{id}/accept — tiếp nhận lịch (chỉ từ pending).
-export function acceptEngineerAppointment(appointmentId: number | string) {
-  return apiRequest<AppointmentDto>(`/engineer/appointments/${appointmentId}/accept`, {
+// Kỹ thuật viên không tự nhận việc nữa: lễ tân xác nhận và giao lịch bằng assignEngineerToAppointment.
+
+export type AssignableEngineer = {
+  id: number;
+  fullName: string;
+  username: string;
+  available: boolean; // false nếu đã có lịch khác trùng khung giờ
+  current: boolean; // đang phụ trách lịch hẹn này
+  conflictAppointmentId: number | null;
+  jobsThatDay: number;
+};
+
+// GET /api/reception/appointments/{id}/assignable-engineers — kỹ thuật viên của garage kèm rảnh/bận (lễ tân).
+export function getAssignableEngineers(appointmentId: number | string) {
+  return apiRequest<AssignableEngineer[]>(`/reception/appointments/${appointmentId}/assignable-engineers`);
+}
+
+// PUT /api/reception/appointments/{id}/assign — lễ tân giao lịch: lịch pending đã thanh toán được xác nhận
+// cùng lúc, lịch confirmed được đổi người (chỉ khi chưa bắt đầu xử lý).
+export function assignEngineerToAppointment(appointmentId: number | string, engineerId: number) {
+  return apiRequest<AppointmentDto>(`/reception/appointments/${appointmentId}/assign`, {
     method: "PUT",
+    body: { engineerId },
   });
 }
 
