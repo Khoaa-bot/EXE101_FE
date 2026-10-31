@@ -2,15 +2,13 @@ import StaffShell from "../../components/StaffShell";
 import { useEffect, useState } from "react";
 import AppointmentChat from "../../components/AppointmentChat";
 import AssignEngineerPanel from "../../components/AssignEngineerPanel";
-import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
+import { CostBreakdown } from "../../components/CostBreakdown";
 import NoShowDialog from "../../components/NoShowDialog";
 import {
-  decideExtraAsReception,
   getReceptionAppointment,
   markInvoicePaidCash,
   updateReceptionAppointmentStatus,
   type AppointmentDto,
-  type AppointmentExtra,
 } from "../../services/api";
 import OdometerSummary from "../../components/OdometerSummary";
 import { isSlotUpcoming } from "../../utils/schedule";
@@ -83,24 +81,7 @@ export default function ReceptionAppointmentDetailPage({
     window.setTimeout(() => setNotice(""), 3000);
   };
 
-  const [busyExtraId, setBusyExtraId] = useState<number | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
-
-  const decideExtra = async (extra: AppointmentExtra, approve: boolean) => {
-    if (busyExtraId !== null) return;
-    setBusyExtraId(extra.id);
-    try {
-      await decideExtraAsReception(appointmentId, extra.id, approve);
-      const fresh = await getReceptionAppointment(appointmentId);
-      setAppt(fresh);
-      setStatus(mapStatus(fresh.status));
-      showNotice(approve ? "Đã đồng ý hạng mục thay khách." : "Đã từ chối hạng mục thay khách.");
-    } catch (err) {
-      showNotice(err instanceof Error ? err.message : "Không xử lý được hạng mục phát sinh.");
-    } finally {
-      setBusyExtraId(null);
-    }
-  };
 
   const collectCash = async () => {
     if (isCollecting) return;
@@ -295,29 +276,6 @@ export default function ReceptionAppointmentDetailPage({
                       {appt.engineerNotes && <p>{appt.engineerNotes}</p>}
                       {appt.partsUsed && <p>Linh kiện: {appt.partsUsed}</p>}
                     </div>
-                  </div>
-                )}
-
-                {(appt.extras ?? []).length > 0 && (
-                  <div className="mt-6">
-                    <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-3">
-                      Hạng mục phát sinh
-                    </p>
-                    <ExtrasList
-                      extras={appt.extras ?? []}
-                      busyId={busyExtraId}
-                      onDecide={
-                        appt.status.toLowerCase() === "in_progress"
-                          ? (extra, approve) => void decideExtra(extra, approve)
-                          : undefined
-                      }
-                    />
-                    {appt.status.toLowerCase() === "in_progress" &&
-                      (appt.extras ?? []).some((extra) => extra.status === "proposed") && (
-                        <p className="mt-2 text-xs text-on-surface-variant">
-                          Chỉ duyệt thay khách sau khi đã được khách đồng ý qua điện thoại.
-                        </p>
-                      )}
                   </div>
                 )}
 

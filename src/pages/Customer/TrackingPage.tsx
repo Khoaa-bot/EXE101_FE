@@ -2,14 +2,12 @@ import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import AppointmentChat from "../../components/AppointmentChat";
 import CancelBookingDialog from "../../components/CancelBookingDialog";
-import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
+import { CostBreakdown } from "../../components/CostBreakdown";
 import OdometerSummary from "../../components/OdometerSummary";
 import {
   cancelAppointment,
-  decideExtraAsCustomer,
   getActiveAppointments,
   getMyFleet,
-  type AppointmentExtra,
   type AppointmentDto,
   type Vehicle,
 } from "../../services/api";
@@ -86,8 +84,6 @@ export default function TrackingPage({
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<AppointmentDto | null>(null);
   const [cancelMessage, setCancelMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [busyExtraId, setBusyExtraId] = useState<number | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,20 +137,6 @@ export default function TrackingPage({
     } finally {
       setIsCancelling(false);
       setCancelTarget(null);
-    }
-  };
-
-  const handleDecideExtra = async (target: AppointmentDto, extra: AppointmentExtra, approve: boolean) => {
-    if (busyExtraId !== null) return;
-    setBusyExtraId(extra.id);
-    setActionError(null);
-    try {
-      await decideExtraAsCustomer(target.id, extra.id, approve);
-      setAppointments(await getActiveAppointments());
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Không gửi được phản hồi. Vui lòng thử lại.");
-    } finally {
-      setBusyExtraId(null);
     }
   };
 
@@ -365,29 +347,6 @@ export default function TrackingPage({
                   </ol>
                 </section>
 
-                {(appointment.extras ?? []).length > 0 && (
-                  <section className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
-                    <h2 className="mb-1 flex items-center gap-2.5 text-lg font-extrabold">
-                      <span aria-hidden="true" className="material-symbols-outlined text-primary">
-                        add_task
-                      </span>
-                      Phát sinh cần bạn duyệt
-                    </h2>
-                    <p className="mb-4 text-sm text-on-surface-variant">
-                      Kỹ thuật viên phát hiện thêm việc cần làm. Hạng mục chỉ được tính tiền khi bạn đồng ý.
-                    </p>
-                    <ExtrasList
-                      extras={appointment.extras ?? []}
-                      busyId={busyExtraId}
-                      onDecide={
-                        appointment.status.toLowerCase() === "in_progress"
-                          ? (extra, approve) => void handleDecideExtra(appointment, extra, approve)
-                          : undefined
-                      }
-                    />
-                  </section>
-                )}
-
                 <section className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
                   <h2 className="mb-3 flex items-center gap-2.5 text-lg font-extrabold">
                     <span aria-hidden="true" className="material-symbols-outlined text-primary">
@@ -425,8 +384,6 @@ export default function TrackingPage({
                       Chi phí sửa chữa được thanh toán trực tiếp tại garage khi bạn nhận xe.
                     </p>
                   )}
-
-                  {actionError && <p className="mt-3 text-sm text-error">{actionError}</p>}
                 </section>
               </div>
 
