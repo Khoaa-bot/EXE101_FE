@@ -11,6 +11,7 @@ import {
   type AppointmentDto,
   type AppointmentExtra,
 } from "../../services/api";
+import OdometerSummary from "../../components/OdometerSummary";
 import { isSlotUpcoming } from "../../utils/schedule";
 import { mapStatus, STATUS_MAP, type Appt } from "./ReceptionAppointmentsPage";
 
@@ -277,6 +278,18 @@ export default function ReceptionAppointmentDetailPage({
                     {appt.notes ? `"${appt.notes}"` : "Không có ghi chú."}
                   </div>
                 </div>
+
+                {(appt.odometerBefore != null || appt.odometerAtService != null) && (
+                  <div className="mt-6">
+                    <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-3">Số km của xe</p>
+                    <OdometerSummary before={appt.odometerBefore} after={appt.odometerAtService} />
+                    {appt.vehicleOdometer != null && (
+                      <p className="mt-2 text-xs text-on-surface-variant">
+                        Km đang lưu của xe: {appt.vehicleOdometer.toLocaleString("vi-VN")} km
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {(appt.engineerNotes || appt.partsUsed) && (
                   <div className="mt-6">

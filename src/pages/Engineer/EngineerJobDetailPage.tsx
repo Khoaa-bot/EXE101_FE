@@ -1,5 +1,6 @@
 import StaffShell from "../../components/StaffShell";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useDialogA11y } from "../../hooks/useDialogA11y";
 import {
   getAllServices,
   getEngineerAppointmentDetail,
@@ -50,6 +51,9 @@ export default function EngineerJobDetailPage({
   const [engineerNotes, setEngineerNotes] = useState("");
   const [partsUsed, setPartsUsed] = useState("");
   const [odometerAtService, setOdometerAtService] = useState("");
+  const [startDialogOpen, setStartDialogOpen] = useState(false);
+  const [odometerBeforeInput, setOdometerBeforeInput] = useState("");
+  const [startError, setStartError] = useState<string | null>(null);
 
   const [isSaving, setIsSaving] = useState(false);
   const [togglingStepId, setTogglingStepId] = useState<number | null>(null);
@@ -91,18 +95,35 @@ export default function EngineerJobDetailPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appointmentId]);
 
+  // Bấm "Bắt đầu xử lý" mở hộp thoại nhập km trước khi sửa (điền sẵn km đang lưu của xe).
+  const openStartDialog = () => {
+    setOdometerBeforeInput(appointment?.vehicleOdometer != null ? String(appointment.vehicleOdometer) : "");
+    setStartError(null);
+    setStartDialogOpen(true);
+  };
+
   const startProcessing = () => {
     if (!appointmentId) return;
+    const text = odometerBeforeInput.trim();
+    if (text === "") {
+      setStartError("Vui lòng nhập số km của xe trước khi bắt đầu xử lý.");
+      return;
+    }
+    const odometer = Number(text);
+    if (!Number.isInteger(odometer) || odometer < 0 || odometer > MAX_ODOMETER_KM) {
+      setStartError(`Số km phải là số nguyên từ 0 đến ${MAX_ODOMETER_KM.toLocaleString("vi-VN")}.`);
+      return;
+    }
+    setStartError(null);
     setIsSaving(true);
-    startEngineerAppointment(appointmentId)
+    startEngineerAppointment(appointmentId, { odometerBefore: odometer })
       .then((updated) => {
         setAppointment(updated);
+        setStartDialogOpen(false);
         showNotice("Đã bắt đầu xử lý công việc.");
       })
       .catch((err) => {
-        showNotice(
-          err instanceof Error ? err.message : "Không thể bắt đầu xử lý.",
-        );
+        setStartError(err instanceof Error ? err.message : "Không thể bắt đầu xử lý.");
       })
       .finally(() => setIsSaving(false));
   };
@@ -128,12 +149,16 @@ export default function EngineerJobDetailPage({
     if (!appointmentId) return;
     const odometerText = odometerAtService.trim();
     if (odometerText === "") {
-      showNotice("Vui lòng nhập số km hiện tại của xe trước khi hoàn thành.");
+      showNotice("Vui lòng nhập số km sau khi sửa trước khi hoàn thành.");
       return;
     }
     const odometer = Number(odometerText);
     if (!Number.isInteger(odometer) || odometer < 0 || odometer > MAX_ODOMETER_KM) {
       showNotice(`Số km phải là số nguyên từ 0 đến ${MAX_ODOMETER_KM.toLocaleString("vi-VN")}.`);
+      return;
+    }
+    if (odometerBefore !== null && odometer < odometerBefore) {
+      showNotice(odometerAfterError ?? "Số km sau khi sửa không được nhỏ hơn số km trước khi sửa.");
       return;
     }
     setIsSaving(true);
@@ -166,7 +191,14 @@ export default function EngineerJobDetailPage({
   const status = appointment?.status.toLowerCase() ?? "";
   const allStepsCompleted = steps.length > 0 && steps.every((s) => s.isCompleted);
   const hasPendingExtras = (appointment?.extras ?? []).some((extra) => extra.status === "proposed");
-  const canComplete = allStepsCompleted && !hasPendingExtras;
+  // Km ghi nhận lúc bắt đầu xử lý; km sau khi sửa không được nhỏ hơn số này.
+  const odometerBefore = appointment?.odometerBefore ?? null;
+  const odometerAfterValue = odometerAtService.trim() === "" ? null : Number(odometerAtService);
+  const odometerAfterError =
+    odometerBefore !== null && odometerAfterValue !== null && odometerAfterValue < odometerBefore
+      ? `Số km sau khi sửa (${odometerAfterValue.toLocaleString("vi-VN")}) không được nhỏ hơn số km trước khi sửa (${odometerBefore.toLocaleString("vi-VN")}).`
+      : null;
+  const canComplete = allStepsCompleted && !hasPendingExtras && !odometerAfterError;
 
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
@@ -253,6 +285,23 @@ export default function EngineerJobDetailPage({
                         </span>
                       </div>
                     </div>
+                    {(appointment.odometerBefore != null || appointment.odometerAtService != null) && (
+                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl bg-primary-fixed/60 px-3.5 py-2.5 text-[13px] text-on-primary-fixed-variant">
+                        <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                          speed
+                        </span>
+                        {appointment.odometerBefore != null && (
+                          <span>
+                            Km trước khi sửa: <b>{appointment.odometerBefore.toLocaleString("vi-VN")} km</b>
+                          </span>
+                        )}
+                        {appointment.odometerAtService != null && (
+                          <span>
+                            Km sau khi sửa: <b>{appointment.odometerAtService.toLocaleString("vi-VN")} km</b>
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </article>
 
                   {/* Customer & Service Request */}
@@ -421,7 +470,7 @@ export default function EngineerJobDetailPage({
                         </p>
                         <button
                           type="button"
-                          onClick={startProcessing}
+                          onClick={openStartDialog}
                           disabled={isSaving}
                           className="w-full min-h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-container shadow-[0_12px_22px_-14px_rgba(0,89,187,0.9)] text-sm font-bold text-on-primary transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
                         >
@@ -460,18 +509,33 @@ export default function EngineerJobDetailPage({
 
                         <div>
                           <label htmlFor="pages-engineer-engineerjobdetailpage-field-3" className="mb-1 block text-xs font-semibold text-on-surface-variant">
-                            Số km hiện tại của xe <span className="text-error" aria-hidden="true">*</span>
+                            Số km sau khi sửa <span className="text-error" aria-hidden="true">*</span>
                           </label>
                           <input id="pages-engineer-engineerjobdetailpage-field-3"
                             type="number"
                             required
-                            min={0}
+                            min={odometerBefore ?? 0}
                             max={MAX_ODOMETER_KM}
                             value={odometerAtService}
                             onChange={(e) => setOdometerAtService(e.target.value)}
+                            aria-invalid={Boolean(odometerAfterError)}
+                            aria-describedby="odometer-after-hint"
                             placeholder="Ví dụ: 41250 — dùng để tính hạn bảo dưỡng tiếp theo"
-                            className="w-full rounded-[14px] border border-outline-variant bg-surface-container-lowest px-3.5 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            className={`w-full rounded-[14px] border bg-surface-container-lowest px-3.5 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 ${
+                              odometerAfterError ? "border-2 border-error" : "border-outline-variant"
+                            }`}
                           />
+                          {odometerAfterError ? (
+                            <p id="odometer-after-hint" role="alert" className="mt-1 text-xs text-error">
+                              {odometerAfterError}
+                            </p>
+                          ) : (
+                            <p id="odometer-after-hint" className="mt-1 text-xs text-on-surface-variant">
+                              {odometerBefore !== null
+                                ? `Phải từ ${odometerBefore.toLocaleString("vi-VN")} km trở lên. Dùng để cập nhật km của xe và tính hạn bảo dưỡng tiếp theo.`
+                                : "Dùng để cập nhật km của xe và tính hạn bảo dưỡng tiếp theo."}
+                            </p>
+                          )}
                         </div>
 
                         {!allStepsCompleted && (
@@ -528,6 +592,18 @@ export default function EngineerJobDetailPage({
         </div>
       </StaffShell>
 
+      {startDialogOpen && appointment && (
+        <StartDialog
+          appointment={appointment}
+          value={odometerBeforeInput}
+          error={startError}
+          busy={isSaving}
+          onChange={setOdometerBeforeInput}
+          onCancel={() => setStartDialogOpen(false)}
+          onConfirm={startProcessing}
+        />
+      )}
+
       {/* Notice Toast */}
       {notice && (
         <div
@@ -537,6 +613,137 @@ export default function EngineerJobDetailPage({
           {notice}
         </div>
       )}
+    </div>
+  );
+}
+
+// Hộp thoại nhập km trước khi sửa lúc bắt đầu xử lý. Gắn vào DOM chỉ khi đang mở.
+function StartDialog({
+  appointment,
+  value,
+  error,
+  busy,
+  onChange,
+  onCancel,
+  onConfirm,
+}: {
+  appointment: AppointmentDto;
+  value: string;
+  error: string | null;
+  busy: boolean;
+  onChange: (value: string) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(true, dialogRef, onCancel);
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="start-dialog-title"
+        className="max-h-[92dvh] w-full max-w-[35rem] overflow-y-auto rounded-3xl bg-surface-container-lowest p-6 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.55)] sm:p-7"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 id="start-dialog-title" className="text-xl font-extrabold tracking-tight">
+              Bắt đầu xử lý
+            </h2>
+            <p className="mt-1 text-[13px] text-on-surface-variant">
+              Phiếu việc #{appointment.id} · {appointment.vehicleModel} · {appointment.serviceName}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Đóng"
+            onClick={onCancel}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-low"
+          >
+            <span aria-hidden="true" className="material-symbols-outlined">
+              close
+            </span>
+          </button>
+        </div>
+
+        <p className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-surface-container-low px-3.5 py-3 text-[13px]">
+          {appointment.vehicleLicensePlate && (
+            <span className="rounded-md border border-outline-variant bg-surface-container-lowest px-1.5 py-px text-xs font-bold">
+              {appointment.vehicleLicensePlate}
+            </span>
+          )}
+          <span>
+            {appointment.vehicleOdometer != null ? (
+              <>
+                Km đang lưu của xe: <b>{appointment.vehicleOdometer.toLocaleString("vi-VN")} km</b>
+              </>
+            ) : (
+              "Xe chưa có km được lưu"
+            )}
+          </span>
+        </p>
+
+        <div className="mt-4 space-y-1.5">
+          <label htmlFor="odometer-before" className="block text-[13px] font-bold">
+            Số km trước khi sửa <span aria-hidden="true" className="text-error">*</span>
+          </label>
+          <div
+            className={`flex min-h-[52px] items-center justify-between rounded-[14px] border bg-surface-container-lowest px-4 ${
+              error ? "border-2 border-error" : "border-outline-variant"
+            }`}
+          >
+            <input
+              id="odometer-before"
+              type="number"
+              min={0}
+              max={MAX_ODOMETER_KM}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Ví dụ: 40250"
+              aria-invalid={Boolean(error)}
+              aria-describedby="odometer-before-hint"
+              className="w-3/4 bg-transparent text-xl font-bold outline-none"
+            />
+            <span className="text-sm font-semibold text-on-surface-variant">km</span>
+          </div>
+          {error ? (
+            <p id="odometer-before-hint" role="alert" className="flex items-center gap-1 text-xs text-error">
+              <span aria-hidden="true" className="material-symbols-outlined text-base">
+                error
+              </span>
+              {error}
+            </p>
+          ) : (
+            <p id="odometer-before-hint" className="text-xs leading-snug text-on-surface-variant">
+              Xem đồng hồ công-tơ-mét của xe rồi nhập số thực tế. Sau khi sửa xong bạn sẽ nhập số km mới.
+            </p>
+          )}
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2.5">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="min-h-11 rounded-xl border-[1.5px] border-outline-variant bg-surface-container-lowest px-5 text-sm font-bold hover:bg-surface-container-low disabled:opacity-60"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className="flex min-h-11 items-center gap-1.5 rounded-xl bg-primary px-5 text-sm font-bold text-on-primary disabled:opacity-60"
+          >
+            <span aria-hidden="true" className="material-symbols-outlined text-xl">
+              play_arrow
+            </span>
+            {busy ? "Đang xử lý..." : "Bắt đầu xử lý"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
