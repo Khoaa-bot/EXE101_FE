@@ -96,14 +96,6 @@ export default function GarageDetailPage({
             />
             <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
             <div className="absolute inset-x-7 bottom-5 text-white">
-              {garage.isPro && (
-                <span className="mb-2 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-on-primary">
-                  <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
-                    workspace_premium
-                  </span>
-                  Garage Pro
-                </span>
-              )}
               <h1 className="text-3xl font-extrabold tracking-tight">{garage.name}</h1>
               <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm opacity-95">
                 {garage.rating != null && (

@@ -943,7 +943,6 @@ export type Garage = {
   imageUrl?: string;
   rating?: number | null; // điểm trung bình đánh giá, null nếu chưa có
   reviewCount?: number;
-  isPro?: boolean; // chủ garage đang dùng gói Garage Pro còn hạn: hiện huy hiệu, BE xếp lên đầu danh sách
 };
 
 export type NewGaragePayload = {
@@ -1627,8 +1626,13 @@ export function getSubscriptionPlans(forGarage: boolean) {
 }
 
 export type MySubscription = {
+  role: string;
   subscriptionType: string;
   isActive: boolean;
+  // Chủ garage đang trong thời hạn gói nhưng chưa từng trả tiền = đang dùng thử.
+  isTrial?: boolean;
+  // Đường dây nóng đối tác: chỉ có khi chủ garage đang dùng gói và Servio đã đặt số.
+  partnerHotline?: string | null;
   subscriptionExpiresAt: string | null;
   subscriptionDaysRemaining: number;
   formattedExpiresAt: string | null;
@@ -1655,6 +1659,32 @@ export function createSubscriptionPayment(planCode: string) {
     method: "POST",
     query: { planCode },
   });
+}
+
+export type GarageReport = {
+  from: string;
+  to: string;
+  // month dạng "2026-10"; total gồm cả lịch huỷ, revenue chỉ tính lịch đã hoàn thành.
+  months: Array<{ month: string; total: number; completed: number; revenue: number }>;
+  // Các tỷ lệ từ 0 đến 1, tính trên total.
+  totals: {
+    total: number;
+    completed: number;
+    cancelled: number;
+    noShow: number;
+    active: number;
+    completionRate: number;
+    cancelRate: number;
+    noShowRate: number;
+  };
+  topServices: Array<{ serviceId: number; name: string; count: number; revenue: number }>;
+  busiestSlots: Array<{ label: string; count: number }>;
+  engineers: Array<{ engineerId: number; name: string; completed: number }>;
+};
+
+// GET /api/garage-owner/reports — báo cáo 12 tháng của garage mình; BE trả 403 khi gói hết hạn.
+export function getGarageReport() {
+  return apiRequest<GarageReport>("/garage-owner/reports");
 }
 
 export type PaymentReturnResult = {

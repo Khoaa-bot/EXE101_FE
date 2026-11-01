@@ -36,6 +36,28 @@ export function useSubscription(forGarage: boolean) {
   return { plan, status, isLoading, error };
 }
 
+// Chỉ trạng thái gói của người dùng hiện tại (không tải danh sách gói); null khi đang tải hoặc tải lỗi.
+export function useMySubscription(enabled = true) {
+  const [status, setStatus] = useState<MySubscription | null>(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    getMySubscription()
+      .then((mine) => {
+        if (!cancelled) setStatus(mine);
+      })
+      .catch(() => {
+        // Không biết trạng thái thì coi như bình thường; BE vẫn chặn khi gói hết hạn.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+
+  return status;
+}
+
 // Gói còn hạn thì thời hạn mới được cộng nối tiếp; hết hạn hoặc chưa mua thì tính từ hôm nay.
 export function nextExpiryDate(plan: SubscriptionPlan, status: MySubscription | null): Date {
   const now = new Date();

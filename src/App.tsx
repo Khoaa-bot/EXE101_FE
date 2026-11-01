@@ -7,6 +7,7 @@ import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
 import AdminCustomersPage from "./pages/Admin/AdminCustomersPage";
 import AdminEngineersPage from "./pages/Admin/AdminEngineersPage";
 import AdminPricingPage from "./pages/Admin/AdminPricingPage";
+import AdminReportsPage from "./pages/Admin/AdminReportsPage";
 import AdminGaragePage from "./pages/Admin/AdminGaragePage";
 import AdminReviewsPage from "./pages/Admin/AdminReviewsPage";
 import SuperAdminDashboardPage from "./pages/SuperAdmin/SuperAdminDashboardPage";
@@ -68,6 +69,7 @@ const appRoutes = new Set([
   "/admin/customers",
   "/admin/engineers",
   "/admin/pricing",
+  "/admin/reports",
   "/admin/garage",
   "/admin/appointments",
   "/admin/reviews",
@@ -116,7 +118,7 @@ const roleRoutes: Record<string, Set<string>> = {
   // "garage_owner" = admin của 1 garage (trước đây gọi là "admin" bên
   // backend, đã đổi tên). "admin" giờ là Super Admin toàn hệ thống.
   GARAGE_OWNER: new Set([
-    "/admin", "/admin/customers", "/admin/engineers", "/admin/pricing", "/admin/garage", "/admin/reviews", "/admin/appointments",
+    "/admin", "/admin/customers", "/admin/engineers", "/admin/pricing", "/admin/reports", "/admin/garage", "/admin/reviews", "/admin/appointments",
     "/admin/premium", "/admin/premium/checkout", "/payment-result",
   ]),
   ADMIN: new Set(["/super-admin"]),
@@ -297,8 +299,8 @@ function App() {
     return (
       <AdminShell
         activeTab="premium"
-        title="Thanh toán gói Premium"
-        description="Xác nhận gói hội viên và chu kỳ thanh toán dành cho garage."
+        title="Thanh toán gói Garage"
+        description="Xác nhận gói và thanh toán qua PayOS."
         {...previewAdminProps}
       >
         <AdminPremiumCheckoutPage
@@ -312,8 +314,8 @@ function App() {
     return (
       <AdminShell
         activeTab="premium"
-        title="Gói hội viên Premium"
-        description="Nâng cấp gói dịch vụ để tối ưu hoá vận hành garage và nhận nhiều ưu đãi độc quyền."
+        title="Gói Garage"
+        description="Gói duy trì hoạt động của garage trên Servio."
         {...previewAdminProps}
       >
         <AdminPremiumMemberPage
@@ -458,6 +460,7 @@ function App() {
     onCustomersClick: () => navigate("/admin/customers"),
     onEngineersClick: () => navigate("/admin/engineers"),
     onPricingClick: () => navigate("/admin/pricing"),
+    onReportsClick: () => navigate("/admin/reports"),
     onGarageClick: () => navigate("/admin/garage"),
     onAppointmentsClick: () => navigate("/admin/appointments"),
     onReviewsClick: () => navigate("/admin/reviews"),
@@ -520,6 +523,10 @@ function App() {
     return <AdminPricingPage {...adminProps} />;
   }
 
+  if (routePath === "/admin/reports") {
+    return <AdminReportsPage {...adminProps} />;
+  }
+
   if (routePath === "/admin/garage") {
     return <AdminGaragePage {...adminProps} />;
   }
@@ -536,8 +543,8 @@ function App() {
     return (
       <AdminShell
         activeTab="premium"
-        title="Thanh toán gói Premium"
-        description="Xác nhận gói hội viên và chu kỳ thanh toán dành cho garage."
+        title="Thanh toán gói Garage"
+        description="Xác nhận gói và thanh toán qua PayOS."
         {...adminProps}
       >
         <AdminPremiumCheckoutPage
@@ -551,8 +558,8 @@ function App() {
     return (
       <AdminShell
         activeTab="premium"
-        title="Gói hội viên Premium"
-        description="Nâng cấp gói dịch vụ để tối ưu hoá vận hành garage và nhận nhiều ưu đãi độc quyền."
+        title="Gói Garage"
+        description="Gói duy trì hoạt động của garage trên Servio."
         {...adminProps}
       >
         <AdminPremiumMemberPage

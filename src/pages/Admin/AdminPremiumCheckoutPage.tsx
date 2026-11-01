@@ -2,7 +2,7 @@ import { useState } from "react";
 import { nextExpiryDate, useSubscription } from "../../hooks/useSubscription";
 import { createSubscriptionPayment } from "../../services/api";
 import { formatVnd } from "../../utils/format";
-import { COMPARISON_GROUPS, PREMIUM_BENEFITS } from "./premiumPlans";
+import { PREMIUM_BENEFITS } from "./premiumPlans";
 
 export type AdminPremiumCheckoutPageProps = {
   onBackClick: () => void;
@@ -55,7 +55,7 @@ export default function AdminPremiumCheckoutPage({
               Quay lại gói hội viên
             </button>
             <h2 className="mt-2 text-xl font-extrabold tracking-tight md:text-2xl">
-              Hoàn tất đăng ký Premium Garage
+              Hoàn tất đăng ký Gói Garage
             </h2>
             <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
               Kiểm tra quyền lợi và đơn hàng trước khi chuyển sang PayOS.
@@ -68,7 +68,7 @@ export default function AdminPremiumCheckoutPage({
             >
               workspace_premium
             </span>
-            Premium Garage
+            Gói Garage
           </span>
         </div>
 
@@ -82,7 +82,7 @@ export default function AdminPremiumCheckoutPage({
               id="premium-confirm-title"
               className="text-lg font-extrabold md:text-xl"
             >
-              Quyền lợi gói Premium Garage
+              Quyền lợi Gói Garage
             </h3>
             <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
               Thanh toán một lần qua PayOS, gói tự kích hoạt ngay khi thanh
@@ -156,7 +156,7 @@ export default function AdminPremiumCheckoutPage({
             <div className="mt-4 space-y-3 rounded-2xl bg-surface-container-low p-4 text-sm">
               <div className="flex items-start justify-between gap-3">
                 <span className="text-on-surface-variant">Gói dịch vụ</span>
-                <span className="text-right font-bold">Premium Garage</span>
+                <span className="text-right font-bold">Gói Garage</span>
               </div>
               {plan && (
                 <>
@@ -231,107 +231,6 @@ export default function AdminPremiumCheckoutPage({
           </aside>
         </div>
 
-        {/* Bảng so sánh: nhóm nội dung */}
-        <section
-          aria-labelledby="premium-compare-title"
-          className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-5 md:p-7"
-        >
-          <div className="max-w-2xl">
-            <h3
-              id="premium-compare-title"
-              className="text-lg font-extrabold md:text-xl"
-            >
-              So sánh quyền lợi
-            </h3>
-            <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
-              Khác biệt giữa hai gói nằm ở huy hiệu và vị trí hiển thị trong danh sách tìm garage.
-            </p>
-          </div>
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full min-w-[600px] border-collapse text-left text-sm">
-              <caption className="sr-only">
-                So sánh quyền lợi gói Cơ bản và Premium Garage
-              </caption>
-              <thead>
-                <tr className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
-                  <th
-                    scope="col"
-                    className="w-1/2 rounded-l-2xl bg-surface-container-low px-4 py-3"
-                  >
-                    Quyền lợi
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-1/4 bg-surface-container-low px-4 py-3 text-center"
-                  >
-                    Cơ bản
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-1/4 rounded-r-2xl bg-primary-fixed/50 px-4 py-3 text-center text-primary"
-                  >
-                    Premium
-                  </th>
-                </tr>
-              </thead>
-              {COMPARISON_GROUPS.map((group: (typeof COMPARISON_GROUPS)[number]) => (
-                <tbody key={group.title}>
-                  <tr>
-                    <th
-                      colSpan={3}
-                      scope="colgroup"
-                      className="rounded-2xl bg-surface-container-low/70 px-4 py-2.5 text-xs font-bold text-primary"
-                    >
-                      {group.title}
-                    </th>
-                  </tr>
-                  {group.rows.map((row: (typeof COMPARISON_GROUPS)[number]["rows"][number]) => (
-                    <tr
-                      key={row.label}
-                      className="transition-colors hover:bg-surface-container-low/50"
-                    >
-                      <td className="px-4 py-3 text-on-surface">{row.label}</td>
-                      <td className="px-4 py-3 text-center">
-                        {row.basic ? (
-                          <span
-                            aria-label="Có"
-                            className="material-symbols-outlined text-[20px] text-primary"
-                          >
-                            check
-                          </span>
-                        ) : (
-                          <span
-                            aria-label="Không"
-                            className="material-symbols-outlined text-[20px] text-outline"
-                          >
-                            remove
-                          </span>
-                        )}
-                      </td>
-                      <td className="bg-primary-fixed/15 px-4 py-3 text-center">
-                        {row.premium ? (
-                          <span
-                            aria-label="Có"
-                            className="material-symbols-outlined text-[20px] text-primary"
-                          >
-                            check
-                          </span>
-                        ) : (
-                          <span
-                            aria-label="Không"
-                            className="material-symbols-outlined text-[20px] text-outline"
-                          >
-                            remove
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              ))}
-            </table>
-          </div>
-        </section>
       </div>
     </div>
   );
