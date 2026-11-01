@@ -244,7 +244,7 @@ export default function AdminPremiumCheckoutPage({
               So sánh quyền lợi
             </h3>
             <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
-              Khác biệt rõ nhất giữa hai gói nằm ở quyền ưu tiên hiển thị và bộ công cụ vận hành chuyên sâu.
+              Khác biệt giữa hai gói nằm ở huy hiệu và vị trí hiển thị trong danh sách tìm garage.
             </p>
           </div>
           <div className="mt-5 overflow-x-auto">

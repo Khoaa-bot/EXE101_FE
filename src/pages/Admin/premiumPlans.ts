@@ -1,47 +1,27 @@
 export const PREMIUM_BENEFITS = [
-  "Ưu tiên hiển thị top tìm kiếm garage trong khu vực",
-  "Huy hiệu Garage Premium xác thực tăng độ uy tín",
-  "Tiếp nhận đặt lịch và điều phối nhân sự không giới hạn",
-  "Báo cáo phân tích doanh thu và hiệu suất nâng cao",
-  "Hỗ trợ tiếp thị và quảng bá chiến dịch khuyến mãi",
-  "Hỗ trợ kỹ thuật 24/7 và đường dây nóng đối tác",
+  "Huy hiệu Garage Pro trên danh sách và trang chi tiết garage",
+  "Luôn xếp đầu danh sách tìm garage khi gói còn hạn",
 ];
 
 export const COMPARISON_GROUPS = [
   {
-    title: "Hiển thị và tiếp cận khách hàng",
+    title: "Hiển thị với khách hàng",
     rows: [
-      { label: "Xuất hiện trên bản đồ tìm kiếm", basic: true, premium: true },
-      {
-        label: "Ưu tiên hiển thị top tìm kiếm khu vực",
-        basic: false,
-        premium: true,
-      },
-      {
-        label: "Huy hiệu Garage Premium được xác thực",
-        basic: false,
-        premium: true,
-      },
-      {
-        label: "Quảng bá chiến dịch khuyến mãi đến khách hàng",
-        basic: false,
-        premium: true,
-      },
+      { label: "Xuất hiện trong danh sách tìm garage", basic: true, premium: true },
+      { label: "Huy hiệu Garage Pro", basic: false, premium: true },
+      { label: "Xếp đầu danh sách tìm garage", basic: false, premium: true },
     ],
   },
   {
-    title: "Vận hành và quản lý garage",
+    title: "Vận hành garage",
     rows: [
       { label: "Tiếp nhận và quản lý lịch hẹn trực tuyến", basic: true, premium: true },
-      { label: "Điều phối kỹ thuật viên không giới hạn", basic: false, premium: true },
-      { label: "Báo cáo doanh thu và phân tích hiệu suất chuyên sâu", basic: false, premium: true },
+      { label: "Tự tạo dịch vụ và các bước thực hiện", basic: true, premium: true },
     ],
   },
   {
-    title: "Hỗ trợ và chi phí",
+    title: "Chính sách",
     rows: [
-      { label: "Phí dịch vụ ưu đãi cho garage", basic: false, premium: true },
-      { label: "Hỗ trợ kỹ thuật ưu tiên 24/7", basic: false, premium: true },
       { label: "Hoàn tiền gói trong 7 ngày dùng thử", basic: false, premium: true },
     ],
   },

@@ -51,8 +51,11 @@ export default function FindGaragePage({ onBookingClick }: FindGaragePageProps) 
           garage.address.toLowerCase().includes(query),
       );
     }
+    // Garage Pro luôn đứng trước (BE đã xếp sẵn); sắp theo đánh giá thì chỉ sắp trong từng nhóm.
     if (sortByRating) {
-      list = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+      list = [...list].sort(
+        (a, b) => Number(b.isPro ?? false) - Number(a.isPro ?? false) || (b.rating ?? 0) - (a.rating ?? 0),
+      );
     }
     return list;
   }, [garages, search, sortByRating]);
@@ -135,7 +138,9 @@ export default function FindGaragePage({ onBookingClick }: FindGaragePageProps) 
           {visibleGarages.map((garage, index) => (
             <article
               key={garage.id}
-              className="flex flex-col overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] transition-transform hover:-translate-y-0.5"
+              className={`flex flex-col overflow-hidden rounded-3xl border bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] transition-transform hover:-translate-y-0.5 ${
+                garage.isPro ? "border-primary/70" : "border-outline-variant/40"
+              }`}
             >
               <div className="relative h-[150px] bg-primary-fixed">
                 <img
@@ -143,6 +148,14 @@ export default function FindGaragePage({ onBookingClick }: FindGaragePageProps) 
                   alt=""
                   className="h-full w-full object-cover"
                 />
+                {garage.isPro && (
+                  <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-on-primary">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
+                      workspace_premium
+                    </span>
+                    Garage Pro
+                  </span>
+                )}
               </div>
               <div className="flex flex-1 flex-col gap-2.5 p-[18px]">
                 <div className="flex items-start justify-between gap-3">

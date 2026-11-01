@@ -13,7 +13,7 @@ const FAQS = [
   {
     question: "Gói Premium Garage mang lại những quyền lợi nổi bật nào?",
     answer:
-      "Garage của bạn sẽ được ưu tiên xuất hiện vị trí hàng đầu khi khách tìm kiếm trong khu vực, nhận huy hiệu xác thực Premium, mở rộng số lượng kỹ thuật viên điều phối không giới hạn, cùng các báo cáo tài chính và công cụ quản trị nâng cao.",
+      "Garage của bạn được gắn huy hiệu Garage Pro và luôn xếp đầu danh sách khi khách tìm garage, trong lúc gói còn hạn.",
   },
   {
     question: "Tôi gia hạn gói Premium Garage như thế nào?",
@@ -142,7 +142,7 @@ export default function AdminPremiumMemberPage({
               </div>
               <h3 className="relative mt-4 text-xl font-extrabold">Gói Premium Garage</h3>
               <p className="relative mt-1 text-sm leading-relaxed text-on-surface-variant">
-                Tối ưu vận hành, nâng cao doanh thu và tiếp cận tối đa khách hàng.
+                Nổi bật hơn với khách đang tìm garage.
               </p>
               {isActive && status && (
                 <p

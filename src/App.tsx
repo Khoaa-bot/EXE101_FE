@@ -731,6 +731,7 @@ function App() {
             navigate("/booking");
           }}
           onAddVehicleClick={() => navigate("/add-vehicle")}
+          onPremiumClick={() => navigate("/premium")}
         />
       </AppShell>
     );

@@ -4,6 +4,7 @@ import {
   getChatConversations,
   getChatQuota,
   getMyFleet,
+  getMySubscription,
   sendChatFeedback,
   sendChatMessage,
   type AiQuota,
@@ -14,11 +15,13 @@ import {
   type DiagnosisSeverity,
   type Vehicle,
 } from "../../services/api";
+import { AI_MESSAGES_PREMIUM } from "./premiumPlans";
 
 type DiagnosePageProps = {
   initialVehicleId: number | null;
   onBookServiceClick: (serviceId: number) => void;
   onAddVehicleClick: () => void;
+  onPremiumClick: () => void;
 };
 
 const MAX_MESSAGE = 1000;
@@ -118,7 +121,9 @@ export default function DiagnosePage({
   initialVehicleId,
   onBookServiceClick,
   onAddVehicleClick,
+  onPremiumClick,
 }: DiagnosePageProps) {
+  const [isPremium, setIsPremium] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [quota, setQuota] = useState<AiQuota | null>(null);
@@ -145,12 +150,14 @@ export default function DiagnosePage({
       // Lịch sử và số tin nhắn chỉ là thông tin phụ — lỗi thì bỏ qua, vẫn chat được.
       getChatConversations().catch(() => [] as ChatConversation[]),
       getChatQuota().catch(() => null),
+      getMySubscription().catch(() => null),
     ])
-      .then(([fleet, history, myQuota]) => {
+      .then(([fleet, history, myQuota, mySubscription]) => {
         if (cancelled) return;
         setVehicles(fleet);
         setConversations(history);
         setQuota(myQuota);
+        setIsPremium(mySubscription?.isActive ?? false);
         setSelectedVehicleId((previous) =>
           previous !== null && fleet.some((vehicle) => vehicle.id === previous)
             ? previous
@@ -490,6 +497,28 @@ export default function DiagnosePage({
           )}
 
           <form onSubmit={handleSubmit} className="border-t border-outline-variant/40 px-5 pb-4 pt-3.5">
+            {isQuotaExhausted && quota && (
+              <div role="status" className="mb-3 rounded-2xl bg-[#fff1cc] px-4 py-3 text-[13px] text-[#6b4200]">
+                <p className="font-bold">Bạn đã dùng hết {quota.limit} tin nhắn hôm nay</p>
+                <p className="mt-0.5">
+                  {isPremium
+                    ? "Hạn mức được làm mới vào ngày mai."
+                    : `Nâng cấp Premium để nhắn tới ${AI_MESSAGES_PREMIUM} tin mỗi ngày, hoặc quay lại vào ngày mai.`}
+                </p>
+                {!isPremium && (
+                  <button
+                    type="button"
+                    onClick={onPremiumClick}
+                    className="mt-2.5 inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-[13px] font-bold text-on-primary transition active:scale-[0.98]"
+                  >
+                    Xem gói Premium
+                    <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                      arrow_forward
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
             <div className="flex items-end gap-2.5">
               <textarea
                 aria-label="Nhập tin nhắn"

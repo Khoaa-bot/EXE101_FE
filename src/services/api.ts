@@ -943,6 +943,7 @@ export type Garage = {
   imageUrl?: string;
   rating?: number | null; // điểm trung bình đánh giá, null nếu chưa có
   reviewCount?: number;
+  isPro?: boolean; // chủ garage đang dùng gói Garage Pro còn hạn: hiện huy hiệu, BE xếp lên đầu danh sách
 };
 
 export type NewGaragePayload = {
