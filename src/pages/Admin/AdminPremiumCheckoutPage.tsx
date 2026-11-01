@@ -117,9 +117,9 @@ export default function AdminPremiumCheckoutPage({
                   </span>
                 </span>
                 <div>
-                  <p className="text-sm font-bold">Bảo mật chuẩn PCI-DSS</p>
+                  <p className="text-sm font-bold">Thanh toán an toàn qua PayOS</p>
                   <p className="text-xs leading-relaxed text-on-surface-variant">
-                    Thông tin giao dịch được mã hoá 256-bit an toàn.
+                    Servio không lưu thông tin thẻ hay tài khoản ngân hàng của bạn.
                   </p>
                 </div>
               </div>

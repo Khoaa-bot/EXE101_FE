@@ -117,9 +117,9 @@ export default function PremiumCheckoutPage({
                   </span>
                 </span>
                 <div>
-                  <p className="text-sm font-bold">Bảo mật chuẩn PCI-DSS</p>
+                  <p className="text-sm font-bold">Thanh toán an toàn qua PayOS</p>
                   <p className="text-xs leading-relaxed text-on-surface-variant">
-                    Thông tin giao dịch được mã hoá 256-bit.
+                    Servio không lưu thông tin thẻ hay tài khoản ngân hàng của bạn.
                   </p>
                 </div>
               </div>
@@ -244,8 +244,7 @@ export default function PremiumCheckoutPage({
               So sánh quyền lợi
             </h3>
             <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
-              Khác biệt rõ nhất giữa hai gói nằm ở quyền ưu tiên và hỗ trợ khẩn
-              cấp.
+              Khác biệt giữa hai gói nằm ở số tin nhắn AI chẩn đoán mỗi ngày.
             </p>
           </div>
           <div className="mt-5 overflow-x-auto">
@@ -293,7 +292,9 @@ export default function PremiumCheckoutPage({
                     >
                       <td className="px-4 py-3 text-on-surface">{row.label}</td>
                       <td className="px-4 py-3 text-center">
-                        {row.basic ? (
+                        {typeof row.basic === "string" ? (
+                          <span className="text-sm font-semibold">{row.basic}</span>
+                        ) : row.basic ? (
                           <span
                             aria-label="Có"
                             className="material-symbols-outlined text-[20px] text-primary"
@@ -310,7 +311,9 @@ export default function PremiumCheckoutPage({
                         )}
                       </td>
                       <td className="bg-primary-fixed/15 px-4 py-3 text-center">
-                        {row.premium ? (
+                        {typeof row.premium === "string" ? (
+                          <span className="text-sm font-bold text-primary">{row.premium}</span>
+                        ) : row.premium ? (
                           <span
                             aria-label="Có"
                             className="material-symbols-outlined text-[20px] text-primary"

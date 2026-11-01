@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useSubscription } from "../../hooks/useSubscription";
 import { formatVnd } from "../../utils/format";
-import { PREMIUM_BENEFITS } from "./premiumPlans";
+import { AI_MESSAGES_FREE, PREMIUM_BENEFITS } from "./premiumPlans";
 
 const BASIC_BENEFITS = [
   "Đặt lịch trực tuyến 24/7",
   "Theo dõi tiến độ bảo dưỡng",
   "Lịch sử dịch vụ và hoá đơn",
+  `Trợ lý AI chẩn đoán lỗi xe: ${AI_MESSAGES_FREE} tin nhắn mỗi ngày`,
 ];
 
 const FAQS = [
@@ -16,19 +17,14 @@ const FAQS = [
       "Bấm \"Gia hạn\" khi gói còn hạn. Thời hạn mới được cộng nối tiếp vào ngày hết hạn hiện tại nên bạn không mất ngày nào đã trả. Gói không tự động gia hạn.",
   },
   {
-    question: "Dịch vụ cứu hộ 24/7 hoạt động ở những khu vực nào?",
-    answer:
-      "Mạng lưới cứu hộ của Servio phủ 63 tỉnh thành, với thời gian tiếp cận trung bình dưới 35 phút tại các đô thị lớn và tuyến quốc lộ chính.",
-  },
-  {
     question: "Chính sách hoàn tiền trong 7 ngày áp dụng như thế nào?",
     answer:
-      "Trong 7 ngày đầu sau khi kích hoạt, nếu bạn chưa dùng quyền lợi cứu hộ khẩn cấp, bạn có thể liên hệ CSKH để được hoàn 100% phí gói.",
+      "Trong 7 ngày đầu sau khi kích hoạt, nếu bạn chưa hài lòng với gói, bạn có thể liên hệ CSKH để được hoàn 100% phí gói.",
   },
   {
     question: "Một gói hội viên có áp dụng cho nhiều xe cùng lúc không?",
     answer:
-      "Mỗi gói tiêu chuẩn gắn với một biển số xe. Với đội xe từ 3 chiếc trở lên, liên hệ Servio Fleet để nhận báo giá doanh nghiệp riêng.",
+      "Gói gắn với tài khoản của bạn, nên hạn mức tin nhắn AI mỗi ngày dùng chung cho tất cả xe trong tài khoản.",
   },
 ];
 
@@ -142,7 +138,7 @@ export default function PremiumMemberPage({
               </div>
               <h3 className="relative mt-4 text-xl font-extrabold">Gói Premium</h3>
               <p className="relative mt-1 text-sm leading-relaxed text-on-surface-variant">
-                Ưu tiên mọi dịch vụ, an tâm trên mọi cung đường.
+                Hỏi trợ lý AI về tình trạng xe thoải mái hơn mỗi ngày.
               </p>
               {isActive && status && (
                 <p
