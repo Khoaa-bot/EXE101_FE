@@ -23,7 +23,6 @@ import NotificationsPage from "./pages/Customer/NotificationsPage";
 import ProfilePage from "./pages/Customer/ProfilePage";
 import PremiumMemberPage from "./pages/Customer/PremiumMemberPage";
 import PremiumCheckoutPage from "./pages/Customer/PremiumCheckoutPage";
-import type { BillingCycle } from "./pages/Customer/premiumPlans";
 import DiagnosePage from "./pages/Customer/DiagnosePage";
 import RegisterPage from "./Auth/pages/RegisterPage";
 import EngineerDashboardPage from "./pages/Engineer/EngineerDashboardPage";
@@ -38,7 +37,6 @@ import PaymentResultPage from "./pages/Customer/PaymentResultPage";
 import AdminAppointmentsPage from "./pages/Admin/AdminAppointmentsPage";
 import AdminPremiumMemberPage from "./pages/Admin/AdminPremiumMemberPage";
 import AdminPremiumCheckoutPage from "./pages/Admin/AdminPremiumCheckoutPage";
-import type { BillingCycle as AdminBillingCycle } from "./pages/Admin/premiumPlans";
 import AdminShell from "./pages/Admin/AdminShell";
 import ReceptionDashboardPage from "./pages/Reception/ReceptionDashboardPage";
 import ReceptionSchedulePage from "./pages/Reception/ReceptionSchedulePage";
@@ -119,7 +117,7 @@ const roleRoutes: Record<string, Set<string>> = {
   // backend, đã đổi tên). "admin" giờ là Super Admin toàn hệ thống.
   GARAGE_OWNER: new Set([
     "/admin", "/admin/customers", "/admin/engineers", "/admin/pricing", "/admin/garage", "/admin/reviews", "/admin/appointments",
-    "/admin/premium", "/admin/premium/checkout",
+    "/admin/premium", "/admin/premium/checkout", "/payment-result",
   ]),
   ADMIN: new Set(["/super-admin"]),
   ENGINEER: new Set([
@@ -247,10 +245,6 @@ function App() {
   }, [isAuthenticated, navigate]);
 
   const [appointmentId, setAppointmentId] = useState<string>("1");
-  const [premiumBillingCycle, setPremiumBillingCycle] =
-    useState<BillingCycle>("monthly");
-  const [adminPremiumBillingCycle, setAdminPremiumBillingCycle] =
-    useState<AdminBillingCycle>("yearly");
 
   const previewAdminProps = {
     onDashboardClick: () => navigate("/preview/admin"),
@@ -308,7 +302,6 @@ function App() {
         {...previewAdminProps}
       >
         <AdminPremiumCheckoutPage
-          billingCycle={adminPremiumBillingCycle}
           onBackClick={() => navigate("/preview/admin/premium")}
         />
       </AdminShell>
@@ -324,8 +317,6 @@ function App() {
         {...previewAdminProps}
       >
         <AdminPremiumMemberPage
-          billingCycle={adminPremiumBillingCycle}
-          onBillingCycleChange={setAdminPremiumBillingCycle}
           onCheckoutClick={() => navigate("/preview/admin/premium/checkout")}
         />
       </AdminShell>
@@ -550,7 +541,6 @@ function App() {
         {...adminProps}
       >
         <AdminPremiumCheckoutPage
-          billingCycle={adminPremiumBillingCycle}
           onBackClick={() => navigate("/admin/premium")}
         />
       </AdminShell>
@@ -566,8 +556,6 @@ function App() {
         {...adminProps}
       >
         <AdminPremiumMemberPage
-          billingCycle={adminPremiumBillingCycle}
-          onBillingCycleChange={setAdminPremiumBillingCycle}
           onCheckoutClick={() => navigate("/admin/premium/checkout")}
         />
       </AdminShell>
@@ -708,7 +696,6 @@ function App() {
     return (
       <AppShell active="premium" title="Thanh toán hội viên" {...shellProps}>
         <PremiumCheckoutPage
-          billingCycle={premiumBillingCycle}
           onBackClick={() => navigate("/premium")}
         />
       </AppShell>
@@ -719,8 +706,6 @@ function App() {
     return (
       <AppShell active="premium" title="Hội viên Premium" {...shellProps}>
         <PremiumMemberPage
-          billingCycle={premiumBillingCycle}
-          onBillingCycleChange={setPremiumBillingCycle}
           onCheckoutClick={() => navigate("/premium/checkout")}
         />
       </AppShell>
@@ -799,7 +784,7 @@ function App() {
   if (routePath === "/payment-result") {
     return (
       <PaymentResultPage
-        onHomeClick={() => navigate("/home", true)}
+        onHomeClick={() => navigate(defaultHome[role] || "/home", true)}
       />
     );
   }

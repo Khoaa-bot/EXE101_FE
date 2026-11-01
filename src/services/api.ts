@@ -1604,6 +1604,58 @@ export function getVideoCallInfo(appointmentId: number | string) {
   return apiRequest<VideoCallInfo>(`/appointments/${appointmentId}/video-call`);
 }
 
+// Gói hội viên đang bán. effectivePrice là số tiền thực tế phải trả (đã trừ khuyến mãi nếu có).
+export type SubscriptionPlan = {
+  id: number;
+  planCode: string;
+  name: string;
+  description: string | null;
+  price: number;
+  discountedPrice: number | null;
+  effectivePrice: number;
+  durationDays: number;
+  isActive: boolean;
+  forGarage: boolean;
+};
+
+// GET /api/payment/subscription-plans?forGarage= — gói của khách (false) hoặc của garage (true).
+export function getSubscriptionPlans(forGarage: boolean) {
+  return apiRequest<SubscriptionPlan[]>("/payment/subscription-plans", {
+    query: { forGarage: String(forGarage) },
+  });
+}
+
+export type MySubscription = {
+  subscriptionType: string;
+  isActive: boolean;
+  subscriptionExpiresAt: string | null;
+  subscriptionDaysRemaining: number;
+  formattedExpiresAt: string | null;
+  statusDescription: string;
+};
+
+// GET /api/payment/my-subscription — gói người dùng đang có và số ngày còn lại.
+export function getMySubscription() {
+  return apiRequest<MySubscription>("/payment/my-subscription");
+}
+
+export type SubscriptionPayment = {
+  status: string;
+  message: string;
+  paymentUrl: string;
+  qrCode: string | null;
+  orderCode: number;
+};
+
+// POST /api/payment/subscribe-premium?planCode= — tạo link thanh toán PayOS cho gói. Gói đang còn hạn
+// được cộng nối tiếp thời hạn mới sau khi thanh toán thành công.
+export function createSubscriptionPayment(planCode: string) {
+  return apiRequest<SubscriptionPayment>("/payment/subscribe-premium", {
+    method: "POST",
+    query: { planCode },
+  });
+}
+
 export type PaymentReturnResult = {
   success: boolean;
   message: string;

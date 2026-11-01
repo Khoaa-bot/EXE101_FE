@@ -1,34 +1,3 @@
-export type BillingCycle = "monthly" | "yearly";
-
-export const PREMIUM_MONTHLY = 499000;
-export const YEARLY_MONTHS = 12;
-export const YEARLY_DISCOUNT = 0.2;
-
-export type PremiumPricing = {
-  original: number;
-  total: number;
-  saving: number;
-  monthlyEquivalent: number;
-};
-
-export function getPremiumPricing(cycle: BillingCycle): PremiumPricing {
-  const original =
-    cycle === "yearly" ? PREMIUM_MONTHLY * YEARLY_MONTHS : PREMIUM_MONTHLY;
-  const total =
-    cycle === "yearly"
-      ? Math.round(original * (1 - YEARLY_DISCOUNT))
-      : original;
-
-  return {
-    original,
-    total,
-    saving: original - total,
-    monthlyEquivalent: Math.round(
-      total / (cycle === "yearly" ? YEARLY_MONTHS : 1),
-    ),
-  };
-}
-
 export const PREMIUM_BENEFITS = [
   "Ưu tiên hiển thị top tìm kiếm garage trong khu vực",
   "Huy hiệu Garage Premium xác thực tăng độ uy tín",
@@ -65,7 +34,6 @@ export const COMPARISON_GROUPS = [
     rows: [
       { label: "Tiếp nhận và quản lý lịch hẹn trực tuyến", basic: true, premium: true },
       { label: "Điều phối kỹ thuật viên không giới hạn", basic: false, premium: true },
-      { label: "Quản lý kho phụ tùng và xuất nhập tồn nâng cao", basic: false, premium: true },
       { label: "Báo cáo doanh thu và phân tích hiệu suất chuyên sâu", basic: false, premium: true },
     ],
   },
