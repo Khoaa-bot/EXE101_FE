@@ -25,6 +25,47 @@ const NAV_ITEMS = [
   { label: "Liên hệ", href: "#lien-he" },
 ];
 
+// Các cột liên kết ở chân trang. Chính sách và Hỗ trợ đang để "#": thay bằng đường dẫn thật.
+const FOOTER_LINK_GROUPS = [
+  [
+    { label: "Chính sách", href: "#" },
+    { label: "Về chúng tôi", href: "#gioi-thieu" },
+  ],
+  [
+    { label: "Liên hệ", href: "#lien-he" },
+    { label: "Hỗ trợ", href: "#" },
+  ],
+];
+
+const SOCIAL_LINKS = [
+  {
+    label: "TikTok",
+    href: "https://www.tiktok.com/@servio579?_r=1&_t=ZS-9B0iT1mJH9D",
+    icon: "tiktok",
+  },
+  {
+    label: "Facebook",
+    href: "https://www.facebook.com/share/1F3go9c3C4/",
+    icon: "facebook",
+  },
+] as const;
+
+function SocialIcon({ name }: { name: (typeof SOCIAL_LINKS)[number]["icon"] }) {
+  if (name === "tiktok") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+        <path d="M15.7 3c.2 1.6 1.1 2.9 2.6 3.7.6.3 1.3.5 2 .5v3.1c-1.5 0-2.9-.4-4.1-1.1v5.9c0 3.7-2.9 5.9-6.2 5.9-2.8 0-5.4-2-5.4-5.1 0-3.3 2.8-5.4 6.1-5.1v3.2c-1.7-.3-2.9.6-2.9 1.9 0 1.1.9 1.9 2.1 1.9 1.5 0 3.1-.9 3.1-3.3V3h2.7Z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+      <path d="M13.5 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.5 1.6-1.5h1.7V4c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.5-4 4.1V10H7.7v3h2.7v8h3.1Z" />
+    </svg>
+  );
+}
+
 const SLIDES = [
   {
     title: "Chăm sóc xe chuyên nghiệp,",
@@ -721,51 +762,107 @@ export default function LandingPage({
 
       <WebFeedbackSection onLoginClick={onLoginClick} />
 
-      <section
+      <footer
         id="lien-he"
         className="scroll-mt-4 bg-gradient-to-br from-[#0b0d11] via-[#161a20] to-[#0a3a7a] py-20 text-white"
       >
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-lg text-center">
-          <h2 className="text-[30px] font-extrabold tracking-tight md:text-[36px]">
-            Sẵn sàng chăm sóc xe của bạn?
-          </h2>
-          <p className="max-w-[36rem] text-white/85">
-            Tạo tài khoản miễn phí để đặt lịch với garage gần bạn, hoặc đăng nhập nếu bạn đã có
-            tài khoản.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            {onGoToApp ? (
-              <button
-                type="button"
-                onClick={onGoToApp}
-                className="min-h-12 rounded-full bg-white px-8 text-sm font-bold text-primary"
-              >
-                Vào ứng dụng
-              </button>
-            ) : (
-              <>
+        <div className="mx-auto max-w-6xl px-lg">
+          <div className="flex flex-col items-center gap-8 text-center md:flex-row md:items-center md:justify-between md:gap-12 md:text-left">
+            <div className="max-w-[36rem]">
+              <h2 className="text-[30px] font-extrabold tracking-tight md:text-[36px]">
+                Sẵn sàng chăm sóc xe của bạn?
+              </h2>
+              <p className="mt-3 text-white/85">
+                Tạo tài khoản miễn phí để đặt lịch với garage gần bạn, hoặc đăng nhập nếu bạn đã có
+                tài khoản.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap justify-center gap-3 md:justify-end">
+              {onGoToApp ? (
                 <button
                   type="button"
-                  onClick={onRegisterClick}
+                  onClick={onGoToApp}
                   className="min-h-12 rounded-full bg-white px-8 text-sm font-bold text-primary"
                 >
-                  Đăng ký ngay
+                  Vào ứng dụng
                 </button>
-                <button
-                  type="button"
-                  onClick={onLoginClick}
-                  className="min-h-12 rounded-full border border-white/70 px-8 text-sm font-bold hover:bg-white/15"
-                >
-                  Đăng nhập
-                </button>
-              </>
-            )}
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={onRegisterClick}
+                    className="min-h-12 rounded-full bg-white px-8 text-sm font-bold text-primary"
+                  >
+                    Đăng ký ngay
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onLoginClick}
+                    className="min-h-12 rounded-full border border-white/70 px-8 text-sm font-bold hover:bg-white/15"
+                  >
+                    Đăng nhập
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-          <p className="mt-6 text-xs text-white/70">
-            {CONTACT.email} · © Servio. Tất cả quyền được bảo lưu.
-          </p>
         </div>
-      </section>
+
+        <div className="mx-auto mt-16 max-w-6xl px-lg">
+          <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
+            <a href="#trang-chu" className="flex flex-col gap-1">
+              <span className="flex items-center gap-sm">
+                <span aria-hidden="true" className="material-symbols-outlined text-[32px]">
+                  electric_car
+                </span>
+                <span className="text-headline-lg font-extrabold tracking-tight">Servio</span>
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-widest text-white/85">
+                Nền tảng chăm sóc xe
+              </span>
+            </a>
+
+            <nav aria-label="Liên kết chân trang" className="flex gap-12 md:gap-16">
+              {FOOTER_LINK_GROUPS.map((group, i) => (
+                <ul key={i} className="flex flex-col gap-1.5">
+                  {group.map((link) => (
+                    <li key={link.label}>
+                      <a
+                        href={link.href}
+                        className="text-sm font-semibold uppercase tracking-wide text-white/90 transition-colors hover:text-white"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ))}
+            </nav>
+          </div>
+
+          <div className="mt-10 border-t border-white/30" />
+
+          <div className="mt-10 flex flex-col items-center gap-5">
+            <div className="flex items-center gap-3">
+              {SOCIAL_LINKS.map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={social.label}
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/70 text-white/90 transition hover:border-white hover:bg-white/10 hover:text-white"
+                >
+                  <SocialIcon name={social.icon} />
+                </a>
+              ))}
+            </div>
+            <p className="text-center text-xs text-white/80">
+              {CONTACT.email} · © Servio. Tất cả quyền được bảo lưu.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
