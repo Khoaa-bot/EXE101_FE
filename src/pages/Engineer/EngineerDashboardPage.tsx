@@ -118,7 +118,7 @@ export default function EngineerDashboardPage({
               <section className="mt-6 grid gap-4 sm:grid-cols-3">
                 <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] p-5">
                   <p className="text-xs font-semibold uppercase text-outline">
-                    ĐƯỢC PHÂN CÔNG
+                    XE ĐANG CHỜ
                   </p>
                   <p className="mt-2 text-3xl font-extrabold tracking-tight">
                     {visibleAppointments.length} xe
@@ -219,6 +219,17 @@ export default function EngineerDashboardPage({
                               play_arrow
                             </span>
                             Bắt đầu xử lý
+                          </button>
+                        ) : status === "in_progress" ? (
+                          <button
+                            type="button"
+                            onClick={() => onJobDetailClick?.(String(job.id))}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-primary-container/20 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-container/35 active:scale-[0.98]"
+                          >
+                            <span className="material-symbols-outlined text-base">
+                              build
+                            </span>
+                            Tiếp tục xử lý
                           </button>
                         ) : (
                           <span className="rounded-full bg-surface-container-high px-3 py-1 text-xs font-semibold text-on-surface-variant">
