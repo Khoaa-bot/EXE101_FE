@@ -919,6 +919,36 @@ export function searchReceptionCustomers(query: string) {
   return apiRequest<CustomerSearchResult[]>("/reception/customers/search", { query: { q: query } });
 }
 
+export type WalkInCustomerPayload = {
+  fullName: string;
+  phone: string;
+  email?: string;
+  // Lễ tân nhập để khách dễ nhớ (tối thiểu 6 ký tự); bỏ trống thì BE tự sinh.
+  temporaryPassword?: string;
+  vehicle: {
+    model: string;
+    licensePlate: string;
+    vin: string;
+    odometer?: number;
+  };
+};
+
+export type WalkInCustomerResult = {
+  customerId: number;
+  fullName: string;
+  username: string; // = số điện thoại
+  phone: string;
+  temporaryPassword: string; // chỉ hiện một lần
+  vehicleId: number;
+  vehicleModel: string | null;
+  vehicleLicensePlate: string | null;
+};
+
+// POST /api/reception/customers — lễ tân tạo nhanh tài khoản khách và xe tại quầy (chỉ lễ tân).
+export function createWalkInCustomer(payload: WalkInCustomerPayload) {
+  return apiRequest<WalkInCustomerResult>("/reception/customers", { method: "POST", body: payload });
+}
+
 export function updateReceptionAppointmentStatus(
   appointmentId: number | string,
   payload: ReceptionAppointmentStatusPayload,
