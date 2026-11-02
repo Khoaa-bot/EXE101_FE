@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useDialogA11y } from "../../hooks/useDialogA11y";
+import { useMySubscription } from "../../hooks/useSubscription";
 import BrandLink from "../../components/BrandLink";
 import VideoCallHost from "../../components/VideoCallHost";
+import type { MySubscription } from "../../services/api";
 
 export type AdminTabKey =
   | "dashboard"
@@ -9,10 +11,9 @@ export type AdminTabKey =
   | "customers"
   | "appointments"
   | "reviews"
-  | "inventory"
   | "pricing"
+  | "reports"
   | "garage"
-  | "wallet"
   | "premium";
 
 export interface AdminNavProps {
@@ -21,10 +22,9 @@ export interface AdminNavProps {
   onCustomersClick?: () => void;
   onAppointmentsClick?: () => void;
   onReviewsClick?: () => void;
-  onInventoryClick?: () => void;
   onPricingClick?: () => void;
+  onReportsClick?: () => void;
   onGarageClick?: () => void;
-  onWalletClick?: () => void;
   onPremiumClick?: () => void;
   onLogout?: () => void;
 }
@@ -87,16 +87,16 @@ const ADMIN_TABS: {
     description: "Xem và phản hồi đánh giá của khách tại garage.",
   },
   {
-    key: "inventory",
-    icon: "inventory_2",
-    label: "Kho linh kiện",
-    description: "Kiểm kê, xuất nhập tồn linh kiện và phụ tùng tại garage.",
-  },
-  {
     key: "pricing",
     icon: "payments",
     label: "Bảng giá",
     description: "Bảng giá dịch vụ bảo dưỡng và sửa chữa do garage cung cấp.",
+  },
+  {
+    key: "reports",
+    icon: "bar_chart",
+    label: "Báo cáo",
+    description: "Doanh thu, dịch vụ bán chạy, khung giờ đông và hiệu suất kỹ thuật viên trong 12 tháng.",
   },
   {
     key: "garage",
@@ -105,16 +105,10 @@ const ADMIN_TABS: {
     description: "Cập nhật hồ sơ, số điện thoại, địa chỉ và hình ảnh garage.",
   },
   {
-    key: "wallet",
-    icon: "account_balance_wallet",
-    label: "Ví garage",
-    description: "Số dư ví, yêu cầu rút tiền về tài khoản ngân hàng và lịch sử giao dịch.",
-  },
-  {
     key: "premium",
     icon: "workspace_premium",
     label: "Gói Premium",
-    description: "Nâng cấp gói hội viên garage để tiếp cận nhiều khách hàng và tính năng cao cấp.",
+    description: "Gói duy trì hoạt động của garage trên Servio: nhận lịch từ khách, báo cáo và nhân viên không giới hạn.",
   },
 ];
 
@@ -176,6 +170,71 @@ export function StatusPill({
   );
 }
 
+// Banner trạng thái gói trên đầu mọi trang quản trị của Admin Garage.
+function PlanBanner({
+  subscription,
+  showAction,
+  onActionClick,
+}: {
+  subscription: MySubscription;
+  showAction: boolean;
+  onActionClick?: () => void;
+}) {
+  const expiry = subscription.formattedExpiresAt?.split(" ")[0] ?? "";
+  const days = subscription.subscriptionDaysRemaining;
+
+  let tone = "bg-[#d9f7dd] text-[#00531a]";
+  let icon = "check_circle";
+  let text: ReactNode = (
+    <>
+      Gói còn {days} ngày · hết hạn {expiry}
+    </>
+  );
+  let actionLabel = "Gia hạn";
+  if (!subscription.isActive) {
+    tone = "bg-error-container text-error";
+    icon = "lock";
+    text = (
+      <>
+        <b>Gói đã hết hạn.</b> Garage đang ẩn khỏi danh sách và không nhận lịch mới. Lịch đã có vẫn xử lý được.
+      </>
+    );
+    actionLabel = "Đăng ký gói";
+  } else if (subscription.isTrial) {
+    tone = "bg-[#fff1cc] text-[#6b4200]";
+    icon = "schedule";
+    text = (
+      <>
+        <b>Dùng thử còn {days} ngày</b> · hết hạn {expiry}. Sau đó garage ngừng nhận lịch mới.
+      </>
+    );
+    actionLabel = "Đăng ký gói";
+  }
+
+  return (
+    <div
+      role="status"
+      className={`mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm ${tone}`}
+    >
+      <span className="flex items-start gap-2">
+        <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
+          {icon}
+        </span>
+        <span>{text}</span>
+      </span>
+      {showAction && onActionClick && (
+        <button
+          type="button"
+          onClick={onActionClick}
+          className="min-h-9 shrink-0 rounded-xl bg-primary px-3.5 text-[13px] font-bold text-on-primary transition active:scale-[0.98]"
+        >
+          {actionLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function AdminShell({
   activeTab,
   title,
@@ -189,10 +248,9 @@ export default function AdminShell({
   onCustomersClick,
   onAppointmentsClick,
   onReviewsClick,
-  onInventoryClick,
   onPricingClick,
+  onReportsClick,
   onGarageClick,
-  onWalletClick,
   onPremiumClick,
   onLogout,
   navigationItems,
@@ -201,6 +259,11 @@ export default function AdminShell({
 }: AdminShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
+
+  // Garage không có gói miễn phí: chỉ Admin Garage (menu mặc định, không phải Super Admin) mới có banner gói và bị khoá khi hết hạn.
+  const subscription = useMySubscription(!navigationItems);
+  const isGarageOwner = !navigationItems && subscription?.role?.toLowerCase() === "garage_owner";
+  const isLapsed = isGarageOwner && !subscription?.isActive;
 
   useEffect(() => {
     document.body.classList.toggle("overflow-hidden", isSidebarOpen);
@@ -213,6 +276,10 @@ export default function AdminShell({
     setIsSidebarOpen(false);
     if (onNavigationItemClick) {
       onNavigationItemClick(key);
+      return;
+    }
+    if (isLapsed && key !== "premium") {
+      onPremiumClick?.();
       return;
     }
 
@@ -232,17 +299,14 @@ export default function AdminShell({
       case "reviews":
         onReviewsClick?.();
         break;
-      case "inventory":
-        onInventoryClick?.();
-        break;
       case "pricing":
         onPricingClick?.();
         break;
+      case "reports":
+        onReportsClick?.();
+        break;
       case "garage":
         onGarageClick?.();
-        break;
-      case "wallet":
-        onWalletClick?.();
         break;
       case "premium":
         onPremiumClick?.();
@@ -295,6 +359,7 @@ export default function AdminShell({
         <nav className="space-y-1">
           {displayedNavigationItems.map((t) => {
             const isCurrent = activeTab === t.key;
+            const isLocked = isLapsed && t.key !== "premium";
             return (
               <button
                 key={t.key}
@@ -303,7 +368,7 @@ export default function AdminShell({
                   isCurrent
                     ? "bg-primary-container/15 font-semibold text-primary"
                     : "text-on-surface-variant hover:bg-surface-container-low"
-                }`}
+                } ${isLocked ? "opacity-40" : ""}`}
                 type="button"
               >
                 <span className="material-symbols-outlined">{t.icon}</span>
@@ -347,12 +412,42 @@ export default function AdminShell({
                   {description}
                 </p>
               </div>
-              {headerAction && <div>{headerAction}</div>}
+              {headerAction && !(isLapsed && activeTab !== "premium") && <div>{headerAction}</div>}
             </div>
           </div>
 
-          {/* Children View */}
-          <div className="mt-6">{children}</div>
+          {/* Trạng thái gói của garage: dùng thử, còn hạn hoặc đã hết hạn */}
+          {isGarageOwner && subscription && (
+            <PlanBanner
+              subscription={subscription}
+              showAction={activeTab !== "premium"}
+              onActionClick={onPremiumClick}
+            />
+          )}
+
+          {/* Children View: gói hết hạn thì mọi trang quản trị (trừ trang gói) chỉ hiện thông báo khoá */}
+          <div className="mt-6">
+            {isLapsed && activeTab !== "premium" ? (
+              <div className="rounded-2xl border border-dashed border-outline-variant px-6 py-10 text-center">
+                <span aria-hidden="true" className="material-symbols-outlined text-[32px] text-on-surface-variant">
+                  lock
+                </span>
+                <p className="mt-2 font-bold">Chỉ còn trang Gói Premium</p>
+                <p className="mx-auto mt-1 max-w-md text-sm text-on-surface-variant">
+                  Các trang quản trị khác bị khoá cho tới khi bạn đăng ký gói.
+                </p>
+                <button
+                  type="button"
+                  onClick={onPremiumClick}
+                  className="mt-4 min-h-11 rounded-xl bg-primary px-5 text-sm font-bold text-on-primary transition active:scale-[0.98]"
+                >
+                  Đăng ký gói
+                </button>
+              </div>
+            ) : (
+              children
+            )}
+          </div>
         </div>
       </main>
 

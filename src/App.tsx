@@ -6,8 +6,8 @@ import AddVehiclePage from "./pages/Customer/AddVehiclePage";
 import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
 import AdminCustomersPage from "./pages/Admin/AdminCustomersPage";
 import AdminEngineersPage from "./pages/Admin/AdminEngineersPage";
-import AdminInventoryPage from "./pages/Admin/AdminInventoryPage";
 import AdminPricingPage from "./pages/Admin/AdminPricingPage";
+import AdminReportsPage from "./pages/Admin/AdminReportsPage";
 import AdminGaragePage from "./pages/Admin/AdminGaragePage";
 import AdminReviewsPage from "./pages/Admin/AdminReviewsPage";
 import SuperAdminDashboardPage from "./pages/SuperAdmin/SuperAdminDashboardPage";
@@ -22,10 +22,8 @@ import LandingPage from "./Landing/pages/LandingPage";
 import ForgotPasswordPage from "./Auth/pages/ForgotPasswordPage";
 import NotificationsPage from "./pages/Customer/NotificationsPage";
 import ProfilePage from "./pages/Customer/ProfilePage";
-import WalletPage from "./pages/Customer/WalletPage";
 import PremiumMemberPage from "./pages/Customer/PremiumMemberPage";
 import PremiumCheckoutPage from "./pages/Customer/PremiumCheckoutPage";
-import type { BillingCycle } from "./pages/Customer/premiumPlans";
 import DiagnosePage from "./pages/Customer/DiagnosePage";
 import RegisterPage from "./Auth/pages/RegisterPage";
 import EngineerDashboardPage from "./pages/Engineer/EngineerDashboardPage";
@@ -37,11 +35,9 @@ import TrackingPage from "./pages/Customer/TrackingPage";
 import FindGaragePage from "./pages/Customer/FindGaragePage";
 import GarageDetailPage from "./pages/Customer/GarageDetailPage";
 import PaymentResultPage from "./pages/Customer/PaymentResultPage";
-import AdminWalletPage from "./pages/Admin/AdminWalletPage";
 import AdminAppointmentsPage from "./pages/Admin/AdminAppointmentsPage";
 import AdminPremiumMemberPage from "./pages/Admin/AdminPremiumMemberPage";
 import AdminPremiumCheckoutPage from "./pages/Admin/AdminPremiumCheckoutPage";
-import type { BillingCycle as AdminBillingCycle } from "./pages/Admin/premiumPlans";
 import AdminShell from "./pages/Admin/AdminShell";
 import ReceptionDashboardPage from "./pages/Reception/ReceptionDashboardPage";
 import ReceptionSchedulePage from "./pages/Reception/ReceptionSchedulePage";
@@ -61,7 +57,6 @@ const appRoutes = new Set([
   "/notifications",
   "/tracking",
   "/profile",
-  "/wallet",
   "/premium",
   "/premium/checkout",
   "/add-vehicle",
@@ -73,10 +68,9 @@ const appRoutes = new Set([
   "/admin",
   "/admin/customers",
   "/admin/engineers",
-  "/admin/inventory",
   "/admin/pricing",
+  "/admin/reports",
   "/admin/garage",
-  "/admin/wallet",
   "/admin/appointments",
   "/admin/reviews",
   "/admin/premium",
@@ -104,7 +98,6 @@ const publicRoutes = new Set([
   "/preview/admin",
   "/preview/admin/customers",
   "/preview/admin/engineers",
-  "/preview/admin/inventory",
   "/preview/admin/pricing",
   "/preview/admin/premium",
   "/preview/admin/premium/checkout",
@@ -125,8 +118,8 @@ const roleRoutes: Record<string, Set<string>> = {
   // "garage_owner" = admin của 1 garage (trước đây gọi là "admin" bên
   // backend, đã đổi tên). "admin" giờ là Super Admin toàn hệ thống.
   GARAGE_OWNER: new Set([
-    "/admin", "/admin/customers", "/admin/engineers", "/admin/inventory", "/admin/pricing", "/admin/garage", "/admin/wallet", "/admin/reviews", "/admin/appointments",
-    "/admin/premium", "/admin/premium/checkout",
+    "/admin", "/admin/customers", "/admin/engineers", "/admin/pricing", "/admin/reports", "/admin/garage", "/admin/reviews", "/admin/appointments",
+    "/admin/premium", "/admin/premium/checkout", "/payment-result",
   ]),
   ADMIN: new Set(["/super-admin"]),
   ENGINEER: new Set([
@@ -138,7 +131,7 @@ const roleRoutes: Record<string, Set<string>> = {
     "/reception/appointments/new", "/reception/appointments/detail", "/reception/customers",
   ]),
   CUSTOMER: new Set([
-    "/home", "/history", "/notifications", "/tracking", "/profile", "/wallet",
+    "/home", "/history", "/notifications", "/tracking", "/profile",
     "/premium", "/premium/checkout",
     "/add-vehicle", "/diagnose", "/booking", "/find-garage", "/garage-detail", "/payment-result",
   ]),
@@ -254,16 +247,11 @@ function App() {
   }, [isAuthenticated, navigate]);
 
   const [appointmentId, setAppointmentId] = useState<string>("1");
-  const [premiumBillingCycle, setPremiumBillingCycle] =
-    useState<BillingCycle>("monthly");
-  const [adminPremiumBillingCycle, setAdminPremiumBillingCycle] =
-    useState<AdminBillingCycle>("yearly");
 
   const previewAdminProps = {
     onDashboardClick: () => navigate("/preview/admin"),
     onCustomersClick: () => navigate("/preview/admin/customers"),
     onEngineersClick: () => navigate("/preview/admin/engineers"),
-    onInventoryClick: () => navigate("/preview/admin/inventory"),
     onPricingClick: () => navigate("/preview/admin/pricing"),
     onPremiumClick: () => navigate("/preview/admin/premium"),
     onLogout: () => navigate("/login"),
@@ -303,10 +291,6 @@ function App() {
     return <AdminEngineersPage {...previewAdminProps} />;
   }
 
-  if (routePath === "/preview/admin/inventory") {
-    return <AdminInventoryPage {...previewAdminProps} />;
-  }
-
   if (routePath === "/preview/admin/pricing") {
     return <AdminPricingPage {...previewAdminProps} />;
   }
@@ -315,12 +299,11 @@ function App() {
     return (
       <AdminShell
         activeTab="premium"
-        title="Thanh toán gói Premium"
-        description="Xác nhận gói hội viên và chu kỳ thanh toán dành cho garage."
+        title="Thanh toán gói Garage"
+        description="Xác nhận gói và thanh toán qua PayOS."
         {...previewAdminProps}
       >
         <AdminPremiumCheckoutPage
-          billingCycle={adminPremiumBillingCycle}
           onBackClick={() => navigate("/preview/admin/premium")}
         />
       </AdminShell>
@@ -331,13 +314,11 @@ function App() {
     return (
       <AdminShell
         activeTab="premium"
-        title="Gói hội viên Premium"
-        description="Nâng cấp gói dịch vụ để tối ưu hoá vận hành garage và nhận nhiều ưu đãi độc quyền."
+        title="Gói Garage"
+        description="Gói duy trì hoạt động của garage trên Servio."
         {...previewAdminProps}
       >
         <AdminPremiumMemberPage
-          billingCycle={adminPremiumBillingCycle}
-          onBillingCycleChange={setAdminPremiumBillingCycle}
           onCheckoutClick={() => navigate("/preview/admin/premium/checkout")}
         />
       </AdminShell>
@@ -478,10 +459,9 @@ function App() {
     onDashboardClick: () => navigate("/admin"),
     onCustomersClick: () => navigate("/admin/customers"),
     onEngineersClick: () => navigate("/admin/engineers"),
-    onInventoryClick: () => navigate("/admin/inventory"),
     onPricingClick: () => navigate("/admin/pricing"),
+    onReportsClick: () => navigate("/admin/reports"),
     onGarageClick: () => navigate("/admin/garage"),
-    onWalletClick: () => navigate("/admin/wallet"),
     onAppointmentsClick: () => navigate("/admin/appointments"),
     onReviewsClick: () => navigate("/admin/reviews"),
     onPremiumClick: () => navigate("/admin/premium"),
@@ -539,12 +519,12 @@ function App() {
     return <AdminEngineersPage {...adminProps} />;
   }
 
-  if (routePath === "/admin/inventory") {
-    return <AdminInventoryPage {...adminProps} />;
-  }
-
   if (routePath === "/admin/pricing") {
     return <AdminPricingPage {...adminProps} />;
+  }
+
+  if (routePath === "/admin/reports") {
+    return <AdminReportsPage {...adminProps} />;
   }
 
   if (routePath === "/admin/garage") {
@@ -555,10 +535,6 @@ function App() {
     return <AdminAppointmentsPage {...adminProps} />;
   }
 
-  if (routePath === "/admin/wallet") {
-    return <AdminWalletPage {...adminProps} />;
-  }
-
   if (routePath === "/admin/reviews") {
     return <AdminReviewsPage {...adminProps} />;
   }
@@ -567,12 +543,11 @@ function App() {
     return (
       <AdminShell
         activeTab="premium"
-        title="Thanh toán gói Premium"
-        description="Xác nhận gói hội viên và chu kỳ thanh toán dành cho garage."
+        title="Thanh toán gói Garage"
+        description="Xác nhận gói và thanh toán qua PayOS."
         {...adminProps}
       >
         <AdminPremiumCheckoutPage
-          billingCycle={adminPremiumBillingCycle}
           onBackClick={() => navigate("/admin/premium")}
         />
       </AdminShell>
@@ -583,13 +558,11 @@ function App() {
     return (
       <AdminShell
         activeTab="premium"
-        title="Gói hội viên Premium"
-        description="Nâng cấp gói dịch vụ để tối ưu hoá vận hành garage và nhận nhiều ưu đãi độc quyền."
+        title="Gói Garage"
+        description="Gói duy trì hoạt động của garage trên Servio."
         {...adminProps}
       >
         <AdminPremiumMemberPage
-          billingCycle={adminPremiumBillingCycle}
-          onBillingCycleChange={setAdminPremiumBillingCycle}
           onCheckoutClick={() => navigate("/admin/premium/checkout")}
         />
       </AdminShell>
@@ -713,7 +686,6 @@ function App() {
         <ProfilePage
           onHomeClick={shellProps.onHomeClick}
           onAddVehicleClick={() => navigate("/add-vehicle")}
-          onWalletClick={() => navigate("/wallet")}
           onBookingClick={openBooking}
           onDiagnoseClick={(vehicleId) => {
             setDiagnoseVehicleId(vehicleId);
@@ -727,19 +699,10 @@ function App() {
     );
   }
 
-  if (routePath === "/wallet") {
-    return (
-      <AppShell active="profile" title="Ví Servio" {...shellProps}>
-        <WalletPage />
-      </AppShell>
-    );
-  }
-
   if (routePath === "/premium/checkout") {
     return (
       <AppShell active="premium" title="Thanh toán hội viên" {...shellProps}>
         <PremiumCheckoutPage
-          billingCycle={premiumBillingCycle}
           onBackClick={() => navigate("/premium")}
         />
       </AppShell>
@@ -750,8 +713,6 @@ function App() {
     return (
       <AppShell active="premium" title="Hội viên Premium" {...shellProps}>
         <PremiumMemberPage
-          billingCycle={premiumBillingCycle}
-          onBillingCycleChange={setPremiumBillingCycle}
           onCheckoutClick={() => navigate("/premium/checkout")}
         />
       </AppShell>
@@ -777,6 +738,7 @@ function App() {
             navigate("/booking");
           }}
           onAddVehicleClick={() => navigate("/add-vehicle")}
+          onPremiumClick={() => navigate("/premium")}
         />
       </AppShell>
     );
@@ -830,8 +792,7 @@ function App() {
   if (routePath === "/payment-result") {
     return (
       <PaymentResultPage
-        onHomeClick={() => navigate("/home", true)}
-        onTrackingClick={() => navigate("/tracking", true)}
+        onHomeClick={() => navigate(defaultHome[role] || "/home", true)}
       />
     );
   }

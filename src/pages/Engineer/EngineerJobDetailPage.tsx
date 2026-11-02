@@ -2,7 +2,6 @@ import StaffShell from "../../components/StaffShell";
 import { useEffect, useRef, useState } from "react";
 import { useDialogA11y } from "../../hooks/useDialogA11y";
 import {
-  getAllServices,
   getEngineerAppointmentDetail,
   getEngineerAppointmentSteps,
   startEngineerAppointment,
@@ -10,12 +9,9 @@ import {
   updateEngineerAppointmentStep,
   type AppointmentDto,
   type AppointmentStep,
-  type MaintenanceService,
 } from "../../services/api";
 import AppointmentChat from "../../components/AppointmentChat";
-import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
-import EngineerExtrasForm from "../../components/EngineerExtrasForm";
-import EngineerPartsPanel from "../../components/EngineerPartsPanel";
+import { CostBreakdown } from "../../components/CostBreakdown";
 import { MAX_ODOMETER_KM } from "../../utils/maintenance";
 import { isTerminalStatus, statusBadgeClass, statusLabel } from "./engineerStatus";
 
@@ -44,7 +40,6 @@ export default function EngineerJobDetailPage({
 }: EngineerJobDetailPageProps) {
   const [appointment, setAppointment] = useState<AppointmentDto | null>(null);
   const [steps, setSteps] = useState<AppointmentStep[]>([]);
-  const [services, setServices] = useState<MaintenanceService[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -75,12 +70,10 @@ export default function EngineerJobDetailPage({
     Promise.all([
       getEngineerAppointmentDetail(appointmentId),
       getEngineerAppointmentSteps(appointmentId),
-      getAllServices().catch(() => [] as MaintenanceService[]),
     ])
-      .then(([appt, stepList, serviceList]) => {
+      .then(([appt, stepList]) => {
         setAppointment(appt);
         setSteps(stepList);
-        setServices(serviceList);
       })
       .catch((err) => {
         setLoadError(
@@ -179,18 +172,9 @@ export default function EngineerJobDetailPage({
       .finally(() => setIsSaving(false));
   };
 
-  const refreshAppointment = () => {
-    if (!appointmentId) return;
-    getEngineerAppointmentDetail(appointmentId)
-      .then(setAppointment)
-      .catch((err) => {
-        showNotice(err instanceof Error ? err.message : "Không làm mới được công việc.");
-      });
-  };
-
   const status = appointment?.status.toLowerCase() ?? "";
-  const allStepsCompleted = steps.length > 0 && steps.every((s) => s.isCompleted);
-  const hasPendingExtras = (appointment?.extras ?? []).some((extra) => extra.status === "proposed");
+  // Dịch vụ không có bước nào thì không chặn hoàn thành (giống kiểm tra ở BE).
+  const allStepsCompleted = steps.every((s) => s.isCompleted);
   // Km ghi nhận lúc bắt đầu xử lý; km sau khi sửa không được nhỏ hơn số này.
   const odometerBefore = appointment?.odometerBefore ?? null;
   const odometerAfterValue = odometerAtService.trim() === "" ? null : Number(odometerAtService);
@@ -198,7 +182,7 @@ export default function EngineerJobDetailPage({
     odometerBefore !== null && odometerAfterValue !== null && odometerAfterValue < odometerBefore
       ? `Số km sau khi sửa (${odometerAfterValue.toLocaleString("vi-VN")}) không được nhỏ hơn số km trước khi sửa (${odometerBefore.toLocaleString("vi-VN")}).`
       : null;
-  const canComplete = allStepsCompleted && !hasPendingExtras && !odometerAfterError;
+  const canComplete = allStepsCompleted && !odometerAfterError;
 
   return (
     <div className="min-h-[100dvh] bg-background font-sans text-on-surface">
@@ -388,6 +372,11 @@ export default function EngineerJobDetailPage({
                                   }
                                 >
                                   {step.stepName}
+                                  {step.description && (
+                                    <span className="mt-0.5 block text-xs font-normal text-on-surface-variant">
+                                      {step.description}
+                                    </span>
+                                  )}
                                 </span>
                               </label>
                             </li>
@@ -395,45 +384,6 @@ export default function EngineerJobDetailPage({
                         </ul>
                       </article>
                     )}
-
-                  {/* Hạng mục phát sinh — KTV đề xuất, khách duyệt */}
-                  {(status === "in_progress" || (appointment.extras ?? []).length > 0) && (
-                    <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
-                      <div className="mb-4 flex items-center gap-2 font-extrabold">
-                        <span className="material-symbols-outlined text-xl text-primary">add_task</span>
-                        <h2 className="text-lg">Hạng mục phát sinh</h2>
-                      </div>
-                      <ExtrasList extras={appointment.extras ?? []} />
-                      {status === "in_progress" && (
-                        <div className={(appointment.extras ?? []).length > 0 ? "mt-4" : ""}>
-                          <EngineerExtrasForm
-                            appointmentId={appointment.id}
-                            services={services}
-                            onProposed={() => {
-                              showNotice("Đã gửi đề xuất, đang chờ khách duyệt.");
-                              refreshAppointment();
-                            }}
-                          />
-                        </div>
-                      )}
-                    </article>
-                  )}
-
-                  {/* Phụ tùng lấy từ kho garage */}
-                  {(status === "in_progress" || (appointment.parts ?? []).length > 0) && (
-                    <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
-                      <div className="mb-4 flex items-center gap-2 font-extrabold">
-                        <span className="material-symbols-outlined text-xl text-primary">inventory_2</span>
-                        <h2 className="text-lg">Phụ tùng từ kho</h2>
-                      </div>
-                      <EngineerPartsPanel
-                        appointmentId={appointment.id}
-                        parts={appointment.parts ?? []}
-                        editable={status === "in_progress"}
-                        onChanged={refreshAppointment}
-                      />
-                    </article>
-                  )}
 
                   <article className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
                     <div className="mb-4 flex items-center gap-2 font-extrabold">
@@ -542,13 +492,6 @@ export default function EngineerJobDetailPage({
                           <p className="text-xs text-on-surface-variant">
                             Cần tích đủ tất cả các bước bảo dưỡng bên trái trước
                             khi có thể hoàn thành công việc.
-                          </p>
-                        )}
-
-                        {hasPendingExtras && (
-                          <p className="text-xs text-error">
-                            Còn hạng mục phát sinh đang chờ khách duyệt. Hoàn thành
-                            được sau khi khách đồng ý hoặc từ chối.
                           </p>
                         )}
 

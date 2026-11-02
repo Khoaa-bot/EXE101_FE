@@ -88,9 +88,6 @@ const EXACT_ERROR_TRANSLATIONS: Record<string, string> = {
   "Time frame slot already exists for this garage": "Khung giờ này đã tồn tại cho garage này.",
   "Schedule slot already exists for this time frame on this date": "Khung giờ này trong ngày đã có lịch rồi.",
   "Notification not found": "Không tìm thấy thông báo.",
-  "Part name is required": "Vui lòng nhập tên linh kiện.",
-  "Part not found": "Không tìm thấy linh kiện.",
-  "Must specify quantityToAdd or new quantity": "Vui lòng nhập số lượng cần nhập thêm.",
   "Appointment not found": "Không tìm thấy lịch hẹn.",
   "Appointment does not belong to this customer": "Lịch hẹn này không thuộc về khách hàng này.",
   "This appointment has already been reviewed": "Lịch hẹn này đã được đánh giá rồi.",
@@ -116,7 +113,6 @@ const EXACT_ERROR_TRANSLATIONS: Record<string, string> = {
   "Cannot delete vehicle because it is linked to existing appointments": "Không thể xóa xe vì đã có lịch hẹn liên quan.",
   "Valid noShow count is required (0 or greater)": "Số lần không đến phải lớn hơn hoặc bằng 0.",
   "Unauthorized: Authentication required": "Vui lòng đăng nhập để tiếp tục.",
-  "Unauthorized: You can only edit inventory parts belonging to your garage": "Bạn chỉ được sửa linh kiện thuộc garage của mình.",
   "Access denied: Only Super Admins can change user roles": "Chỉ Super Admin mới được đổi role người dùng.",
   "Access denied: Only Super Admins can create garage owners": "Chỉ Super Admin mới được tạo Admin Garage.",
   "Access denied: Only Super Admins can delete users": "Chỉ Super Admin mới được xóa người dùng.",
@@ -598,17 +594,8 @@ export type AppointmentDto = {
   partsUsed: string | null;
   createdAt: string;
   invoiceId: number | null;
-  invoicePaymentStatus: "unpaid" | "paid" | "cancelled" | "refunded" | null;
-  extras?: AppointmentExtra[];
-  parts?: AppointmentPart[];
+  invoicePaymentStatus: "unpaid" | "paid" | null;
   totalAmount?: number;
-  amountPaid?: number;
-  amountDue?: number;
-  // Chỉ có ngay sau khi đặt lịch: liên kết/QR PayOS để thanh toán; paymentExpiresAt = hạn trả (lịch tự huỷ nếu quá hạn).
-  paymentUrl?: string | null;
-  qrCode?: string | null;
-  orderCode?: number | null;
-  paymentExpiresAt?: string | null;
   garagePhone?: string | null;
   // Đánh giá khách đã gửi cho lịch hẹn này (null nếu chưa đánh giá). BE trả `review`
   // lồng; api.ts tách sang các trường review* bên dưới.
@@ -625,35 +612,6 @@ export type AppointmentDto = {
   reviewReply?: string | null; // phản hồi của garage
   reviewCanEdit?: boolean | null; // còn trong 7 ngày kể từ khi gửi
   reviewEditDaysLeft?: number | null;
-};
-
-export type ExtraStatus = "proposed" | "approved" | "rejected";
-
-export type AppointmentExtra = {
-  id: number;
-  name: string;
-  price: number;
-  reason: string | null;
-  status: ExtraStatus;
-  createdAt: string;
-  decidedAt: string | null;
-};
-
-export type AppointmentPart = {
-  id: number;
-  partId: number;
-  partName: string;
-  unitPrice: number;
-  quantity: number;
-  lineTotal: number;
-};
-
-export type GaragePart = {
-  id: number;
-  partName: string;
-  category: string | null;
-  quantity: number;
-  price: number | null;
 };
 
 export type AppointmentMessage = {
@@ -1058,6 +1016,13 @@ export async function uploadGarageImage(file: File): Promise<Garage> {
 // Services — ServiceController (@RequestMapping("/api/services")).
 // ---------------------------------------------------------------------------
 
+type RawServiceStep = {
+  id: number;
+  stepOrder: number;
+  stepName: string;
+  description?: string | null;
+};
+
 type RawService = {
   id: number;
   serviceName: string;
@@ -1065,6 +1030,14 @@ type RawService = {
   duration?: string;
   description?: string;
   garageId?: number | null;
+  steps?: RawServiceStep[];
+};
+
+// Một bước thực hiện của dịch vụ do garage đặt; kỹ thuật viên tích từng bước khi làm lịch hẹn.
+export type ServiceStepTemplate = {
+  id: number;
+  name: string;
+  description: string;
 };
 
 export type MaintenanceService = {
@@ -1074,6 +1047,12 @@ export type MaintenanceService = {
   description?: string;
   duration?: string;
   garageId: number | null;
+  steps: ServiceStepTemplate[];
+};
+
+export type ServiceStepInput = {
+  name: string;
+  description?: string;
 };
 
 export type NewServicePayload = {
@@ -1081,6 +1060,7 @@ export type NewServicePayload = {
   price: number;
   description?: string;
   duration?: string;
+  steps?: ServiceStepInput[];
 };
 
 function mapService(raw: RawService): MaintenanceService {
@@ -1091,33 +1071,51 @@ function mapService(raw: RawService): MaintenanceService {
     duration: raw.duration,
     description: raw.description,
     garageId: raw.garageId ?? null,
+    steps: (raw.steps ?? []).map((step) => ({
+      id: step.id,
+      name: step.stepName,
+      description: step.description ?? "",
+    })),
   };
 }
 
-// POST /api/services — thêm dịch vụ mới.
+function serviceBody(payload: NewServicePayload) {
+  return {
+    serviceName: payload.name,
+    price: payload.price,
+    duration: payload.duration,
+    description: payload.description,
+    steps: payload.steps,
+  };
+}
+
+// POST /api/services — thêm dịch vụ mới (kèm các bước thực hiện). Admin garage tạo dịch vụ riêng của garage mình.
 export async function addService(payload: NewServicePayload) {
   const raw = await apiRequest<RawService>("/services", {
     method: "POST",
-    body: {
-      serviceName: payload.name,
-      price: payload.price,
-      duration: payload.duration,
-      description: payload.description,
-    },
+    body: serviceBody(payload),
   });
   return mapService(raw);
 }
 
-// GET /api/services — danh sách dịch vụ. Truyền garageId để lấy đúng dịch vụ
-// riêng của garage đó (gộp thêm các dịch vụ dùng chung không gán garage nào);
-// không truyền thì trả về toàn bộ dịch vụ trong hệ thống.
+// PUT /api/services/{id} — sửa dịch vụ và thay toàn bộ các bước. Chỉ sửa được dịch vụ riêng của garage mình;
+// lịch hẹn đã mở trước đó giữ bản bước cũ.
+export async function updateService(serviceId: number, payload: NewServicePayload) {
+  const raw = await apiRequest<RawService>(`/services/${serviceId}`, {
+    method: "PUT",
+    body: serviceBody(payload),
+  });
+  return mapService(raw);
+}
+
+// GET /api/services — danh sách dịch vụ. Truyền garageId để lấy dịch vụ dùng chung cộng dịch vụ riêng
+// của garage đó; không truyền thì chỉ có dịch vụ dùng chung.
 export async function getAllServices(garageId?: number | string) {
   const raw = await apiRequest<RawService[]>("/services", { query: { garageId } });
   return raw.map(mapService);
 }
 
-// DELETE /api/services/{id} — chỉ xóa được dịch vụ riêng của đúng garage
-// mình (không xóa được dịch vụ dùng chung, backend sẽ chặn).
+// DELETE /api/services/{id} — ngừng bán dịch vụ riêng của garage mình (lịch hẹn cũ vẫn giữ tham chiếu).
 export function deleteService(serviceId: number) {
   return apiRequest<void>(`/services/${serviceId}`, { method: "DELETE" });
 }
@@ -1212,58 +1210,6 @@ export function getTimeFrames(garageId?: number | string) {
   return apiRequest<TimeFrame[]>("/schedules/time-frames", { query: { garageId } });
 }
 
-// GET /api/garage-owner/parts — danh sách linh kiện (garage_owner only).
-export type AdminPart = {
-  id: number;
-  partName: string;
-  category: string;
-  sku: string;
-  location: string;
-  quantity: number;
-  maxQuantity: number;
-  price: number;
-  status: string;
-  garageId: number;
-  garageName: string;
-  createdAt: string;
-};
-
-export type CreatePartPayload = {
-  partName: string;
-  category: string;
-  sku: string;
-  location: string;
-  quantity: number;
-  maxQuantity: number;
-  price: number;
-};
-
-export function getAdminParts() {
-  return apiRequest<AdminPart[]>("/garage-owner/parts");
-  return apiRequest<AdminPart[]>("/garage-owner/parts");
-}
-
-// Backend tự gán garage của admin đang đăng nhập, không cần truyền garageId.
-export function createAdminPart(payload: CreatePartPayload) {
-  return apiRequest<AdminPart>("/garage-owner/parts", {
-    method: "POST",
-    body: payload,
-  });
-}
-
-export type RestockPartPayload = {
-  quantityToAdd: number;
-  quantity: number;
-};
-
-// PUT /api/garage-owner/parts/{id} — nhập thêm linh kiện (garage_owner only).
-export function restockAdminPart(partId: number | string, payload: RestockPartPayload) {
-  return apiRequest<AdminPart>(`/garage-owner/parts/${partId}`, {
-    method: "PUT",
-    body: payload,
-  });
-}
-
 // GET /api/garage-owner/customers — danh sách khách hàng (garage_owner only).
 export type AdminCustomer = {
   id: number;
@@ -1344,7 +1290,6 @@ export type SuperAdminUser = {
   role: string;
   garageId: number | null;
   garageName: string | null;
-  balance: number;
   noShow: number | null;
   avatarUrl: string | null;
   status: "active" | "blocked";
@@ -1366,8 +1311,6 @@ export type SuperAdminGarage = {
   ownerName: string | null;
   employeeCount: number;
   appointmentCount: number;
-  commissionRate: number | null;
-  effectiveCommissionRate: number;
   rating: number | null;
   reviewCount: number;
   createdAt: string;
@@ -1475,14 +1418,6 @@ export function setGarageHidden(garageId: number | string, hidden: boolean) {
   return apiRequest<SuperAdminGarage>(`/admin/garages/${garageId}/hidden`, {
     method: "PUT",
     body: { hidden },
-  });
-}
-
-// PUT /api/admin/garages/{id}/commission — hoa hồng riêng của garage (%); null = dùng mặc định.
-export function setGarageCommission(garageId: number | string, commissionPercent: number | null) {
-  return apiRequest<SuperAdminGarage>(`/admin/garages/${garageId}/commission`, {
-    method: "PUT",
-    body: { commissionPercent },
   });
 }
 
@@ -1610,115 +1545,9 @@ export type AppNotification = {
   createdAt: string;
 };
 
-// GET /api/payment/wallet-balance — số dư ví Servio Pay của người dùng đang
-// đăng nhập.
-export async function getWalletBalance() {
-  const result = await apiRequest<{ userId: number; balance: number }>(
-    "/payment/wallet-balance",
-  );
-  return result.balance;
-}
-
-type PaymentResponse = {
-  status: string;
-  message: string;
-  paymentUrl: string;
-};
-
-// POST /api/payment/top-up?amount=... — tạo link nạp tiền vào ví Servio Pay
-// qua VNPay (redirect toàn trang sang trang thanh toán, không phải fetch
-// JSON — backend nhận amount qua query param, không phải JSON body).
-export async function requestWalletTopUp(amount: number) {
-  const session = getStoredAuthSession();
-  const url = new URL(`${API_BASE_URL}/payment/top-up`);
-  url.searchParams.set("amount", String(amount));
-  const response = await fetch(url.toString(), {
-    method: "POST",
-    headers: session?.token ? { Authorization: `Bearer ${session.token}` } : {},
-  });
-  const data = (await response.json().catch(() => null)) as PaymentResponse | ApiErrorBody | null;
-  if (!response.ok) {
-    const error = data as ApiErrorBody | null;
-    throw new Error(resolveErrorMessage(error, "Không tạo được link nạp tiền."));
-  }
-  return data as PaymentResponse;
-}
-
-// GET /api/payment/create-payment-url?invoiceId=... — tạo link thanh toán hóa
-// đơn dịch vụ (lịch hẹn đã hoàn thành) qua PayOS.
-export async function requestInvoicePayment(invoiceId: number) {
-  return apiRequest<PaymentResponse>("/payment/create-payment-url", {
-    query: { invoiceId },
-  });
-}
-
 // ---------------------------------------------------------------------------
-// Dịch vụ phát sinh, phụ tùng, thu tiền mặt và chat theo lịch hẹn.
+// Thu tiền mặt và chat theo lịch hẹn.
 // ---------------------------------------------------------------------------
-
-export type ExtraProposalPayload = {
-  serviceId?: number;
-  name?: string;
-  price?: number;
-  reason?: string;
-};
-
-// POST /api/engineer/appointments/{id}/extras — KTV đề xuất hạng mục phát sinh
-// (chỉ khi lịch đang in_progress).
-export function proposeExtra(appointmentId: number | string, payload: ExtraProposalPayload) {
-  return apiRequest<AppointmentExtra>(`/engineer/appointments/${appointmentId}/extras`, {
-    method: "POST",
-    body: payload,
-  });
-}
-
-// GET /api/engineer/parts — kho phụ tùng của garage KTV đang đăng nhập.
-export function getEngineerGarageParts() {
-  return apiRequest<GaragePart[]>("/engineer/parts");
-}
-
-// POST /api/engineer/appointments/{id}/parts — lấy phụ tùng từ kho cho lịch hẹn.
-export function addAppointmentPart(
-  appointmentId: number | string,
-  payload: { partId: number; quantity: number },
-) {
-  return apiRequest<AppointmentPart>(`/engineer/appointments/${appointmentId}/parts`, {
-    method: "POST",
-    body: payload,
-  });
-}
-
-// DELETE /api/engineer/appointments/{id}/parts/{usageId} — gỡ phụ tùng, hoàn lại kho.
-export function removeAppointmentPart(appointmentId: number | string, usageId: number) {
-  return apiRequest<void>(`/engineer/appointments/${appointmentId}/parts/${usageId}`, {
-    method: "DELETE",
-  });
-}
-
-// PUT /api/appointments/{id}/extras/{extraId}/approve|reject — khách duyệt phát sinh.
-export function decideExtraAsCustomer(
-  appointmentId: number | string,
-  extraId: number,
-  approve: boolean,
-) {
-  return apiRequest<AppointmentExtra>(
-    `/appointments/${appointmentId}/extras/${extraId}/${approve ? "approve" : "reject"}`,
-    { method: "PUT" },
-  );
-}
-
-// PUT /api/reception/appointments/{id}/extras/{extraId}/approve|reject — lễ tân
-// duyệt thay khách (khách đã đồng ý qua điện thoại).
-export function decideExtraAsReception(
-  appointmentId: number | string,
-  extraId: number,
-  approve: boolean,
-) {
-  return apiRequest<AppointmentExtra>(
-    `/reception/appointments/${appointmentId}/extras/${extraId}/${approve ? "approve" : "reject"}`,
-    { method: "PUT" },
-  );
-}
 
 // PUT /api/reception/appointments/{id}/pay-cash — lễ tân xác nhận đã thu tiền mặt.
 export function markInvoicePaidCash(appointmentId: number | string) {
@@ -1775,15 +1604,96 @@ export function getVideoCallInfo(appointmentId: number | string) {
   return apiRequest<VideoCallInfo>(`/appointments/${appointmentId}/video-call`);
 }
 
+// Gói hội viên đang bán. effectivePrice là số tiền thực tế phải trả (đã trừ khuyến mãi nếu có).
+export type SubscriptionPlan = {
+  id: number;
+  planCode: string;
+  name: string;
+  description: string | null;
+  price: number;
+  discountedPrice: number | null;
+  effectivePrice: number;
+  durationDays: number;
+  isActive: boolean;
+  forGarage: boolean;
+};
+
+// GET /api/payment/subscription-plans?forGarage= — gói của khách (false) hoặc của garage (true).
+export function getSubscriptionPlans(forGarage: boolean) {
+  return apiRequest<SubscriptionPlan[]>("/payment/subscription-plans", {
+    query: { forGarage: String(forGarage) },
+  });
+}
+
+export type MySubscription = {
+  role: string;
+  subscriptionType: string;
+  isActive: boolean;
+  // Chủ garage đang trong thời hạn gói nhưng chưa từng trả tiền = đang dùng thử.
+  isTrial?: boolean;
+  // Đường dây nóng đối tác: chỉ có khi chủ garage đang dùng gói và Servio đã đặt số.
+  partnerHotline?: string | null;
+  subscriptionExpiresAt: string | null;
+  subscriptionDaysRemaining: number;
+  formattedExpiresAt: string | null;
+  statusDescription: string;
+};
+
+// GET /api/payment/my-subscription — gói người dùng đang có và số ngày còn lại.
+export function getMySubscription() {
+  return apiRequest<MySubscription>("/payment/my-subscription");
+}
+
+export type SubscriptionPayment = {
+  status: string;
+  message: string;
+  paymentUrl: string;
+  qrCode: string | null;
+  orderCode: number;
+};
+
+// POST /api/payment/subscribe-premium?planCode= — tạo link thanh toán PayOS cho gói. Gói đang còn hạn
+// được cộng nối tiếp thời hạn mới sau khi thanh toán thành công.
+export function createSubscriptionPayment(planCode: string) {
+  return apiRequest<SubscriptionPayment>("/payment/subscribe-premium", {
+    method: "POST",
+    query: { planCode },
+  });
+}
+
+export type GarageReport = {
+  from: string;
+  to: string;
+  // month dạng "2026-10"; total gồm cả lịch huỷ, revenue chỉ tính lịch đã hoàn thành.
+  months: Array<{ month: string; total: number; completed: number; revenue: number }>;
+  // Các tỷ lệ từ 0 đến 1, tính trên total.
+  totals: {
+    total: number;
+    completed: number;
+    cancelled: number;
+    noShow: number;
+    active: number;
+    completionRate: number;
+    cancelRate: number;
+    noShowRate: number;
+  };
+  topServices: Array<{ serviceId: number; name: string; count: number; revenue: number }>;
+  busiestSlots: Array<{ label: string; count: number }>;
+  engineers: Array<{ engineerId: number; name: string; completed: number }>;
+};
+
+// GET /api/garage-owner/reports — báo cáo 12 tháng của garage mình; BE trả 403 khi gói hết hạn.
+export function getGarageReport() {
+  return apiRequest<GarageReport>("/garage-owner/reports");
+}
+
 export type PaymentReturnResult = {
   success: boolean;
   message: string;
   orderCode?: number;
-  bookingCancelled?: boolean;
-  // INVOICE: thanh toán hoá đơn dịch vụ; TOPUP: nạp tiền vào ví.
-  type?: "INVOICE" | "TOPUP" | string;
+  // Loại gói đã mua: PREMIUM (khách hàng) hoặc GARAGE_PRO (garage).
+  type?: "PREMIUM" | "GARAGE_PRO" | string;
   amount?: number;
-  appointmentId?: number;
 };
 
 // GET /api/payment/payos-return?orderCode=&status=&cancel= — PayOS chuyển
@@ -1805,97 +1715,6 @@ export function confirmPayosReturn(search: string) {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Ví Servio: tổng quan, lịch sử và rút tiền.
-// ---------------------------------------------------------------------------
-
-export type WalletSummary = {
-  userId: number;
-  fullName: string;
-  role: string;
-  balance: number;
-  totalTopUp: number;
-  totalSpent: number;
-  totalEarned: number;
-  heldAmount?: number;
-};
-
-export type WalletTransactionItem = {
-  id: number;
-  userId: number;
-  // TOPUP, PAYMENT, RECEIVE_PAYMENT, COMMISSION, REFUND, WITHDRAW, WITHDRAW_REFUND
-  type: string;
-  amount: number;
-  balanceBefore: number | null;
-  balanceAfter: number | null;
-  description: string | null;
-  referenceType: string | null;
-  referenceId: number | null;
-  createdAt: string;
-};
-
-export type WithdrawalStatus = "PENDING" | "COMPLETED" | "REJECTED";
-
-export type WithdrawalRequestItem = {
-  id: number;
-  userId: number;
-  amount: number;
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
-  status: WithdrawalStatus;
-  note: string | null;
-  qrImageUrl?: string | null;
-  requesterRole?: string | null;
-  processedAt: string | null;
-  createdAt: string;
-};
-
-export type WithdrawPayload = {
-  amount: number;
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
-  qrImage?: File | null;
-};
-
-export type WithdrawalEligibility = {
-  eligible: boolean;
-  nextAvailableAt: string | null;
-  message: string | null;
-};
-
-// Yêu cầu rút tiền dưới góc nhìn admin: kèm thông tin người yêu cầu.
-export type WithdrawalAdminItem = WithdrawalRequestItem & {
-  requesterName: string | null;
-  requesterPhone: string | null;
-  requesterEmail: string | null;
-  garageName: string | null;
-  processedById: number | null;
-};
-
-export type WithdrawalAdminFilter = {
-  status?: WithdrawalStatus | "ALL";
-  requesterType?: "customer" | "garage";
-};
-
-export type PlatformWallet = {
-  balance: number;
-  totalCommission: number;
-  heldForCustomers: number;
-  pendingWithdrawals: number;
-  totalUserBalances: number;
-  cashInViaPayos: number;
-  cashOutWithdrawals: number;
-  difference: number;
-  balanced: boolean;
-};
-
-// GET /api/admin/platform-wallet — ví nền tảng và đối soát (Super Admin).
-export function getPlatformWallet() {
-  return apiRequest<PlatformWallet>("/admin/platform-wallet");
-}
-
 export type AdminOverview = {
   customerCount: number;
   blockedCustomerCount: number;
@@ -1904,10 +1723,7 @@ export type AdminOverview = {
   blockedGarageCount: number;
   hiddenGarageCount: number;
   garagesWithoutOwner: Array<{ id: number; name: string }>;
-  pendingWithdrawalCount: number;
-  pendingWithdrawalAmount: number;
   successfulTransactionCount: number;
-  wallet: PlatformWallet;
 };
 
 // GET /api/admin/overview — số liệu KPI trang Tổng quan trong một lần gọi (Super Admin).
@@ -2312,73 +2128,6 @@ export function setWebFeedbackHidden(id: number, hidden: boolean) {
 // PUT /api/admin/web-reviews/{id}/reply — trả lời hoặc sửa phản hồi (Super Admin).
 export function replyWebFeedback(id: number, reply: string) {
   return apiRequest<WebFeedback>(`/admin/web-reviews/${id}/reply`, { method: "PUT", body: { reply } });
-}
-
-// GET /api/payment/wallet-summary — số dư và tổng nạp/chi/nhận.
-export function getWalletSummary() {
-  return apiRequest<WalletSummary>("/payment/wallet-summary");
-}
-
-// GET /api/payment/wallet-history — lịch sử giao dịch ví, mới nhất trước.
-export function getWalletHistory() {
-  return apiRequest<WalletTransactionItem[]>("/payment/wallet-history");
-}
-
-// POST /api/payment/withdraw — tạo yêu cầu rút tiền; tiền bị giữ khỏi ví ngay
-// và admin sẽ chuyển khoản thủ công.
-export function requestWithdrawal(payload: WithdrawPayload) {
-  const formData = new FormData();
-  formData.append("amount", String(payload.amount));
-  formData.append("bankName", payload.bankName);
-  formData.append("accountNumber", payload.accountNumber);
-  formData.append("accountHolder", payload.accountHolder);
-  if (payload.qrImage) formData.append("qrImage", payload.qrImage);
-  return apiRequest<WithdrawalRequestItem>("/payment/withdraw", {
-    method: "POST",
-    body: formData,
-  });
-}
-
-// GET /api/payment/withdrawal-eligibility — garage chỉ được rút 1 lần/7 ngày.
-export function getWithdrawalEligibility() {
-  return apiRequest<WithdrawalEligibility>("/payment/withdrawal-eligibility");
-}
-
-// GET /api/admin/withdrawals — danh sách yêu cầu rút tiền (admin).
-export function getAdminWithdrawals(filter: WithdrawalAdminFilter = {}) {
-  return apiRequest<WithdrawalAdminItem[]>("/admin/withdrawals", {
-    query: {
-      status: filter.status === "ALL" ? undefined : filter.status,
-      requesterType: filter.requesterType,
-    },
-  });
-}
-
-// GET /api/admin/withdrawals/pending-count — số yêu cầu đang chờ.
-export async function getPendingWithdrawalCount() {
-  const result = await apiRequest<{ count: number }>("/admin/withdrawals/pending-count");
-  return result.count;
-}
-
-// PUT /api/admin/withdrawals/{id}/complete — xác nhận đã chuyển khoản (note = mã giao dịch, tuỳ chọn).
-export function completeWithdrawal(id: number, note?: string) {
-  return apiRequest<WithdrawalAdminItem>(`/admin/withdrawals/${id}/complete`, {
-    method: "PUT",
-    body: { note: note?.trim() || null },
-  });
-}
-
-// PUT /api/admin/withdrawals/{id}/reject — từ chối, tiền hoàn lại ví.
-export function rejectWithdrawal(id: number, reason: string) {
-  return apiRequest<WithdrawalAdminItem>(`/admin/withdrawals/${id}/reject`, {
-    method: "PUT",
-    body: { note: reason.trim() },
-  });
-}
-
-// GET /api/payment/withdrawals — các yêu cầu rút tiền của tôi.
-export function getMyWithdrawals() {
-  return apiRequest<WithdrawalRequestItem[]>("/payment/withdrawals");
 }
 
 // GET /api/notifications/me — danh sách thông báo của người dùng đang đăng

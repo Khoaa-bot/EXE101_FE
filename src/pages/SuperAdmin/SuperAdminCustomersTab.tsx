@@ -5,7 +5,7 @@ import {
   setUserStatus,
   type SuperAdminUser,
 } from "../../services/api";
-import { formatDateTime, formatVnd } from "../../utils/format";
+import { formatDateTime } from "../../utils/format";
 import ReasonConfirmDialog from "./ReasonConfirmDialog";
 import RowActionMenu from "./RowActionMenu";
 import { FilterChip, StatusChips } from "./SuperAdminChips";
@@ -355,8 +355,6 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
                 <dd>{selectedUser.phone || "—"}</dd>
                 <dt className="text-on-surface-variant">Ngày sinh</dt>
                 <dd>{formatDate(selectedUser.dob)}</dd>
-                <dt className="text-on-surface-variant">Số dư ví</dt>
-                <dd className="font-bold">{formatVnd(selectedUser.balance)}</dd>
                 <dt className="text-on-surface-variant">Lịch hẹn</dt>
                 <dd>{selectedUser.appointmentCount ?? 0}</dd>
                 <dt className="text-on-surface-variant">Không đến</dt>

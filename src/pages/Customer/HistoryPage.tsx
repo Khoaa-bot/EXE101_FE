@@ -7,7 +7,6 @@ import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCou
 import {
   createReview,
   getAppointmentHistory,
-  requestInvoicePayment,
   updateReview,
   type AppointmentDto,
   type Review,
@@ -143,23 +142,6 @@ export default function HistoryPage({
             },
       ),
     );
-  };
-
-  const [payingInvoiceId, setPayingInvoiceId] = useState<number | null>(null);
-
-  const payInvoice = (record: AppointmentDto) => {
-    if (!record.invoiceId) return;
-    setPayingInvoiceId(record.invoiceId);
-    requestInvoicePayment(record.invoiceId)
-      .then((res) => {
-        window.location.href = res.paymentUrl;
-      })
-      .catch((err) => {
-        showNotice(
-          err instanceof Error ? err.message : "Không tạo được link thanh toán.",
-        );
-        setPayingInvoiceId(null);
-      });
   };
 
   const submitReview = () => {
@@ -467,19 +449,6 @@ export default function HistoryPage({
                           </span>
                           <b className="min-w-[5.5rem] text-right">{formatCurrency(record.servicePrice)}</b>
                           <div className="flex min-w-[8.5rem] flex-col items-end gap-1.5">
-                            {record.invoicePaymentStatus === "unpaid" && (
-                              <button
-                                type="button"
-                                onClick={() => payInvoice(record)}
-                                disabled={payingInvoiceId === record.invoiceId}
-                                className="inline-flex min-h-9 items-center gap-1 rounded-xl bg-primary px-3.5 text-[13px] font-bold text-on-primary hover:opacity-90 disabled:opacity-60"
-                              >
-                                <span aria-hidden="true" className="material-symbols-outlined text-lg">
-                                  payments
-                                </span>
-                                {payingInvoiceId === record.invoiceId ? "Đang tạo link..." : "Thanh toán"}
-                              </button>
-                            )}
                             {record.invoicePaymentStatus === "paid" && (
                               <span className="text-xs font-semibold text-tertiary">Đã thanh toán</span>
                             )}

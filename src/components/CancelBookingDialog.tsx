@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { useDialogA11y } from "../hooks/useDialogA11y";
 import type { AppointmentDto } from "../services/api";
-import { formatVnd } from "../utils/format";
 
 type CancelBookingDialogProps = {
   appointment: AppointmentDto;
@@ -10,15 +9,10 @@ type CancelBookingDialogProps = {
   onConfirm: () => void;
 };
 
-// Mức rút tối thiểu của ví (khớp với WalletPage); tiền hoàn nhỏ hơn mức này vẫn nằm trong ví nhưng chưa rút được.
-const WITHDRAW_MIN = 50000;
-
-// Cảnh báo trước khi khách huỷ lịch: nói rõ tiền hoàn đi đâu, rút thế nào và việc huỷ không hoàn tác được.
+// Cảnh báo trước khi khách huỷ lịch: khung giờ bị nhả và việc huỷ không hoàn tác được.
 export default function CancelBookingDialog({ appointment, isCancelling, onKeep, onConfirm }: CancelBookingDialogProps) {
   const ref = useRef<HTMLDivElement>(null);
   useDialogA11y(true, ref, onKeep);
-
-  const paid = appointment.amountPaid ?? 0;
 
   return (
     <div
@@ -45,23 +39,7 @@ export default function CancelBookingDialog({ appointment, isCancelling, onKeep,
         </p>
 
         <ul className="mt-4 list-disc space-y-1.5 pl-5 text-[13px]">
-          {paid > 0 ? (
-            <>
-              <li>
-                Bạn được hoàn <b>{formatVnd(paid)}</b> vào Ví Servio, không mất phí huỷ.
-              </li>
-              <li>
-                Tiền hoàn nằm trong ví, không tự về ngân hàng. Rút tối thiểu {formatVnd(WITHDRAW_MIN)}, quản trị viên
-                duyệt trong 1–2 ngày làm việc.
-              </li>
-            </>
-          ) : (
-            <li>Bạn chưa thanh toán nên không có khoản nào cần hoàn.</li>
-          )}
-          <li>
-            Khung giờ sẽ được nhả cho khách khác, huỷ xong không hoàn tác được
-            {paid > 0 ? ". Muốn đi lại phải đặt và thanh toán lại." : "."}
-          </li>
+          <li>Khung giờ sẽ được nhả cho khách khác, huỷ xong không hoàn tác được. Muốn đi lại bạn cần đặt lịch mới.</li>
           <li>Chỉ huỷ được khi xe chưa được tiếp nhận. Sau đó hãy liên hệ garage.</li>
         </ul>
 

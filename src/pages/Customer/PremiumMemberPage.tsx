@@ -1,54 +1,45 @@
 import { useState } from "react";
+import { useSubscription } from "../../hooks/useSubscription";
 import { formatVnd } from "../../utils/format";
-import {
-  PREMIUM_BENEFITS,
-  getPremiumPricing,
-  type BillingCycle,
-} from "./premiumPlans";
+import { AI_MESSAGES_FREE, PREMIUM_BENEFITS } from "./premiumPlans";
 
 const BASIC_BENEFITS = [
   "Đặt lịch trực tuyến 24/7",
   "Theo dõi tiến độ bảo dưỡng",
   "Lịch sử dịch vụ và hoá đơn",
+  `Trợ lý AI chẩn đoán lỗi xe: ${AI_MESSAGES_FREE} tin nhắn mỗi ngày`,
 ];
 
 const FAQS = [
   {
-    question:
-      "Tôi có thể nâng cấp hoặc hạ cấp gói hội viên bất kỳ lúc nào không?",
+    question: "Tôi gia hạn gói Premium như thế nào?",
     answer:
-      "Có. Khi nâng cấp, giá trị còn lại của gói hiện tại được quy đổi vào chu kỳ thanh toán tiếp theo. Khi hạ cấp, thay đổi có hiệu lực từ kỳ gia hạn kế tiếp.",
-  },
-  {
-    question: "Dịch vụ cứu hộ 24/7 hoạt động ở những khu vực nào?",
-    answer:
-      "Mạng lưới cứu hộ của Servio phủ 63 tỉnh thành, với thời gian tiếp cận trung bình dưới 35 phút tại các đô thị lớn và tuyến quốc lộ chính.",
+      "Bấm \"Gia hạn\" khi gói còn hạn. Thời hạn mới được cộng nối tiếp vào ngày hết hạn hiện tại nên bạn không mất ngày nào đã trả. Gói không tự động gia hạn.",
   },
   {
     question: "Chính sách hoàn tiền trong 7 ngày áp dụng như thế nào?",
     answer:
-      "Trong 7 ngày đầu sau khi kích hoạt, nếu bạn chưa dùng quyền lợi cứu hộ khẩn cấp hoặc ưu đãi phụ tùng, bạn có thể liên hệ CSKH để được hoàn 100% phí gói.",
+      "Trong 7 ngày đầu sau khi kích hoạt, nếu bạn chưa hài lòng với gói, bạn có thể liên hệ CSKH để được hoàn 100% phí gói.",
   },
   {
     question: "Một gói hội viên có áp dụng cho nhiều xe cùng lúc không?",
     answer:
-      "Mỗi gói tiêu chuẩn gắn với một biển số xe. Với đội xe từ 3 chiếc trở lên, liên hệ Servio Fleet để nhận báo giá doanh nghiệp riêng.",
+      "Gói gắn với tài khoản của bạn, nên hạn mức tin nhắn AI mỗi ngày dùng chung cho tất cả xe trong tài khoản.",
   },
 ];
 
 type PremiumMemberPageProps = {
-  billingCycle: BillingCycle;
-  onBillingCycleChange: (cycle: BillingCycle) => void;
   onCheckoutClick: () => void;
 };
 
 export default function PremiumMemberPage({
-  billingCycle,
-  onBillingCycleChange,
   onCheckoutClick,
 }: PremiumMemberPageProps) {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const pricing = getPremiumPricing(billingCycle);
+  const { plan, status, isLoading, error } = useSubscription(false);
+  const isActive = status?.isActive ?? false;
+  const isExpired = status !== null && !isActive && status.subscriptionType !== "FREE";
+  const expiryDate = status?.formattedExpiresAt?.split(" ")[0] ?? "";
 
   return (
     <div className="font-sans text-on-surface">
@@ -73,9 +64,11 @@ export default function PremiumMemberPage({
                     commute
                   </span>
                 </span>
-                <span className="rounded-full bg-surface-container-high px-3 py-1 text-[11px] font-bold text-on-surface-variant">
-                  Gói hiện tại
-                </span>
+                {!isActive && (
+                  <span className="rounded-full bg-surface-container-high px-3 py-1 text-[11px] font-bold text-on-surface-variant">
+                    Gói hiện tại
+                  </span>
+                )}
               </div>
               <h3 className="mt-4 text-xl font-extrabold">Gói Cơ bản</h3>
               <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
@@ -114,7 +107,7 @@ export default function PremiumMemberPage({
                   disabled
                   className="min-h-12 w-full rounded-2xl border border-outline-variant bg-surface-container-low text-sm font-bold text-on-surface-variant disabled:cursor-not-allowed"
                 >
-                  Đang sử dụng
+                  {isActive ? "Gói miễn phí" : "Đang sử dụng"}
                 </button>
               </div>
             </article>
@@ -133,74 +126,69 @@ export default function PremiumMemberPage({
                     workspace_premium
                   </span>
                 </span>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="text-[10px] font-semibold text-outline">
-                    Chu kỳ thanh toán
-                  </span>
-                  <div
-                    role="group"
-                    aria-label="Chu kỳ thanh toán"
-                    className="inline-flex rounded-full bg-surface-container p-0.5"
-                  >
-                    <button
-                      type="button"
-                      aria-pressed={billingCycle === "monthly"}
-                      onClick={() => onBillingCycleChange("monthly")}
-                      className={`min-h-9 rounded-full px-2.5 text-[11px] font-bold transition-colors ${
-                        billingCycle === "monthly"
-                          ? "bg-primary text-on-primary shadow-sm"
-                          : "text-on-surface-variant hover:text-on-surface"
-                      }`}
-                    >
-                      Tháng
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={billingCycle === "yearly"}
-                      onClick={() => onBillingCycleChange("yearly")}
-                      className={`inline-flex min-h-9 items-center gap-1 rounded-full px-2.5 text-[11px] font-bold transition-colors ${
-                        billingCycle === "yearly"
-                          ? "bg-primary text-on-primary shadow-sm"
-                          : "text-on-surface-variant hover:text-on-surface"
-                      }`}
-                    >
-                      Năm
-                      <span
-                        className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
-                          billingCycle === "yearly"
-                            ? "bg-white/20 text-on-primary"
-                            : "bg-tertiary-fixed text-on-tertiary-fixed"
-                        }`}
-                      >
-                        -20%
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <h3 className="relative mt-4 flex flex-wrap items-center gap-2 text-xl font-extrabold">
-                Gói Premium
-                <span className="rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold text-on-primary">
-                  Đề xuất
+                <span
+                  className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+                    isActive
+                      ? "bg-tertiary-fixed text-on-tertiary-fixed"
+                      : "bg-primary-fixed text-primary"
+                  }`}
+                >
+                  {isActive ? "Đang dùng" : isExpired ? "Đã hết hạn" : "Đề xuất"}
                 </span>
-              </h3>
+              </div>
+              <h3 className="relative mt-4 text-xl font-extrabold">Gói Premium</h3>
               <p className="relative mt-1 text-sm leading-relaxed text-on-surface-variant">
-                Ưu tiên mọi dịch vụ, an tâm trên mọi cung đường.
+                Hỏi trợ lý AI về tình trạng xe thoải mái hơn mỗi ngày.
               </p>
+              {isActive && status && (
+                <p
+                  role="status"
+                  className="relative mt-4 flex items-start gap-2 rounded-2xl bg-tertiary-fixed/40 px-3.5 py-3 text-sm font-semibold text-on-tertiary-fixed"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="material-symbols-outlined text-[18px]"
+                  >
+                    check_circle
+                  </span>
+                  Đang dùng Premium · còn {status.subscriptionDaysRemaining} ngày,
+                  hết hạn {status.formattedExpiresAt}
+                </p>
+              )}
+              {isExpired && (
+                <p
+                  role="status"
+                  className="relative mt-4 flex items-start gap-2 rounded-2xl bg-[#fff1cc] px-3.5 py-3 text-sm font-semibold text-[#6b4200]"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="material-symbols-outlined text-[18px]"
+                  >
+                    schedule
+                  </span>
+                  Gói Premium đã hết hạn ngày {expiryDate}
+                </p>
+              )}
               <div className="relative mt-5 rounded-2xl bg-primary-fixed/30 p-4">
-                <p className="flex flex-wrap items-baseline gap-1">
-                  <span className="text-3xl font-extrabold tracking-tight text-primary">
-                    {formatVnd(pricing.monthlyEquivalent)}
-                  </span>
-                  <span className="text-sm text-on-surface-variant">
-                    /tháng
-                  </span>
-                </p>
-                <p className="mt-1 text-xs text-on-surface-variant">
-                  {billingCycle === "yearly"
-                    ? `Thanh toán ${formatVnd(pricing.total)} mỗi năm, tiết kiệm ${formatVnd(pricing.saving)}`
-                    : "Thanh toán hằng tháng, huỷ bất cứ lúc nào"}
-                </p>
+                {plan ? (
+                  <>
+                    <p className="flex flex-wrap items-baseline gap-1">
+                      <span className="text-3xl font-extrabold tracking-tight text-primary">
+                        {formatVnd(plan.effectivePrice)}
+                      </span>
+                      <span className="text-sm text-on-surface-variant">
+                        / {plan.durationDays} ngày
+                      </span>
+                    </p>
+                    <p className="mt-1 text-xs text-on-surface-variant">
+                      Thanh toán một lần qua PayOS, không tự động gia hạn
+                    </p>
+                  </>
+                ) : (
+                  <p className={`text-sm ${error ? "text-error" : "text-on-surface-variant"}`}>
+                    {isLoading ? "Đang tải giá gói..." : error ?? "Hiện chưa có gói để đăng ký."}
+                  </p>
+                )}
               </div>
               <ul className="relative mt-5 space-y-2.5">
                 {PREMIUM_BENEFITS.map((benefit) => (
@@ -222,9 +210,14 @@ export default function PremiumMemberPage({
                 <button
                   type="button"
                   onClick={onCheckoutClick}
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-bold text-on-primary transition active:scale-[0.98]"
+                  disabled={!plan}
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-bold text-on-primary transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Chọn gói Premium
+                  {isActive
+                    ? `Gia hạn thêm ${plan?.durationDays ?? 30} ngày`
+                    : isExpired
+                      ? "Đăng ký lại Premium"
+                      : "Chọn gói Premium"}
                   <span
                     aria-hidden="true"
                     className="material-symbols-outlined text-[18px]"
@@ -232,6 +225,11 @@ export default function PremiumMemberPage({
                     arrow_forward
                   </span>
                 </button>
+                {isActive && (
+                  <p className="mt-2 text-center text-[11px] text-outline">
+                    Ngày gia hạn được cộng nối tiếp vào thời hạn hiện tại.
+                  </p>
+                )}
               </div>
             </article>
           </div>

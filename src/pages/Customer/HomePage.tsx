@@ -192,7 +192,7 @@ export default function Home({
     { label: "Đặt lịch hẹn", icon: "calendar_add_on", onClick: onBookingClick },
     { label: "Theo dõi xe", icon: "location_on", onClick: onTrackingClick },
     { label: "Lịch sử dịch vụ", icon: "receipt_long", onClick: onHistoryClick },
-    { label: "Chẩn đoán AI", icon: "auto_awesome", onClick: onDiagnoseClick },
+    { label: "Chẩn đoán xế yêu", icon: "auto_awesome", onClick: onDiagnoseClick },
   ];
 
   return (

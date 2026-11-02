@@ -2,17 +2,12 @@ import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
 import AppointmentChat from "../../components/AppointmentChat";
 import CancelBookingDialog from "../../components/CancelBookingDialog";
-import { CostBreakdown, ExtrasList } from "../../components/AppointmentExtras";
+import { CostBreakdown } from "../../components/CostBreakdown";
 import OdometerSummary from "../../components/OdometerSummary";
-import PaymentCountdown from "../../components/PaymentCountdown";
-import { formatVnd } from "../../utils/format";
 import {
   cancelAppointment,
-  decideExtraAsCustomer,
   getActiveAppointments,
   getMyFleet,
-  requestInvoicePayment,
-  type AppointmentExtra,
   type AppointmentDto,
   type Vehicle,
 } from "../../services/api";
@@ -89,9 +84,6 @@ export default function TrackingPage({
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<AppointmentDto | null>(null);
   const [cancelMessage, setCancelMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [busyExtraId, setBusyExtraId] = useState<number | null>(null);
-  const [isPaying, setIsPaying] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,14 +128,7 @@ export default function TrackingPage({
       await cancelAppointment(target.id);
       setAppointments((current) => current.filter((item) => item.id !== target.id));
       setSelectedId(null);
-      const paid = target.amountPaid ?? 0;
-      setCancelMessage({
-        type: "success",
-        text:
-          paid > 0
-            ? `Đã huỷ lịch. ${formatVnd(paid)} đã được hoàn vào Ví Servio của bạn. Bạn có thể rút tại Cá nhân > Ví Servio.`
-            : "Khách hàng đã huỷ lịch thành công.",
-      });
+      setCancelMessage({ type: "success", text: "Khách hàng đã huỷ lịch thành công." });
     } catch (err) {
       setCancelMessage({
         type: "error",
@@ -152,33 +137,6 @@ export default function TrackingPage({
     } finally {
       setIsCancelling(false);
       setCancelTarget(null);
-    }
-  };
-
-  const handleDecideExtra = async (target: AppointmentDto, extra: AppointmentExtra, approve: boolean) => {
-    if (busyExtraId !== null) return;
-    setBusyExtraId(extra.id);
-    setActionError(null);
-    try {
-      await decideExtraAsCustomer(target.id, extra.id, approve);
-      setAppointments(await getActiveAppointments());
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Không gửi được phản hồi. Vui lòng thử lại.");
-    } finally {
-      setBusyExtraId(null);
-    }
-  };
-
-  const handlePay = async (target: AppointmentDto) => {
-    if (!target.invoiceId || isPaying) return;
-    setIsPaying(true);
-    setActionError(null);
-    try {
-      const response = await requestInvoicePayment(target.invoiceId);
-      window.location.href = response.paymentUrl;
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Không tạo được link thanh toán.");
-      setIsPaying(false);
     }
   };
 
@@ -389,29 +347,6 @@ export default function TrackingPage({
                   </ol>
                 </section>
 
-                {(appointment.extras ?? []).length > 0 && (
-                  <section className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
-                    <h2 className="mb-1 flex items-center gap-2.5 text-lg font-extrabold">
-                      <span aria-hidden="true" className="material-symbols-outlined text-primary">
-                        add_task
-                      </span>
-                      Phát sinh cần bạn duyệt
-                    </h2>
-                    <p className="mb-4 text-sm text-on-surface-variant">
-                      Kỹ thuật viên phát hiện thêm việc cần làm. Hạng mục chỉ được tính tiền khi bạn đồng ý.
-                    </p>
-                    <ExtrasList
-                      extras={appointment.extras ?? []}
-                      busyId={busyExtraId}
-                      onDecide={
-                        appointment.status.toLowerCase() === "in_progress"
-                          ? (extra, approve) => void handleDecideExtra(appointment, extra, approve)
-                          : undefined
-                      }
-                    />
-                  </section>
-                )}
-
                 <section className="rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-[22px] shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
                   <h2 className="mb-3 flex items-center gap-2.5 text-lg font-extrabold">
                     <span aria-hidden="true" className="material-symbols-outlined text-primary">
@@ -445,32 +380,10 @@ export default function TrackingPage({
                   <CostBreakdown appointment={appointment} />
 
                   {appointment.invoiceId && appointment.invoicePaymentStatus === "unpaid" && (
-                    <div className="mt-5 space-y-2">
-                      <PaymentCountdown
-                        expiresAt={appointment.paymentExpiresAt}
-                        onExpired={() => {
-                          void getActiveAppointments().then(setAppointments);
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => void handlePay(appointment)}
-                        disabled={isPaying}
-                        className="min-h-12 w-full rounded-xl bg-gradient-to-br from-primary to-primary-container text-sm font-bold text-on-primary transition hover:opacity-90 disabled:opacity-50"
-                      >
-                        {isPaying
-                          ? "Đang chuyển sang trang thanh toán..."
-                          : `Thanh toán online${appointment.amountDue ? ` ${formatVnd(appointment.amountDue)}` : ""}`}
-                      </button>
-                      {!appointment.paymentExpiresAt && (
-                        <p className="text-center text-xs text-on-surface-variant">
-                          Hoặc thanh toán tiền mặt tại quầy lễ tân khi nhận xe.
-                        </p>
-                      )}
-                    </div>
+                    <p className="mt-5 rounded-xl bg-surface-container-low p-3 text-center text-xs text-on-surface-variant">
+                      Chi phí sửa chữa được thanh toán trực tiếp tại garage khi bạn nhận xe.
+                    </p>
                   )}
-
-                  {actionError && <p className="mt-3 text-sm text-error">{actionError}</p>}
                 </section>
               </div>
 
