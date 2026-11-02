@@ -155,7 +155,7 @@ export default function PaymentResultPage({
         {outcome === "success" && result && (
           <>
             <span className="rounded-full ring-[10px] ring-[#008730]/10">
-              <Badge icon="workspace_premium" tone="bg-[#d9f7dd] text-[#008730]" />
+              <Badge icon="diamond" tone="bg-[#d9f7dd] text-[#008730]" />
             </span>
             <h1 className="mt-1.5 text-[22px] font-extrabold">Kích hoạt gói thành công</h1>
             {result.amount !== undefined && (

@@ -919,6 +919,36 @@ export function searchReceptionCustomers(query: string) {
   return apiRequest<CustomerSearchResult[]>("/reception/customers/search", { query: { q: query } });
 }
 
+export type WalkInCustomerPayload = {
+  fullName: string;
+  phone: string;
+  email?: string;
+  // Lễ tân nhập để khách dễ nhớ (tối thiểu 6 ký tự); bỏ trống thì BE tự sinh.
+  temporaryPassword?: string;
+  vehicle: {
+    model: string;
+    licensePlate: string;
+    vin: string;
+    odometer?: number;
+  };
+};
+
+export type WalkInCustomerResult = {
+  customerId: number;
+  fullName: string;
+  username: string; // = số điện thoại
+  phone: string;
+  temporaryPassword: string; // chỉ hiện một lần
+  vehicleId: number;
+  vehicleModel: string | null;
+  vehicleLicensePlate: string | null;
+};
+
+// POST /api/reception/customers — lễ tân tạo nhanh tài khoản khách và xe tại quầy (chỉ lễ tân).
+export function createWalkInCustomer(payload: WalkInCustomerPayload) {
+  return apiRequest<WalkInCustomerResult>("/reception/customers", { method: "POST", body: payload });
+}
+
 export function updateReceptionAppointmentStatus(
   appointmentId: number | string,
   payload: ReceptionAppointmentStatusPayload,
@@ -1771,6 +1801,40 @@ export type AdminYearStats = {
 // GET /api/admin/stats/yearly — 12 tháng của một năm và các năm trước để so sánh.
 export function getAdminYearStats(year: number) {
   return apiRequest<AdminYearStats>("/admin/stats/yearly", { query: { year } });
+}
+
+export type GaragePeriodStats = {
+  period: "day" | "week" | "month";
+  serverNow: string; // giờ hiện tại theo múi giờ Asia/Ho_Chi_Minh
+  newCustomers: StatsSeries;
+  appointments: StatsSeries;
+  outcomes: { done: number; active: number; cancelled: number; noShow: number };
+  timeFrames: Array<{ label: string; count: number }> | null; // chỉ có khi period = day
+};
+
+// GET /api/garage-owner/stats/period — khách hàng mới + lịch hẹn theo ngày/tuần/tháng tại garage mình.
+export function getGarageOwnerPeriodStats(period: "day" | "week" | "month") {
+  return apiRequest<GaragePeriodStats>("/garage-owner/stats/period", { query: { period } });
+}
+
+export type GarageYearMonthRow = {
+  newCustomers: number;
+  appointments: number;
+  done: number;
+  lost: number; // hủy + không đến
+};
+
+export type GarageYearStats = {
+  year: number;
+  firstYear: number;
+  cutoffMonth: number; // 0-11, mốc cắt "cùng kỳ"
+  cutoffDay: number;
+  years: Array<{ year: number; months: GarageYearMonthRow[] }>; // tăng dần, năm cuối là `year`
+};
+
+// GET /api/garage-owner/stats/yearly — 12 tháng của một năm và các năm trước để so sánh, tại garage mình.
+export function getGarageOwnerYearStats(year: number) {
+  return apiRequest<GarageYearStats>("/garage-owner/stats/yearly", { query: { year } });
 }
 
 // ---------------------------------------------------------------------------

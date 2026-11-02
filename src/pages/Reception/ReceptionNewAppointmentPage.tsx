@@ -11,7 +11,9 @@ import {
   type MaintenanceService,
   type Schedule,
   type Vehicle,
+  type WalkInCustomerResult,
 } from "../../services/api";
+import WalkInCustomerDialog from "../../components/WalkInCustomerDialog";
 import { isSlotUpcoming } from "../../utils/schedule";
 
 type ReceptionNewAppointmentPageProps = {
@@ -53,6 +55,7 @@ export default function ReceptionNewAppointmentPage({
   const [selectedCustomerName, setSelectedCustomerName] = useState("");
   const [searchText, setSearchText] = useState("");
   const [searchResults, setSearchResults] = useState<CustomerSearchResult[]>([]);
+  const [showWalkIn, setShowWalkIn] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
@@ -147,6 +150,13 @@ export default function ReceptionNewAppointmentPage({
         setSubmitError(err instanceof Error ? err.message : "Không tải được xe của khách."),
       )
       .finally(() => setIsLoadingVehicles(false));
+  };
+
+  // Khách vừa được lễ tân tạo tại quầy: chọn luôn khách đó để đặt lịch (xe vừa thêm được tải theo).
+  const continueWithNewCustomer = (created: WalkInCustomerResult) => {
+    setShowWalkIn(false);
+    setSearchText("");
+    chooseCustomer(created.customerId, created.fullName);
   };
 
   const clearCustomer = () => {
@@ -320,6 +330,16 @@ export default function ReceptionNewAppointmentPage({
                                     ))}
                                 </ul>
                               )}
+                              <button
+                                type="button"
+                                onClick={() => setShowWalkIn(true)}
+                                className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border-[1.5px] border-primary px-3.5 text-sm font-bold text-primary hover:bg-primary-container/10"
+                              >
+                                <span aria-hidden="true" className="material-symbols-outlined text-lg">
+                                  person_add
+                                </span>
+                                Chưa có tài khoản? Tạo khách mới
+                              </button>
                               {searchText.trim().length < 3 && dashboardCustomers.length > 0 && (
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="text-xs text-on-surface-variant">Khách gần đây:</span>
@@ -459,6 +479,10 @@ export default function ReceptionNewAppointmentPage({
           </form>
         </div>
       </StaffShell>
+
+      {showWalkIn && (
+        <WalkInCustomerDialog onClose={() => setShowWalkIn(false)} onContinue={continueWithNewCustomer} />
+      )}
 
       {notice && (
         <div

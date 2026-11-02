@@ -30,7 +30,6 @@ const navItems: Array<{
   label: string;
   icon: string;
   section: AppSection;
-  hasNotification?: boolean;
 }> = [
   { label: "Trang chủ", icon: "home", section: "home" },
   { label: "Tìm garage", icon: "storefront", section: "find_garage" },
@@ -45,7 +44,6 @@ const navItems: Array<{
     label: "Thông báo",
     icon: "notifications",
     section: "notifications",
-    hasNotification: true,
   },
   { label: "Cá nhân", icon: "person", section: "profile" },
 ];
@@ -167,7 +165,7 @@ export default function AppShell({
                 >
                   {item.label}
                 </span>
-                {item.hasNotification && (
+                {item.section === "notifications" && unreadCount > 0 && (
                   <span className="ml-auto h-2 w-2 rounded-full bg-error" />
                 )}
               </button>
