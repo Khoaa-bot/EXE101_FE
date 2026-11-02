@@ -48,6 +48,8 @@ export interface AdminShellProps extends AdminNavProps {
   notice?: { type: "success" | "error"; message: string } | string | null;
   maxWidthClass?: string;
   navigationItems?: ShellNavigationItem[];
+  // Super Admin truyền hàm này để hiện chuông; Admin Garage tự mở trang /notifications.
+  onNotificationsClick?: () => void;
   onNavigationItemClick?: (key: string) => void;
   children: ReactNode;
 }
@@ -256,6 +258,7 @@ export default function AdminShell({
   onPremiumClick,
   onLogout,
   navigationItems,
+  onNotificationsClick,
   onNavigationItemClick,
   children,
 }: AdminShellProps) {
@@ -417,10 +420,10 @@ export default function AdminShell({
               </div>
               <div className="flex items-center gap-3">
                 {headerAction && !(isLapsed && activeTab !== "premium") && <div>{headerAction}</div>}
-                {isGarageOwner && (
+                {(isGarageOwner || (navigationItems && onNotificationsClick)) && (
                   <button
                     type="button"
-                    onClick={openNotifications}
+                    onClick={onNotificationsClick ?? openNotifications}
                     aria-label={unreadCount > 0 ? `Thông báo, ${unreadCount} chưa đọc` : "Thông báo"}
                     className="relative flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant/60 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high"
                   >

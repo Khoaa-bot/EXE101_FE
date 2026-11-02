@@ -1,13 +1,21 @@
 import { useState } from "react";
 import { type SuperAdminUser } from "../../services/api";
 import AdminShell, { type ShellNavigationItem } from "../Admin/AdminShell";
+import NotificationsPage from "../Customer/NotificationsPage";
 import SuperAdminAppointmentsTab from "./SuperAdminAppointmentsTab";
 import SuperAdminCustomersTab from "./SuperAdminCustomersTab";
 import SuperAdminGaragesTab from "./SuperAdminGaragesTab";
 import SuperAdminOverviewTab from "./SuperAdminOverviewTab";
 import SuperAdminReviewsHub from "./SuperAdminReviewsHub";
 
-type TabKey = "overview" | "customers" | "garages" | "appointments" | "reviews";
+type TabKey = "overview" | "customers" | "garages" | "appointments" | "reviews" | "notifications";
+
+const NOTIFICATIONS_TAB = {
+  key: "notifications" as TabKey,
+  icon: "notifications",
+  label: "Thông báo",
+  description: "Garage mới, thanh toán gói và garage hết hạn.",
+};
 
 const TABS: { key: TabKey; icon: string; label: string; description: string }[] = [
   {
@@ -77,7 +85,7 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
     setTab("appointments");
   };
 
-  const active = TABS.find((t) => t.key === tab) ?? TABS[0];
+  const active = tab === "notifications" ? NOTIFICATIONS_TAB : (TABS.find((t) => t.key === tab) ?? TABS[0]);
   const navigationItems: ShellNavigationItem[] = TABS;
 
   return (
@@ -87,9 +95,11 @@ export default function SuperAdminDashboardPage({ onLogout }: SuperAdminDashboar
       description={active.description}
       navigationItems={navigationItems}
       onNavigationItemClick={(key) => setTab(key as TabKey)}
+      onNotificationsClick={() => setTab("notifications")}
       onLogout={onLogout}
       notice={notice}
     >
+            {tab === "notifications" && <NotificationsPage embedded />}
             {tab === "overview" && <SuperAdminOverviewTab onNavigate={setTab} />}
             {tab === "customers" && (
               <SuperAdminCustomersTab notify={notify} onViewAppointments={viewAppointmentsOf} />
