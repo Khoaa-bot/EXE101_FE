@@ -10,12 +10,16 @@ import {
 import { MAINTENANCE_TITLE_OVERDUE, MAINTENANCE_TITLE_SOON } from "../../utils/maintenance";
 
 type NotificationsPageProps = {
-  onBookingClick: () => void;
-  onHomeClick: () => void;
-  onHistoryClick: () => void;
-  onProfileClick: () => void;
-  onTrackingClick: () => void;
+  // embedded: chỉ vẽ danh sách, để Lễ tân / Kỹ thuật viên / Admin Garage đặt vào khung của họ.
+  embedded?: boolean;
+  onBookingClick?: () => void;
+  onHomeClick?: () => void;
+  onHistoryClick?: () => void;
+  onProfileClick?: () => void;
+  onTrackingClick?: () => void;
 };
+
+const noop = () => {};
 
 type UiCategory = "Xe & Hồ sơ" | "Đơn hàng" | "Khuyến mãi" | "Hệ thống";
 
@@ -85,11 +89,12 @@ function formatRelativeTime(isoDate: string): string {
 }
 
 export default function NotificationsPage({
-  onBookingClick,
-  onHomeClick,
-  onHistoryClick,
-  onProfileClick,
-  onTrackingClick,
+  embedded = false,
+  onBookingClick = noop,
+  onHomeClick = noop,
+  onHistoryClick = noop,
+  onProfileClick = noop,
+  onTrackingClick = noop,
 }: NotificationsPageProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"Tất cả" | UiCategory>(filters[0]);
@@ -166,6 +171,7 @@ export default function NotificationsPage({
 
   return (
     <div className="min-h-dvh bg-background font-sans text-on-surface">
+      {!embedded && (<>
       <AppSidebar
         active="notifications"
         isOpen={isSidebarOpen}
@@ -234,8 +240,10 @@ export default function NotificationsPage({
           </div>
         </div>
       </header>
+      </>)}
 
-      <div className="flex min-h-screen pt-16">
+      <div className={embedded ? "" : "flex min-h-screen pt-16"}>
+        {!embedded && (
         <aside className="fixed bottom-0 left-0 top-16 hidden w-64 flex-col overflow-y-auto border-r border-outline-variant bg-surface-container-lowest px-md py-lg md:flex">
           <nav className="space-y-1">
             <button
@@ -284,12 +292,13 @@ export default function NotificationsPage({
             </button>
           </nav>
         </aside>
+        )}
 
-        <main className="flex-1 bg-background p-margin-mobile pb-28 md:ml-64 md:p-margin-desktop">
+        <main className={embedded ? "p-margin-mobile pb-16 md:p-xl" : "flex-1 bg-background p-margin-mobile pb-28 md:ml-64 md:p-margin-desktop"}>
           <div className="mx-auto max-w-4xl space-y-5">
             <section className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
               <div>
-                <h2 className="text-3xl font-extrabold tracking-tight text-on-surface">Thông báo</h2>
+                {!embedded && <h2 className="text-3xl font-extrabold tracking-tight text-on-surface">Thông báo</h2>}
                 <p className="mt-1 text-[15px] text-on-surface-variant" aria-live="polite">
                   {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : "Bạn đã đọc hết thông báo"}
                 </p>
@@ -381,6 +390,7 @@ export default function NotificationsPage({
         </main>
       </div>
 
+      {!embedded && (
       <nav className="fixed bottom-0 left-0 z-50 flex h-20 w-full items-center justify-around border-t border-outline-variant bg-surface px-2 md:hidden">
         <button
           className="flex flex-col items-center justify-center text-on-surface-variant"
@@ -419,6 +429,7 @@ export default function NotificationsPage({
           <span className="font-label-sm text-label-sm">Thông báo</span>
         </button>
       </nav>
+      )}
     </div>
   );
 }

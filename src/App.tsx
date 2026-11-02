@@ -39,6 +39,7 @@ import AdminAppointmentsPage from "./pages/Admin/AdminAppointmentsPage";
 import AdminPremiumMemberPage from "./pages/Admin/AdminPremiumMemberPage";
 import AdminPremiumCheckoutPage from "./pages/Admin/AdminPremiumCheckoutPage";
 import AdminShell from "./pages/Admin/AdminShell";
+import StaffNotificationsPage from "./pages/StaffNotificationsPage";
 import ReceptionDashboardPage from "./pages/Reception/ReceptionDashboardPage";
 import ReceptionSchedulePage from "./pages/Reception/ReceptionSchedulePage";
 import ReceptionAppointmentsPage from "./pages/Reception/ReceptionAppointmentsPage";
@@ -119,16 +120,16 @@ const roleRoutes: Record<string, Set<string>> = {
   // backend, đã đổi tên). "admin" giờ là Super Admin toàn hệ thống.
   GARAGE_OWNER: new Set([
     "/admin", "/admin/customers", "/admin/engineers", "/admin/pricing", "/admin/reports", "/admin/garage", "/admin/reviews", "/admin/appointments",
-    "/admin/premium", "/admin/premium/checkout", "/payment-result",
+    "/admin/premium", "/admin/premium/checkout", "/payment-result", "/notifications",
   ]),
   ADMIN: new Set(["/super-admin"]),
   ENGINEER: new Set([
     "/engineer", "/engineer/appointments",
-    "/engineer/technicians", "/engineer/job-detail", "/engineer/settings",
+    "/engineer/technicians", "/engineer/job-detail", "/engineer/settings", "/notifications",
   ]),
   RECEPTION: new Set([
     "/reception", "/reception/schedule", "/reception/appointments",
-    "/reception/appointments/new", "/reception/appointments/detail", "/reception/customers",
+    "/reception/appointments/new", "/reception/appointments/detail", "/reception/customers", "/notifications",
   ]),
   CUSTOMER: new Set([
     "/home", "/history", "/notifications", "/tracking", "/profile",
@@ -646,6 +647,50 @@ function App() {
           onProfileClick={shellProps.onProfileClick}
         />
       </AppShell>
+    );
+  }
+
+  if (routePath === "/notifications" && role === "GARAGE_OWNER") {
+    return (
+      <AdminShell
+        activeTab="notifications"
+        title="Thông báo"
+        description="Lịch hẹn mới, đánh giá và thông tin về gói garage."
+        {...adminProps}
+      >
+        <NotificationsPage embedded />
+      </AdminShell>
+    );
+  }
+
+  if (routePath === "/notifications" && role === "RECEPTION") {
+    return (
+      <StaffNotificationsPage
+        role="reception"
+        handlers={{
+          dashboard: receptionProps.onDashboardClick,
+          appointments: receptionProps.onAppointmentsClick,
+          schedule: receptionProps.onScheduleClick,
+          customers: receptionProps.onCustomersClick,
+          new: receptionProps.onNewAppointmentClick,
+        }}
+        onLogout={shellProps.onLogout}
+      />
+    );
+  }
+
+  if (routePath === "/notifications" && role === "ENGINEER") {
+    return (
+      <StaffNotificationsPage
+        role="engineer"
+        handlers={{
+          dashboard: engineerProps.onDashboardClick,
+          appointments: engineerProps.onAppointmentsClick,
+          technicians: engineerProps.onTechniciansClick,
+          settings: engineerProps.onSettingsClick,
+        }}
+        onLogout={shellProps.onLogout}
+      />
     );
   }
 

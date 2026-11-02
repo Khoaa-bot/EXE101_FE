@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useUnreadNotificationCount } from "../hooks/useUnreadNotificationCount";
 import VideoCallHost from "./VideoCallHost";
 import BrandLink from "./BrandLink";
+import { openNotifications } from "../utils/navigation";
 
 export type StaffRole = "reception" | "engineer";
 
@@ -139,23 +140,21 @@ export default function StaffShell({
             <span />
           )}
           <div className="flex items-center gap-3">
-            {onNotificationsClick && (
-              <button
-                type="button"
-                onClick={onNotificationsClick}
-                aria-label={unreadCount > 0 ? `Thông báo, ${unreadCount} chưa đọc` : "Thông báo"}
-                className="relative flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant/60 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high"
-              >
-                <span aria-hidden="true" className="material-symbols-outlined">
-                  notifications
-                </span>
-                {unreadCount > 0 && (
-                  <b className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-surface bg-error px-1 text-[11px] text-on-error">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </b>
-                )}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={onNotificationsClick ?? openNotifications}
+              aria-label={unreadCount > 0 ? `Thông báo, ${unreadCount} chưa đọc` : "Thông báo"}
+              className="relative flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant/60 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined">
+                notifications
+              </span>
+              {unreadCount > 0 && (
+                <b className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-surface bg-error px-1 text-[11px] text-on-error">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </b>
+              )}
+            </button>
             <div className="relative" ref={menuRef}>
               <button
                 type="button"

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useDialogA11y } from "../../hooks/useDialogA11y";
 import { useMySubscription } from "../../hooks/useSubscription";
 import BrandLink from "../../components/BrandLink";
+import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCount";
+import { openNotifications } from "../../utils/navigation";
 import VideoCallHost from "../../components/VideoCallHost";
 import type { MySubscription } from "../../services/api";
 
@@ -262,6 +264,7 @@ export default function AdminShell({
 
   // Garage không có gói miễn phí: chỉ Admin Garage (menu mặc định, không phải Super Admin) mới có banner gói và bị khoá khi hết hạn.
   const subscription = useMySubscription(!navigationItems);
+  const unreadCount = useUnreadNotificationCount();
   const isGarageOwner = !navigationItems && subscription?.role?.toLowerCase() === "garage_owner";
   const isLapsed = isGarageOwner && !subscription?.isActive;
 
@@ -412,7 +415,24 @@ export default function AdminShell({
                   {description}
                 </p>
               </div>
-              {headerAction && !(isLapsed && activeTab !== "premium") && <div>{headerAction}</div>}
+              <div className="flex items-center gap-3">
+                {headerAction && !(isLapsed && activeTab !== "premium") && <div>{headerAction}</div>}
+                {isGarageOwner && (
+                  <button
+                    type="button"
+                    onClick={openNotifications}
+                    aria-label={unreadCount > 0 ? `Thông báo, ${unreadCount} chưa đọc` : "Thông báo"}
+                    className="relative flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant/60 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high"
+                  >
+                    <span aria-hidden="true" className="material-symbols-outlined">notifications</span>
+                    {unreadCount > 0 && (
+                      <b className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-surface bg-error px-1 text-[11px] text-on-error">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </b>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
