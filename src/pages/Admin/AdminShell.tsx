@@ -107,7 +107,7 @@ const ADMIN_TABS: {
   {
     key: "premium",
     icon: "workspace_premium",
-    label: "Gói Premium",
+    label: "Subscription",
     description: "Gói duy trì hoạt động của garage trên Servio: nhận lịch từ khách, báo cáo và nhân viên không giới hạn.",
   },
 ];
@@ -432,7 +432,7 @@ export default function AdminShell({
                 <span aria-hidden="true" className="material-symbols-outlined text-[32px] text-on-surface-variant">
                   lock
                 </span>
-                <p className="mt-2 font-bold">Chỉ còn trang Gói Premium</p>
+                <p className="mt-2 font-bold">Chỉ còn trang Subscription</p>
                 <p className="mx-auto mt-1 max-w-md text-sm text-on-surface-variant">
                   Các trang quản trị khác bị khoá cho tới khi bạn đăng ký gói.
                 </p>
