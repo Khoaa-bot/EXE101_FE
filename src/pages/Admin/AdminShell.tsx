@@ -288,7 +288,7 @@ export default function AdminShell({
             <span className="font-headline-lg text-headline-lg font-bold">Servio</span>
           </BrandLink>
           <p className="mt-1 text-xs text-on-surface-variant">
-            Quản trị garage {garageName ? `· ${garageName}` : ""}
+            Quản trị Hệ thống {garageName ? `· ${garageName}` : ""}
           </p>
         </div>
 

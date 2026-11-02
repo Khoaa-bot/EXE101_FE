@@ -12,6 +12,7 @@ import {
   type WalletSummary,
 } from "../../services/api";
 import AdminShell, { type AdminNavProps, StatusPill } from "./AdminShell";
+import GarageStatsSection from "./GarageStatsSection";
 
 export type AdminDashboardPageProps = AdminNavProps;
 
@@ -85,14 +86,6 @@ export default function AdminDashboardPage(props: AdminDashboardPageProps) {
 
   const appointments = dashboard?.appointments ?? NO_APPOINTMENTS;
 
-  const totalRevenue = useMemo(
-    () =>
-      appointments
-        .filter((a) => a.status === "completed" || a.status === "successful")
-        .reduce((sum, a) => sum + (a.servicePrice ?? 0), 0),
-    [appointments],
-  );
-
   const inProgress = useMemo(
     () => appointments.filter((a) => a.status === "in_progress"),
     [appointments],
@@ -133,10 +126,14 @@ export default function AdminDashboardPage(props: AdminDashboardPageProps) {
 
       {!isLoading && !loadError && dashboard && (
         <>
-          {/* Hàng 1: Tài chính (doanh thu + ví) */}
-          <section className="mb-4 grid gap-4 md:grid-cols-2">
-            <RevenueCard total={totalRevenue} />
+          {/* Hàng 1: Ví garage */}
+          <section className="mb-4">
             <WalletCard wallet={wallet} onWalletClick={props.onWalletClick} />
+          </section>
+
+          {/* Hàng 1b: Khách hàng mới + lịch hẹn theo thời gian (giống Super Admin) */}
+          <section className="mb-6">
+            <GarageStatsSection />
           </section>
 
           {/* Hàng 2: Trạng thái lịch hẹn theo thứ tự quy trình */}
@@ -375,32 +372,6 @@ function WalletCard({
           </button>
         )}
       </div>
-    </article>
-  );
-}
-
-function RevenueCard({ total }: { total: number }) {
-  return (
-    <article className="flex flex-col justify-between rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
-      <div className="flex items-center gap-3.5">
-        <span
-          aria-hidden="true"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[#d9f7dd] text-[#00531a]"
-        >
-          <span className="material-symbols-outlined">payments</span>
-        </span>
-        <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-            Doanh thu dịch vụ hoàn thành
-          </p>
-          <p className="mt-0.5 text-2xl font-extrabold text-on-surface">
-            {formatPrice(total)}
-          </p>
-        </div>
-      </div>
-      <p className="mt-4 border-t border-outline-variant/40 pt-3 text-xs text-on-surface-variant">
-        Tổng đơn giá của các lịch hẹn đã hoàn thành và thanh toán
-      </p>
     </article>
   );
 }

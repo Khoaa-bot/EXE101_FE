@@ -1957,6 +1957,40 @@ export function getAdminYearStats(year: number) {
   return apiRequest<AdminYearStats>("/admin/stats/yearly", { query: { year } });
 }
 
+export type GaragePeriodStats = {
+  period: "day" | "week" | "month";
+  serverNow: string; // giờ hiện tại theo múi giờ Asia/Ho_Chi_Minh
+  newCustomers: StatsSeries;
+  appointments: StatsSeries;
+  outcomes: { done: number; active: number; cancelled: number; noShow: number };
+  timeFrames: Array<{ label: string; count: number }> | null; // chỉ có khi period = day
+};
+
+// GET /api/garage-owner/stats/period — khách hàng mới + lịch hẹn theo ngày/tuần/tháng tại garage mình.
+export function getGarageOwnerPeriodStats(period: "day" | "week" | "month") {
+  return apiRequest<GaragePeriodStats>("/garage-owner/stats/period", { query: { period } });
+}
+
+export type GarageYearMonthRow = {
+  newCustomers: number;
+  appointments: number;
+  done: number;
+  lost: number; // hủy + không đến
+};
+
+export type GarageYearStats = {
+  year: number;
+  firstYear: number;
+  cutoffMonth: number; // 0-11, mốc cắt "cùng kỳ"
+  cutoffDay: number;
+  years: Array<{ year: number; months: GarageYearMonthRow[] }>; // tăng dần, năm cuối là `year`
+};
+
+// GET /api/garage-owner/stats/yearly — 12 tháng của một năm và các năm trước để so sánh, tại garage mình.
+export function getGarageOwnerYearStats(year: number) {
+  return apiRequest<GarageYearStats>("/garage-owner/stats/yearly", { query: { year } });
+}
+
 // ---------------------------------------------------------------------------
 // Đánh giá: khách xem công khai và sửa trong 7 ngày, Admin Garage phản hồi,
 // Super Admin ẩn (không xóa).
