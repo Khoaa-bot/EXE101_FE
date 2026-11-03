@@ -1,6 +1,11 @@
 // Google Analytics 4: đo lượt truy cập và số người đăng ký theo nguồn (Facebook, TikTok...).
-// Chỉ chạy khi có biến môi trường VITE_GA_MEASUREMENT_ID (dạng G-XXXXXXXXXX); không có thì mọi hàm ở đây không làm gì.
-const MEASUREMENT_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined)?.trim();
+// Mã đo lường lấy từ biến môi trường VITE_GA_MEASUREMENT_ID (dạng G-XXXXXXXXXX) nếu có. Bản chạy thật (build production)
+// mà không đặt biến thì dùng mã mặc định bên dưới (mã đo lường là thông tin công khai, không phải bí mật).
+// Khi chạy dev trên máy (npm run dev) không có biến thì mọi hàm ở đây không làm gì, để khỏi lẫn số liệu thử vào GA.
+const DEFAULT_MEASUREMENT_ID = "G-S9ELHHEM2K";
+const MEASUREMENT_ID =
+  (import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined)?.trim() ||
+  (import.meta.env.PROD ? DEFAULT_MEASUREMENT_ID : undefined);
 
 const ACQUISITION_KEY = "servio_acquisition";
 const ACQUISITION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
