@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { register, sendRegisterOtp, type RegisterPayload } from "../../services/api";
+import { trackSignUp } from "../../services/analytics";
 import { EMAIL_REGEX, NAME_REGEX, PHONE_REGEX, USERNAME_REGEX } from "../../utils/validators";
 import { evaluatePasswordStrength } from "../../utils/passwordStrength";
 
@@ -164,6 +165,7 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
 
     try {
       await register(payload);
+      trackSignUp();
       setSubmitState("success");
     } catch (requestError) {
       setError(

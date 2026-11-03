@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getStoredAuthSession } from "./services/api";
+import { trackPageView } from "./services/analytics";
 import { AUTH_EXPIRED_EVENT, clearSession, expireSession, tokenExpiryMs } from "./services/authSession";
 import AppShell from "./components/AppShell";
 import AddVehiclePage from "./pages/Customer/AddVehiclePage";
@@ -223,6 +224,11 @@ function App() {
       window.history.replaceState(null, "", routePath);
     }
   }, [pathname, routePath]);
+
+  // App tự định tuyến nên Google Analytics không tự thấy việc đổi trang: gửi page_view mỗi khi đường dẫn đổi.
+  useEffect(() => {
+    trackPageView(routePath);
+  }, [routePath]);
 
   // Phiên hết hạn (token quá hạn): đưa về trang đăng nhập, cả khi đang mở web lẫn khi vừa mở lại.
   useEffect(() => {
