@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { register, sendRegisterOtp, type RegisterPayload } from "../../services/api";
-import { trackSignUp } from "../../services/analytics";
+import { getAcquisition, trackSignUp } from "../../services/analytics";
 import { EMAIL_REGEX, NAME_REGEX, PHONE_REGEX, USERNAME_REGEX } from "../../utils/validators";
 import { evaluatePasswordStrength } from "../../utils/passwordStrength";
 
@@ -153,6 +153,7 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
     setError("");
     setSubmitState("loading");
 
+    const acquisition = getAcquisition();
     const payload: RegisterPayload = {
       username: info.username.trim(),
       password,
@@ -161,6 +162,9 @@ export default function RegisterPage({ onBackToLogin }: RegisterPageProps) {
       email: info.email.trim(),
       dob: info.dob,
       otp: otpCode.trim(),
+      source: acquisition.source,
+      medium: acquisition.medium,
+      campaign: acquisition.campaign,
     };
 
     try {

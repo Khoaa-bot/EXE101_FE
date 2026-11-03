@@ -1,6 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getAdminOverview, type AdminOverview } from "../../services/api";
+import { SOURCE_META, sourceGroup, type SourceGroup } from "../../utils/signupSource";
 import OverviewStatsSection from "./OverviewStatsSection";
+import { SourceBadge } from "./SuperAdminChips";
+
+const SOURCE_BAR: Record<SourceGroup, string> = {
+  facebook: "#0059bb",
+  tiktok: "#c2185b",
+  instagram: "#8e24aa",
+  direct: "#717786",
+  counter: "#c47f00",
+  other: "#00749e",
+  unknown: "#c1c6d7",
+};
 
 type OverviewTarget = "customers" | "garages";
 
@@ -36,6 +48,18 @@ export default function SuperAdminOverviewTab({ onNavigate }: Props) {
   const blockedGarages = overview?.blockedGarageCount ?? null;
   const hiddenGarages = overview?.hiddenGarageCount ?? null;
   const hasFailure = loaded && overview === null;
+
+  // BE trả theo từng nguồn thô; gom về các nhóm hiển thị (Facebook, TikTok, Khác...) và xếp nhiều nhất trước.
+  const signupRows = useMemo(() => {
+    const totals = new Map<SourceGroup, number>();
+    for (const item of overview?.signupSources ?? []) {
+      const group = sourceGroup(item.source);
+      totals.set(group, (totals.get(group) ?? 0) + item.count);
+    }
+    return [...totals.entries()].map(([group, count]) => ({ group, count })).sort((a, b) => b.count - a.count);
+  }, [overview]);
+  const signupTotal = signupRows.reduce((sum, row) => sum + row.count, 0);
+  const signupMax = signupRows[0]?.count ?? 1;
 
   const kpis: { icon: string; tone: string; label: string; value: string; hint: string }[] = [
     {
@@ -130,6 +154,49 @@ export default function SuperAdminOverviewTab({ onNavigate }: Props) {
           </article>
         ))}
       </section>
+
+      {signupRows.length > 0 && (
+        <section
+          aria-labelledby="signup-source-title"
+          className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5"
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="signup-source-title" className="font-headline-md text-headline-md font-bold">
+              Đăng ký theo nguồn
+            </h2>
+            <span className="text-xs text-on-surface-variant">
+              {overview?.signupSourceDays ?? 30} ngày qua · {signupTotal.toLocaleString("vi-VN")} khách mới
+            </span>
+          </div>
+          <ul className="mt-4 space-y-3">
+            {signupRows.map((row) => (
+              <li key={row.group} className="grid grid-cols-[130px_1fr_48px] items-center gap-3">
+                <SourceBadge source={row.group} />
+                <div
+                  role="img"
+                  aria-label={`${SOURCE_META[row.group].label}: ${row.count} khách`}
+                  className="h-3 overflow-hidden rounded-full bg-surface-container"
+                >
+                  <i
+                    className="block h-full rounded-full"
+                    style={{ width: `${Math.max(4, (row.count / signupMax) * 100)}%`, background: SOURCE_BAR[row.group] }}
+                  />
+                </div>
+                <b className="text-right">{row.count.toLocaleString("vi-VN")}</b>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 flex justify-end border-t border-outline-variant/40 pt-3">
+            <button
+              type="button"
+              onClick={() => onNavigate("customers")}
+              className="min-h-9 rounded-[10px] border-[1.5px] border-primary bg-surface-container-lowest px-3 text-xs font-bold text-on-primary-fixed-variant hover:bg-primary-fixed/40"
+            >
+              Xem khách hàng
+            </button>
+          </div>
+        </section>
+      )}
 
       <OverviewStatsSection />
 

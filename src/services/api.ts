@@ -14,6 +14,10 @@ export type RegisterPayload = LoginPayload & {
   email: string;
   dob: string;
   otp: string;
+  // Nguồn khách đến (facebook, tiktok, direct...) do web tự nhận diện; BE lưu để Super Admin xem.
+  source?: string;
+  medium?: string;
+  campaign?: string;
 };
 
 export type AuthSession = {
@@ -1326,6 +1330,9 @@ export type SuperAdminUser = {
   hidden: boolean;
   appointmentCount: number | null;
   createdAt: string;
+  signupSource?: string | null;
+  signupMedium?: string | null;
+  signupCampaign?: string | null;
 };
 
 export type SuperAdminGarage = {
@@ -1754,6 +1761,8 @@ export type AdminOverview = {
   hiddenGarageCount: number;
   garagesWithoutOwner: Array<{ id: number; name: string }>;
   successfulTransactionCount: number;
+  signupSourceDays?: number;
+  signupSources?: Array<{ source: string; count: number }>;
 };
 
 // GET /api/admin/overview — số liệu KPI trang Tổng quan trong một lần gọi (Super Admin).

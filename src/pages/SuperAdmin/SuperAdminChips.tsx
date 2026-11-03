@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SOURCE_META, sourceGroup } from "../../utils/signupSource";
 
 // Chip trạng thái: luôn có chữ đi kèm chấm màu, không chỉ dựa vào màu.
 export function StatusChips({ blocked, hidden }: { blocked: boolean; hidden: boolean }) {
@@ -18,6 +19,21 @@ export function StatusChips({ blocked, hidden }: { blocked: boolean; hidden: boo
           Đã ẩn
         </span>
       )}
+    </span>
+  );
+}
+
+// Nhãn nguồn đăng ký (Facebook, TikTok...): luôn có chữ và biểu tượng, không chỉ dựa vào màu.
+export function SourceBadge({ source }: { source: string | null | undefined }) {
+  const meta = SOURCE_META[sourceGroup(source)];
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${meta.tone}`}
+    >
+      <span aria-hidden="true" className="material-symbols-outlined text-[15px]">
+        {meta.icon}
+      </span>
+      {meta.label}
     </span>
   );
 }

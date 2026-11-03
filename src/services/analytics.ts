@@ -122,11 +122,13 @@ function gtag(..._args: unknown[]) {
 let started = false;
 
 export function initAnalytics() {
-  if (!MEASUREMENT_ID || started || typeof window === "undefined") return;
+  if (started || typeof window === "undefined") return;
   started = true;
 
+  // Nguồn khách đến được ghi nhớ kể cả khi chưa có mã GA, vì nó còn được gửi kèm lúc đăng ký để Super Admin xem.
   const current = detectAcquisition();
   rememberAcquisition(current);
+  if (!MEASUREMENT_ID) return;
 
   window.dataLayer = window.dataLayer || [];
   window.gtag = gtag;

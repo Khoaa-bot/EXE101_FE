@@ -8,7 +8,8 @@ import {
 import { formatDateTime } from "../../utils/format";
 import ReasonConfirmDialog from "./ReasonConfirmDialog";
 import RowActionMenu from "./RowActionMenu";
-import { FilterChip, StatusChips } from "./SuperAdminChips";
+import { FilterChip, SourceBadge, StatusChips } from "./SuperAdminChips";
+import { SOURCE_GROUPS, SOURCE_META, sourceGroup, type SourceGroup } from "../../utils/signupSource";
 
 const NO_USERS: SuperAdminUser[] = [];
 
@@ -96,6 +97,7 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [showHidden, setShowHidden] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<SourceGroup | "all">("all");
   const [busyId, setBusyId] = useState<number | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -134,15 +136,25 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
     const q = query.trim().toLowerCase();
     return users.filter((u) => {
       const matchesStatus = statusFilter === "all" || u.status === statusFilter;
+      const matchesSource = sourceFilter === "all" || sourceGroup(u.signupSource) === sourceFilter;
       const matchesQuery =
         !q ||
         u.username.toLowerCase().includes(q) ||
         (u.fullName ?? "").toLowerCase().includes(q) ||
         (u.email ?? "").toLowerCase().includes(q) ||
         (u.phone ?? "").includes(q);
-      return matchesStatus && matchesQuery;
+      return matchesStatus && matchesSource && matchesQuery;
     });
-  }, [users, query, statusFilter]);
+  }, [users, query, statusFilter, sourceFilter]);
+
+  const sourceCounts = useMemo(() => {
+    const counts = new Map<SourceGroup, number>();
+    for (const u of users) {
+      const group = sourceGroup(u.signupSource);
+      counts.set(group, (counts.get(group) ?? 0) + 1);
+    }
+    return counts;
+  }, [users]);
 
   const selectedUser = users.find((u) => u.id === selectedId) ?? null;
 
@@ -230,6 +242,18 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
         </span>
       </div>
 
+      <div role="group" aria-label="Lọc theo nguồn đăng ký" className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="mr-1 text-xs font-bold text-on-surface-variant">Nguồn đăng ký</span>
+        <FilterChip active={sourceFilter === "all"} onClick={() => setSourceFilter("all")}>
+          Tất cả nguồn
+        </FilterChip>
+        {SOURCE_GROUPS.filter((group) => sourceFilter === group || (sourceCounts.get(group) ?? 0) > 0).map((group) => (
+          <FilterChip key={group} active={sourceFilter === group} onClick={() => setSourceFilter(group)}>
+            {SOURCE_META[group].label} <b>{sourceCounts.get(group) ?? 0}</b>
+          </FilterChip>
+        ))}
+      </div>
+
       {isLoading && <p className="mt-6 text-body-sm text-on-surface-variant">Đang tải danh sách khách hàng...</p>}
       {!isLoading && loadError && <p className="mt-6 text-body-sm text-error">{loadError}</p>}
 
@@ -242,6 +266,7 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
                   <th className="px-4 py-3 font-bold">Tên đăng nhập</th>
                   <th className="px-4 py-3 font-bold">Họ tên</th>
                   <th className="px-4 py-3 font-bold">Liên hệ</th>
+                  <th className="px-4 py-3 font-bold">Nguồn đăng ký</th>
                   <th className="px-4 py-3 font-bold">Lịch hẹn</th>
                   <th className="px-4 py-3 font-bold">Không đến</th>
                   <th className="px-4 py-3 font-bold">Trạng thái</th>
@@ -270,6 +295,9 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
                     <td className="px-4 py-3 text-xs text-on-surface-variant">
                       <div className="text-sm text-on-surface">{u.email || "—"}</div>
                       <div>{u.phone || ""}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <SourceBadge source={u.signupSource} />
                     </td>
                     <td className="px-4 py-3">{u.appointmentCount ?? 0}</td>
                     <td className="px-4 py-3">{u.noShow ?? 0}</td>
@@ -308,7 +336,7 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
                 ))}
                 {visibleUsers.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-on-surface-variant">
+                    <td colSpan={8} className="px-4 py-8 text-center text-on-surface-variant">
                       Không tìm thấy khách hàng phù hợp.
                     </td>
                   </tr>
@@ -361,6 +389,22 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
                 <dd>{selectedUser.noShow ?? 0}</dd>
                 <dt className="text-on-surface-variant">Tham gia lúc</dt>
                 <dd>{selectedUser.createdAt ? formatDateTime(selectedUser.createdAt) || "—" : "—"}</dd>
+                <dt className="text-on-surface-variant">Đăng ký qua</dt>
+                <dd>
+                  <SourceBadge source={selectedUser.signupSource} />
+                </dd>
+                {selectedUser.signupMedium && (
+                  <>
+                    <dt className="text-on-surface-variant">Phương tiện</dt>
+                    <dd>{selectedUser.signupMedium}</dd>
+                  </>
+                )}
+                {selectedUser.signupCampaign && (
+                  <>
+                    <dt className="text-on-surface-variant">Chiến dịch</dt>
+                    <dd className="break-all">{selectedUser.signupCampaign}</dd>
+                  </>
+                )}
               </dl>
               <button
                 type="button"
