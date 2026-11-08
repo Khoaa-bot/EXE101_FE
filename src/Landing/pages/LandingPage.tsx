@@ -11,7 +11,7 @@ type LandingPageProps = {
 
 // Thông tin liên hệ hiển thị ở thanh trên cùng và chân trang — thay bằng thông tin thật.
 const CONTACT = {
-  email: "contact@servio.vn",
+  email: "serviocarcare@gmail.com",
   address: "Địa chỉ văn phòng Servio",
   phone: "Hotline hỗ trợ",
 };
@@ -53,14 +53,22 @@ const SOCIAL_LINKS = [
 function SocialIcon({ name }: { name: (typeof SOCIAL_LINKS)[number]["icon"] }) {
   if (name === "tiktok") {
     return (
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-5 w-5 fill-current"
+      >
         <path d="M15.7 3c.2 1.6 1.1 2.9 2.6 3.7.6.3 1.3.5 2 .5v3.1c-1.5 0-2.9-.4-4.1-1.1v5.9c0 3.7-2.9 5.9-6.2 5.9-2.8 0-5.4-2-5.4-5.1 0-3.3 2.8-5.4 6.1-5.1v3.2c-1.7-.3-2.9.6-2.9 1.9 0 1.1.9 1.9 2.1 1.9 1.5 0 3.1-.9 3.1-3.3V3h2.7Z" />
       </svg>
     );
   }
 
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5 fill-current"
+    >
       <path d="M13.5 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.5 1.6-1.5h1.7V4c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.5-4 4.1V10H7.7v3h2.7v8h3.1Z" />
     </svg>
   );
@@ -124,10 +132,19 @@ const SERVICES = [
 ];
 
 const STEPS = [
-  { title: "Chọn garage", text: "Tìm garage gần bạn và xem dịch vụ, giá tham khảo." },
+  {
+    title: "Chọn garage",
+    text: "Tìm garage gần bạn và xem dịch vụ, giá tham khảo.",
+  },
   { title: "Đặt lịch hẹn", text: "Chọn xe, dịch vụ và khung giờ còn trống." },
-  { title: "Theo dõi sửa chữa", text: "Nhận thông báo mỗi khi trạng thái xe thay đổi." },
-  { title: "Thanh toán, nhận xe", text: "Duyệt báo giá, thanh toán và nhận xe đã hoàn tất." },
+  {
+    title: "Theo dõi sửa chữa",
+    text: "Nhận thông báo mỗi khi trạng thái xe thay đổi.",
+  },
+  {
+    title: "Thanh toán, nhận xe",
+    text: "Duyệt báo giá, thanh toán và nhận xe đã hoàn tất.",
+  },
 ];
 
 function CarScene({ color, glow }: { color: string; glow: string }) {
@@ -174,7 +191,11 @@ function CarScene({ color, glow }: { color: string; glow: string }) {
             d="M185 98 L215 74 C230 68 245 67 262 67 L340 67 C362 67 380 76 395 100 Z"
             fill="#0d1218"
           />
-          <path d="M60 140 L545 140" stroke="rgba(0,0,0,0.25)" strokeWidth="3" />
+          <path
+            d="M60 140 L545 140"
+            stroke="rgba(0,0,0,0.25)"
+            strokeWidth="3"
+          />
           <rect x="528" y="124" width="26" height="9" rx="4" fill="#fff6c9" />
           <rect x="46" y="128" width="22" height="9" rx="4" fill="#ff5a5a" />
           <circle cx="150" cy="170" r="34" fill="#0b0d10" />
@@ -193,7 +214,11 @@ function CarScene({ color, glow }: { color: string; glow: string }) {
 const MAINTENANCE_TONES = {
   amber: { panel: "bg-[#fff1cc]", text: "text-[#6b4200]", bar: "bg-[#c47f00]" },
   green: { panel: "bg-[#d9f7dd]", text: "text-[#00531a]", bar: "bg-[#008730]" },
-  red: { panel: "bg-error-container", text: "text-on-error-container", bar: "bg-error" },
+  red: {
+    panel: "bg-error-container",
+    text: "text-on-error-container",
+    bar: "bg-error",
+  },
 };
 
 function MaintenanceRow({
@@ -217,7 +242,10 @@ function MaintenanceRow({
         <span className={t.text}>{remaining}</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-highest">
-        <div className={`h-full rounded-full ${t.bar}`} style={{ width: `${percent}%` }} />
+        <div
+          className={`h-full rounded-full ${t.bar}`}
+          style={{ width: `${percent}%` }}
+        />
       </div>
       {action && (
         <div className="mt-2 flex h-[30px] items-center justify-center rounded-lg bg-error text-xs font-bold text-on-error">
@@ -266,7 +294,9 @@ function FeatureCard({
             </span>
           )}
         </h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-on-surface-variant">{text}</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-on-surface-variant">
+          {text}
+        </p>
       </div>
       <div
         aria-hidden="true"
@@ -351,7 +381,9 @@ export default function LandingPage({
           aria-hidden="true"
           className="parallax absolute right-[6%] top-[22%] z-10 hidden items-center gap-2.5 rounded-2xl border border-white/30 bg-white/15 px-3.5 py-2.5 text-[13px] font-semibold shadow-[0_22px_40px_-18px_rgba(0,0,0,0.6)] backdrop-blur [--depth:34] lg:flex"
         >
-          <span className="material-symbols-outlined text-xl">receipt_long</span>
+          <span className="material-symbols-outlined text-xl">
+            receipt_long
+          </span>
           Báo giá minh bạch
         </div>
 
@@ -359,20 +391,29 @@ export default function LandingPage({
           <div className="mx-auto hidden max-w-6xl items-center justify-between px-lg py-2 text-xs text-white/85 md:flex">
             <div className="flex items-center gap-lg">
               <span className="flex items-center gap-1.5">
-                <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
+                <span
+                  aria-hidden="true"
+                  className="material-symbols-outlined text-[16px]"
+                >
                   mail
                 </span>
                 {CONTACT.email}
               </span>
               <span className="flex items-center gap-1.5">
-                <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
+                <span
+                  aria-hidden="true"
+                  className="material-symbols-outlined text-[16px]"
+                >
                   location_on
                 </span>
                 {CONTACT.address}
               </span>
             </div>
             <span className="flex items-center gap-1.5">
-              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
+              <span
+                aria-hidden="true"
+                className="material-symbols-outlined text-[16px]"
+              >
                 call
               </span>
               {CONTACT.phone}
@@ -381,7 +422,10 @@ export default function LandingPage({
 
           <header className="mx-auto flex max-w-6xl items-center justify-between px-md py-3 md:px-lg">
             <a href="#trang-chu" className="flex items-center gap-sm">
-              <span aria-hidden="true" className="material-symbols-outlined text-[32px]">
+              <span
+                aria-hidden="true"
+                className="material-symbols-outlined text-[32px]"
+              >
                 electric_car
               </span>
               <span className="text-headline-lg font-extrabold tracking-tight">
@@ -389,7 +433,10 @@ export default function LandingPage({
               </span>
             </a>
 
-            <nav aria-label="Điều hướng chính" className="hidden items-center gap-lg lg:flex">
+            <nav
+              aria-label="Điều hướng chính"
+              className="hidden items-center gap-lg lg:flex"
+            >
               {NAV_ITEMS.map((item) => (
                 <a
                   key={item.href}
@@ -488,7 +535,10 @@ export default function LandingPage({
         </div>
 
         <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-lg pb-24 pt-28">
-          <div key={index} className="max-w-[36rem] animate-[page-in_0.6s_ease-out_both]">
+          <div
+            key={index}
+            className="max-w-[36rem] animate-[page-in_0.6s_ease-out_both]"
+          >
             <p className="mb-3 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-widest backdrop-blur">
               Nền tảng chăm sóc xe
             </p>
@@ -541,7 +591,11 @@ export default function LandingPage({
         <div className="absolute inset-x-0 bottom-6 z-20 flex items-center justify-center gap-3">
           <button
             type="button"
-            aria-label={isPlaying ? "Tạm dừng tự chuyển slide" : "Tiếp tục tự chuyển slide"}
+            aria-label={
+              isPlaying
+                ? "Tạm dừng tự chuyển slide"
+                : "Tiếp tục tự chuyển slide"
+            }
             onClick={() => setIsPlaying((playing) => !playing)}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-black/35 backdrop-blur hover:bg-black/55"
           >
@@ -570,15 +624,21 @@ export default function LandingPage({
         </div>
       </section>
 
-      <section id="gioi-thieu" className="mx-auto max-w-6xl scroll-mt-4 px-lg py-20">
+      <section
+        id="gioi-thieu"
+        className="mx-auto max-w-6xl scroll-mt-4 px-lg py-20"
+      >
         <div className="mx-auto max-w-[42rem] text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">Giới thiệu</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">
+            Giới thiệu
+          </p>
           <h2 className="mt-2 text-[30px] font-extrabold tracking-tight md:text-[36px]">
             Kết nối chủ xe với garage đáng tin cậy
           </h2>
           <p className="mt-3 text-body-lg text-on-surface-variant">
-            Servio giúp bạn đặt lịch, theo dõi và thanh toán dịch vụ chăm sóc xe trên một ứng
-            dụng duy nhất, còn garage quản lý lịch hẹn và công việc dễ dàng hơn.
+            Servio giúp bạn đặt lịch, theo dõi và thanh toán dịch vụ chăm sóc xe
+            trên một ứng dụng duy nhất, còn garage quản lý lịch hẹn và công việc
+            dễ dàng hơn.
           </p>
         </div>
         <div className="lift-grid mt-12 grid gap-lg md:grid-cols-3">
@@ -591,10 +651,16 @@ export default function LandingPage({
                 aria-hidden="true"
                 className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-fixed to-secondary-fixed-dim text-on-primary-fixed-variant"
               >
-                <span className="material-symbols-outlined text-[28px]">{feature.icon}</span>
+                <span className="material-symbols-outlined text-[28px]">
+                  {feature.icon}
+                </span>
               </span>
-              <h3 className="mt-5 text-headline-md font-bold">{feature.title}</h3>
-              <p className="mt-2 text-body-md text-on-surface-variant">{feature.text}</p>
+              <h3 className="mt-5 text-headline-md font-bold">
+                {feature.title}
+              </h3>
+              <p className="mt-2 text-body-md text-on-surface-variant">
+                {feature.text}
+              </p>
             </div>
           ))}
         </div>
@@ -603,13 +669,15 @@ export default function LandingPage({
       <section id="tinh-nang" className="scroll-mt-4 bg-primary-fixed/50 py-20">
         <div className="mx-auto max-w-6xl px-lg">
           <div className="mx-auto max-w-[42rem] text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-primary">Tính năng nổi bật</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">
+              Tính năng nổi bật
+            </p>
             <h2 className="mt-2 text-[30px] font-extrabold tracking-tight md:text-[36px]">
               Hiểu xe của bạn trước khi đến garage
             </h2>
             <p className="mt-3 text-body-lg text-on-surface-variant">
-              Hỏi AI về triệu chứng, nhận nhắc bảo dưỡng đúng hạn, trao đổi với garage và gặp kỹ
-              thuật viên qua video khi cần.
+              Hỏi AI về triệu chứng, nhận nhắc bảo dưỡng đúng hạn, trao đổi với
+              garage và gặp kỹ thuật viên qua video khi cần.
             </p>
           </div>
           <div className="focus-grid mt-12 grid gap-6 md:grid-cols-2">
@@ -619,10 +687,13 @@ export default function LandingPage({
               text="Mô tả tiếng ồn, đèn báo hay triệu chứng. AI hỏi thêm vài câu rồi gợi ý nguyên nhân thường gặp và mức độ khẩn cấp."
             >
               <div className={bubble.me}>Xe rung mạnh khi phanh</div>
-              <div className={bubble.other}>Bạn thấy rung ở vô lăng hay bàn đạp?</div>
+              <div className={bubble.other}>
+                Bạn thấy rung ở vô lăng hay bàn đạp?
+              </div>
               <div className={bubble.me}>Ở vô lăng, lúc chạy nhanh</div>
               <div className={bubble.other}>
-                <b className="text-primary">Có thể do đĩa phanh cong.</b> Nên kiểm tra sớm.
+                <b className="text-primary">Có thể do đĩa phanh cong.</b> Nên
+                kiểm tra sớm.
               </div>
             </FeatureCard>
 
@@ -635,13 +706,25 @@ export default function LandingPage({
             >
               <div className="flex items-center gap-2 text-[11px] font-bold text-outline">
                 <span className="relative inline-flex">
-                  <span className="material-symbols-outlined text-xl text-primary">notifications</span>
+                  <span className="material-symbols-outlined text-xl text-primary">
+                    notifications
+                  </span>
                   <i className="absolute -right-0.5 -top-0.5 h-[9px] w-[9px] rounded-full border-2 border-surface-container-low bg-error" />
                 </span>
                 Honda Vision · 59A-123.45
               </div>
-              <MaintenanceRow label="Thay nhớt" remaining="Còn 12 ngày" percent={82} tone="amber" />
-              <MaintenanceRow label="Kiểm tra phanh" remaining="Còn 2 tháng" percent={34} tone="green" />
+              <MaintenanceRow
+                label="Thay nhớt"
+                remaining="Còn 12 ngày"
+                percent={82}
+                tone="amber"
+              />
+              <MaintenanceRow
+                label="Kiểm tra phanh"
+                remaining="Còn 2 tháng"
+                percent={34}
+                tone="green"
+              />
               <MaintenanceRow
                 label="Thay lốp"
                 remaining="Quá hạn 5 ngày"
@@ -663,14 +746,18 @@ export default function LandingPage({
               </div>
               <div className={bubble.me}>Em ghé lấy lúc 17:00 nhé</div>
               <div className={`${bubble.other} flex items-center gap-1.5`}>
-                <span className="material-symbols-outlined text-base text-primary">image</span>
+                <span className="material-symbols-outlined text-base text-primary">
+                  image
+                </span>
                 Ảnh má phanh cũ (2)
               </div>
               <div className="flex items-center gap-1.5 text-[11px] text-outline">
                 <div className="flex h-[30px] flex-1 items-center rounded-full border border-outline-variant bg-surface-container-lowest px-3">
                   Nhập tin nhắn…
                 </div>
-                <span className="material-symbols-outlined text-xl text-primary">send</span>
+                <span className="material-symbols-outlined text-xl text-primary">
+                  send
+                </span>
               </div>
             </FeatureCard>
 
@@ -692,13 +779,19 @@ export default function LandingPage({
               <span className="absolute right-2.5 top-10 h-[72px] w-[54px] rounded-[10px] border border-white/30 bg-gradient-to-br from-[#3b4452] to-[#1b2027]" />
               <div className="absolute inset-x-0 bottom-2.5 flex justify-center gap-2.5 text-white">
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
-                  <span className="material-symbols-outlined text-[22px]">mic</span>
+                  <span className="material-symbols-outlined text-[22px]">
+                    mic
+                  </span>
                 </span>
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
-                  <span className="material-symbols-outlined text-[22px]">cameraswitch</span>
+                  <span className="material-symbols-outlined text-[22px]">
+                    cameraswitch
+                  </span>
                 </span>
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-error">
-                  <span className="material-symbols-outlined text-[22px]">call_end</span>
+                  <span className="material-symbols-outlined text-[22px]">
+                    call_end
+                  </span>
                 </span>
               </div>
             </FeatureCard>
@@ -706,10 +799,15 @@ export default function LandingPage({
         </div>
       </section>
 
-      <section id="dich-vu" className="scroll-mt-4 bg-surface-container-low py-20">
+      <section
+        id="dich-vu"
+        className="scroll-mt-4 bg-surface-container-low py-20"
+      >
         <div className="mx-auto max-w-6xl px-lg">
           <div className="mx-auto max-w-[42rem] text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-primary">Dịch vụ</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">
+              Dịch vụ
+            </p>
             <h2 className="mt-2 text-[30px] font-extrabold tracking-tight md:text-[36px]">
               Mọi dịch vụ xe bạn cần
             </h2>
@@ -724,7 +822,9 @@ export default function LandingPage({
                   aria-hidden="true"
                   className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-on-primary"
                 >
-                  <span className="material-symbols-outlined text-[28px]">{service.icon}</span>
+                  <span className="material-symbols-outlined text-[28px]">
+                    {service.icon}
+                  </span>
                 </span>
                 <span className="text-sm font-bold">{service.name}</span>
               </li>
@@ -733,9 +833,15 @@ export default function LandingPage({
         </div>
       </section>
 
-      <section id="quy-trinh" ref={revealRef} className="mx-auto max-w-6xl scroll-mt-4 px-lg py-20">
+      <section
+        id="quy-trinh"
+        ref={revealRef}
+        className="mx-auto max-w-6xl scroll-mt-4 px-lg py-20"
+      >
         <div className="mx-auto max-w-[42rem] text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">Quy trình</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">
+            Quy trình
+          </p>
           <h2 className="mt-2 text-[30px] font-extrabold tracking-tight md:text-[36px]">
             Bốn bước đơn giản
           </h2>
@@ -754,7 +860,9 @@ export default function LandingPage({
                 {i + 1}
               </span>
               <h3 className="mt-4 text-body-lg font-bold">{step.title}</h3>
-              <p className="mt-1 text-body-md text-on-surface-variant">{step.text}</p>
+              <p className="mt-1 text-body-md text-on-surface-variant">
+                {step.text}
+              </p>
             </li>
           ))}
         </ol>
@@ -773,8 +881,8 @@ export default function LandingPage({
                 Sẵn sàng chăm sóc xe của bạn?
               </h2>
               <p className="mt-3 text-white/85">
-                Tạo tài khoản miễn phí để đặt lịch với garage gần bạn, hoặc đăng nhập nếu bạn đã có
-                tài khoản.
+                Tạo tài khoản miễn phí để đặt lịch với garage gần bạn, hoặc đăng
+                nhập nếu bạn đã có tài khoản.
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap justify-center gap-3 md:justify-end">
@@ -812,17 +920,25 @@ export default function LandingPage({
           <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
             <a href="#trang-chu" className="flex flex-col gap-1">
               <span className="flex items-center gap-sm">
-                <span aria-hidden="true" className="material-symbols-outlined text-[32px]">
+                <span
+                  aria-hidden="true"
+                  className="material-symbols-outlined text-[32px]"
+                >
                   electric_car
                 </span>
-                <span className="text-headline-lg font-extrabold tracking-tight">Servio</span>
+                <span className="text-headline-lg font-extrabold tracking-tight">
+                  Servio
+                </span>
               </span>
               <span className="text-xs font-semibold uppercase tracking-widest text-white/85">
                 Nền tảng chăm sóc xe
               </span>
             </a>
 
-            <nav aria-label="Liên kết chân trang" className="flex gap-12 md:gap-16">
+            <nav
+              aria-label="Liên kết chân trang"
+              className="flex gap-12 md:gap-16"
+            >
               {FOOTER_LINK_GROUPS.map((group, i) => (
                 <ul key={i} className="flex flex-col gap-1.5">
                   {group.map((link) => (

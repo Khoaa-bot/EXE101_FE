@@ -32,8 +32,8 @@ const filters: Array<"Tất cả" | UiCategory> = [
 ];
 
 // Ánh xạ loại thông báo từ backend (NotificationType) sang danh mục / icon
-// hiển thị ở FE. VEHICLE và PROFILE dùng ngay cho tính năng hiện tại;
-// APPOINTMENT/PROMOTION/SYSTEM để dành khi backend phát sinh thêm loại thông báo.
+// hiển thị ở FE. SYSTEM được Super Admin dùng cho nhiều loại thông báo nên
+// icon thật được chọn thêm theo tiêu đề (xem getSystemMeta).
 const typeMeta: Record<
   NotificationType,
   { category: UiCategory; icon: string; iconClassName: string }
@@ -64,6 +64,56 @@ const typeMeta: Record<
     iconClassName: "bg-error-container text-on-error-container",
   },
 };
+
+type NotificationMeta = { icon: string; iconClassName: string };
+
+// Super Admin nhận mọi thông báo với type SYSTEM nên phải nhận diện qua tiêu đề:
+// garage mới, thanh toán gói, garage hết hạn,...
+const systemMetaRules: Array<{ keywords: string[]; meta: NotificationMeta }> = [
+  {
+    keywords: ["hết hạn", "quá hạn", "expired"],
+    meta: { icon: "event_busy", iconClassName: "bg-error-container text-on-error-container" },
+  },
+  {
+    keywords: ["garage mới", "đăng ký garage", "garage đăng ký", "new garage"],
+    meta: { icon: "storefront", iconClassName: "bg-primary-fixed text-on-primary-fixed-variant" },
+  },
+  {
+    keywords: ["thanh toán", "gói", "payment", "subscription"],
+    meta: { icon: "payments", iconClassName: "bg-tertiary-fixed text-on-tertiary-fixed-variant" },
+  },
+  {
+    keywords: ["đánh giá", "phản hồi", "review", "feedback"],
+    meta: { icon: "reviews", iconClassName: "bg-[#fff1cc] text-[#6b4200]" },
+  },
+  {
+    keywords: ["khách hàng", "tài khoản", "người dùng", "customer", "user"],
+    meta: { icon: "person", iconClassName: "bg-[#e6defa] text-[#3b2a7a]" },
+  },
+  {
+    keywords: ["garage"],
+    meta: { icon: "storefront", iconClassName: "bg-primary-fixed text-on-primary-fixed-variant" },
+  },
+];
+
+function getSystemMeta(item: AppNotification): NotificationMeta {
+  const title = item.title.toLowerCase();
+  const withinTitle = systemMetaRules.find((rule) =>
+    rule.keywords.some((keyword) => title.includes(keyword)),
+  );
+  if (withinTitle) return withinTitle.meta;
+
+  const message = item.message.toLowerCase();
+  const withinMessage = systemMetaRules.find((rule) =>
+    rule.keywords.some((keyword) => message.includes(keyword)),
+  );
+  return (
+    withinMessage?.meta ?? {
+      icon: "info",
+      iconClassName: "bg-surface-container text-on-surface-variant",
+    }
+  );
+}
 
 const avatarImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuBGC_VlrThqEyJOL5jVI5f2HalXhDNv-TIxbEuYeWGHxbvXL2V_wOUNYznNaMqlLfe_yOBCXTCDUmUQQ2RsHfvsnTqiR55kChebPEIJPGJthRtnqSb6IaScTYySzbI6MpwjN4rzUnf4ZlAcgsrbRN6xxTiQoWwfyqzlsx1-WCiJ3NB5pHQDUU4FwWq0kaLkh6NVlnCemAwgrQwnlUp5UFapaX4_GQyFHlc6DVP_bZfFpbH9JWsyxa4C9lnCZ9u-IvqoEz_CMphV7IjU";
@@ -452,7 +502,9 @@ function NotificationCard({
           ? "bg-error-container text-on-error-container"
           : "bg-[#ffe9c7] text-[#6b4000]",
       }
-    : (typeMeta[item.type] ?? typeMeta.SYSTEM);
+    : item.type === "SYSTEM"
+      ? getSystemMeta(item)
+      : (typeMeta[item.type] ?? typeMeta.SYSTEM);
   const accent = isMaintenance
     ? overdue
       ? "border-l-4 border-l-error"

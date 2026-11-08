@@ -12,13 +12,31 @@ export function DeltaChip({
   previousText: string;
 }) {
   const meta = {
-    up: { icon: "trending_up", cls: "bg-[#d9f7dd] text-[#00531a]", text: `Tăng ${delta.percent}%` },
-    down: { icon: "trending_down", cls: "bg-[#ffe4d6] text-[#7a2e00]", text: `Giảm ${delta.percent}%` },
-    flat: { icon: "trending_flat", cls: "bg-[#e9eaeb] text-[#3a3f4b]", text: "Không đổi" },
-    new: { icon: "fiber_new", cls: "bg-[#e9eaeb] text-[#3a3f4b]", text: "Mới phát sinh" },
+    up: {
+      icon: "trending_up",
+      cls: "bg-[#d9f7dd] text-[#00531a]",
+      text: `Tăng ${delta.percent}%`,
+    },
+    down: {
+      icon: "trending_down",
+      cls: "bg-[#ffe4d6] text-[#7a2e00]",
+      text: `Giảm ${delta.percent}%`,
+    },
+    flat: {
+      icon: "trending_flat",
+      cls: "bg-[#e9eaeb] text-[#3a3f4b]",
+      text: "Không đổi",
+    },
+    new: {
+      icon: "fiber_new",
+      cls: "bg-[#e9eaeb] text-[#3a3f4b]",
+      text: "Mới phát sinh",
+    },
   }[delta.direction];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${meta.cls}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${meta.cls}`}
+    >
       <span aria-hidden="true" className="material-symbols-outlined text-base">
         {meta.icon}
       </span>
@@ -58,9 +76,15 @@ export function BarChart({
       >
         {values.map((value, index) => {
           const isFuture = futureFrom !== undefined && index > futureFrom;
-          const height = isFuture || max === 0 ? 3 : Math.max(3, Math.round((value / max) * 100));
+          const height =
+            isFuture || max === 0
+              ? 3
+              : Math.max(3, Math.round((value / max) * 100));
           return (
-            <div key={labels[index] + index} className="flex h-full flex-1 flex-col items-center justify-end gap-1 min-w-0">
+            <div
+              key={labels[index] + index}
+              className="flex h-full flex-1 flex-col items-center justify-end gap-1 min-w-0"
+            >
               {formatValue && !isFuture && (
                 <span
                   className={`font-bold text-on-surface-variant whitespace-nowrap select-none ${
@@ -77,14 +101,22 @@ export function BarChart({
                 className={`w-full rounded-t-lg rounded-b-sm ${dense ? "" : "max-w-9"}`}
                 style={{
                   height: `${height}px`,
-                  background: isFuture || max === 0 ? "#eceeef" : index === highlight ? highlightColor : barColor,
+                  background:
+                    isFuture || max === 0
+                      ? "#eceeef"
+                      : index === highlight
+                        ? highlightColor
+                        : barColor,
                 }}
               />
             </div>
           );
         })}
       </div>
-      <div aria-hidden="true" className={`mt-1.5 flex ${dense ? "gap-[3px]" : "gap-2.5"}`}>
+      <div
+        aria-hidden="true"
+        className={`mt-1.5 flex ${dense ? "gap-[3px]" : "gap-2.5"}`}
+      >
         {labels.map((label, index) => (
           <span
             key={label + index}
@@ -116,7 +148,10 @@ export function StatCard({
   return (
     <article className="flex flex-col gap-2.5 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
       <div className="flex items-center gap-3">
-        <span aria-hidden="true" className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] ${tone}`}>
+        <span
+          aria-hidden="true"
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] ${tone}`}
+        >
           <span className="material-symbols-outlined">{icon}</span>
         </span>
         <div className="min-w-0">
@@ -130,5 +165,9 @@ export function StatCard({
 }
 
 export function Status({ children }: { children: ReactNode }) {
-  return <p className="py-10 text-center text-sm text-on-surface-variant">{children}</p>;
+  return (
+    <p className="py-10 text-center text-sm text-on-surface-variant">
+      {children}
+    </p>
+  );
 }

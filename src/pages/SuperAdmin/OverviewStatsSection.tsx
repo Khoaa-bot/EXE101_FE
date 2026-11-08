@@ -32,7 +32,11 @@ const OUTCOMES: Array<{
   { key: "noShow", label: "Không đến", color: "#ba1a1a" },
 ];
 
-type StatsState = { key: Period; data: AdminPeriodStats | null; failed: boolean };
+type StatsState = {
+  key: Period;
+  data: AdminPeriodStats | null;
+  failed: boolean;
+};
 
 // Thống kê đăng ký mới, lịch hẹn và doanh thu (tiền thực thu từ bán gói qua PayOS) theo hôm nay / tuần này / tháng này.
 // Số liệu do backend gom sẵn theo giờ Việt Nam; giao diện chỉ vẽ.
@@ -68,9 +72,17 @@ export default function OverviewStatsSection() {
     [period, serverNowText, browserNow],
   );
 
-  const outcomeCounts = stats?.outcomes ?? { done: 0, active: 0, cancelled: 0, noShow: 0 };
+  const outcomeCounts = stats?.outcomes ?? {
+    done: 0,
+    active: 0,
+    cancelled: 0,
+    noShow: 0,
+  };
   const outcomeTotal =
-    outcomeCounts.done + outcomeCounts.active + outcomeCounts.cancelled + outcomeCounts.noShow;
+    outcomeCounts.done +
+    outcomeCounts.active +
+    outcomeCounts.cancelled +
+    outcomeCounts.noShow;
   const percentOf = (value: number) =>
     outcomeTotal === 0 ? 0 : Math.round((value / outcomeTotal) * 100);
 
@@ -149,7 +161,9 @@ export default function OverviewStatsSection() {
                         stats.registrations.previousTotal,
                       )}
                       compareLabel={ranges.compareLabel}
-                      previousText={formatCount(stats.registrations.previousTotal)}
+                      previousText={formatCount(
+                        stats.registrations.previousTotal,
+                      )}
                     />
                   </div>
                   <BarChart
@@ -164,7 +178,9 @@ export default function OverviewStatsSection() {
                   />
                 </>
               ) : (
-                <Status>{failed ? "Không tải được số người đăng ký." : "Đang tải..."}</Status>
+                <Status>
+                  {failed ? "Không tải được số người đăng ký." : "Đang tải..."}
+                </Status>
               )}
             </StatCard>
 
@@ -192,7 +208,9 @@ export default function OverviewStatsSection() {
                         stats.appointments.previousTotal,
                       )}
                       compareLabel={ranges.compareLabel}
-                      previousText={formatCount(stats.appointments.previousTotal)}
+                      previousText={formatCount(
+                        stats.appointments.previousTotal,
+                      )}
                     />
                   </div>
                   {period === "day" ? (
@@ -239,7 +257,10 @@ export default function OverviewStatsSection() {
                       {formatVnd(stats.revenue.total)}
                     </b>
                     <DeltaChip
-                      delta={percentChange(stats.revenue.total, stats.revenue.previousTotal)}
+                      delta={percentChange(
+                        stats.revenue.total,
+                        stats.revenue.previousTotal,
+                      )}
                       compareLabel={ranges.compareLabel}
                       previousText={formatVnd(stats.revenue.previousTotal)}
                     />
@@ -250,92 +271,18 @@ export default function OverviewStatsSection() {
                     barColor="#b9a8ec"
                     highlightColor="#6a4fd1"
                     ariaLabel={`Doanh thu ${ranges.periodWord}: tổng ${formatVnd(stats.revenue.total)}`}
-                    formatValue={showValues ? formatShortVnd : undefined}
+                    formatValue={period === "day" ? undefined : formatShortVnd}
                     futureFrom={futureFrom}
                     showLabel={showLabel}
                   />
                 </>
               ) : (
-                <Status>{failed ? "Không tải được doanh thu." : "Đang tải..."}</Status>
+                <Status>
+                  {failed ? "Không tải được doanh thu." : "Đang tải..."}
+                </Status>
               )}
             </StatCard>
           </div>
-
-          <article className="space-y-3.5 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h3 className="text-base font-extrabold">
-                  Kết quả lịch hẹn {ranges.periodWord}
-                </h3>
-                <p className="text-xs text-on-surface-variant">
-                  {loading
-                    ? "Đang tải..."
-                    : failed
-                      ? "Không tải được lịch hẹn."
-                      : `Chia theo tình trạng của ${formatCount(outcomeTotal)} lịch hẹn`}
-                </p>
-              </div>
-              {outcomeTotal > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full bg-[#d9f7dd] px-2.5 py-1 text-xs font-bold text-[#00531a]">
-                    Tỷ lệ hoàn thành {doneRate}%
-                  </span>
-                  <span className="rounded-full bg-[#ffe4d6] px-2.5 py-1 text-xs font-bold text-[#7a2e00]">
-                    Hủy + không đến {lostRate}%
-                  </span>
-                </div>
-              )}
-            </div>
-            {outcomeTotal > 0 ? (
-              <>
-                <div
-                  role="img"
-                  aria-label={OUTCOMES.map(
-                    (o) => `${o.label} ${outcomeCounts[o.key]}`,
-                  ).join(", ")}
-                  className="flex h-[18px] gap-[3px] overflow-hidden rounded-full"
-                >
-                  {OUTCOMES.filter((o) => outcomeCounts[o.key] > 0).map((o) => (
-                    <div
-                      key={o.key}
-                      style={{
-                        flex: outcomeCounts[o.key],
-                        background: o.color,
-                      }}
-                    />
-                  ))}
-                </div>
-                <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  {OUTCOMES.map((o) => (
-                    <li
-                      key={o.key}
-                      className="flex items-center gap-2 text-[13px]"
-                    >
-                      <i
-                        aria-hidden="true"
-                        className="h-3 w-3 shrink-0 rounded"
-                        style={{ background: o.color }}
-                      />
-                      <span className="flex-1 text-on-surface-variant">
-                        {o.label}
-                      </span>
-                      <b>
-                        {formatCount(outcomeCounts[o.key])} ·{" "}
-                        {percentOf(outcomeCounts[o.key])}%
-                      </b>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              !loading &&
-              !failed && (
-                <p className="text-sm text-on-surface-variant">
-                  Chưa có lịch hẹn trong kỳ này.
-                </p>
-              )
-            )}
-          </article>
         </>
       )}
     </section>

@@ -1329,6 +1329,10 @@ export type SuperAdminUser = {
   status: "active" | "blocked";
   hidden: boolean;
   appointmentCount: number | null;
+  subscriptionType: string | null;
+  subscriptionExpiresAt: string | null;
+  subscriptionDaysRemaining: number | null;
+  isPremium: boolean;
   createdAt: string;
   signupSource?: string | null;
   signupMedium?: string | null;

@@ -9,7 +9,12 @@ import { formatDateTime } from "../../utils/format";
 import ReasonConfirmDialog from "./ReasonConfirmDialog";
 import RowActionMenu from "./RowActionMenu";
 import { FilterChip, SourceBadge, StatusChips } from "./SuperAdminChips";
-import { SOURCE_GROUPS, SOURCE_META, sourceGroup, type SourceGroup } from "../../utils/signupSource";
+import {
+  SOURCE_GROUPS,
+  SOURCE_META,
+  sourceGroup,
+  type SourceGroup,
+} from "../../utils/signupSource";
 
 const NO_USERS: SuperAdminUser[] = [];
 
@@ -27,7 +32,10 @@ const HIDE_REASONS = [
 
 type StatusFilter = "all" | "active" | "blocked";
 type Pending = { kind: "block" | "hide"; user: SuperAdminUser };
-type DialogConfig = Omit<ComponentProps<typeof ReasonConfirmDialog>, "busy" | "onCancel" | "onConfirm">;
+type DialogConfig = Omit<
+  ComponentProps<typeof ReasonConfirmDialog>,
+  "busy" | "onCancel" | "onConfirm"
+>;
 
 type Props = {
   notify: (message: string, type?: "success" | "error") => void;
@@ -93,7 +101,10 @@ function buildDialog({ kind, user }: Pending): DialogConfig {
   };
 }
 
-export default function SuperAdminCustomersTab({ notify, onViewAppointments }: Props) {
+export default function SuperAdminCustomersTab({
+  notify,
+  onViewAppointments,
+}: Props) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [showHidden, setShowHidden] = useState(false);
@@ -116,14 +127,18 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
     let cancelled = false;
     getAllUsers({ role: "customer", includeHidden: showHidden })
       .then((data) => {
-        if (!cancelled) setResult({ key: requestKey, users: data, error: null });
+        if (!cancelled)
+          setResult({ key: requestKey, users: data, error: null });
       })
       .catch((err) => {
         if (!cancelled) {
           setResult({
             key: requestKey,
             users: [],
-            error: err instanceof Error ? err.message : "Không tải được danh sách khách hàng.",
+            error:
+              err instanceof Error
+                ? err.message
+                : "Không tải được danh sách khách hàng.",
           });
         }
       });
@@ -136,7 +151,8 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
     const q = query.trim().toLowerCase();
     return users.filter((u) => {
       const matchesStatus = statusFilter === "all" || u.status === statusFilter;
-      const matchesSource = sourceFilter === "all" || sourceGroup(u.signupSource) === sourceFilter;
+      const matchesSource =
+        sourceFilter === "all" || sourceGroup(u.signupSource) === sourceFilter;
       const matchesQuery =
         !q ||
         u.username.toLowerCase().includes(q) ||
@@ -159,13 +175,18 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
   const selectedUser = users.find((u) => u.id === selectedId) ?? null;
 
   const applyUpdate = (updated: SuperAdminUser) => {
-    setResult((prev) =>
-      prev && {
-        ...prev,
-        users: prev.users
-          .map((u) => (u.id === updated.id ? { ...u, ...updated, appointmentCount: u.appointmentCount } : u))
-          .filter((u) => showHidden || !u.hidden),
-      },
+    setResult(
+      (prev) =>
+        prev && {
+          ...prev,
+          users: prev.users
+            .map((u) =>
+              u.id === updated.id
+                ? { ...u, ...updated, appointmentCount: u.appointmentCount }
+                : u,
+            )
+            .filter((u) => showHidden || !u.hidden),
+        },
     );
   };
 
@@ -176,10 +197,19 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
       .then((updated) => {
         applyUpdate(updated);
         notify(
-          blocking ? withReason(`Đã chặn ${user.username}.`, reason) : `Đã mở chặn ${user.username}.`,
+          blocking
+            ? withReason(`Đã chặn ${user.username}.`, reason)
+            : `Đã mở chặn ${user.username}.`,
         );
       })
-      .catch((err) => notify(err instanceof Error ? err.message : "Không cập nhật được trạng thái.", "error"))
+      .catch((err) =>
+        notify(
+          err instanceof Error
+            ? err.message
+            : "Không cập nhật được trạng thái.",
+          "error",
+        ),
+      )
       .finally(() => {
         setBusyId(null);
         setPending(null);
@@ -192,9 +222,20 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
     setUserHidden(user.id, hiding)
       .then((updated) => {
         applyUpdate(updated);
-        notify(hiding ? withReason(`Đã ẩn ${user.username}.`, reason) : `Đã bỏ ẩn ${user.username}.`);
+        notify(
+          hiding
+            ? withReason(`Đã ẩn ${user.username}.`, reason)
+            : `Đã bỏ ẩn ${user.username}.`,
+        );
       })
-      .catch((err) => notify(err instanceof Error ? err.message : "Không cập nhật được trạng thái ẩn.", "error"))
+      .catch((err) =>
+        notify(
+          err instanceof Error
+            ? err.message
+            : "Không cập nhật được trạng thái ẩn.",
+          "error",
+        ),
+      )
       .finally(() => {
         setBusyId(null);
         setPending(null);
@@ -207,8 +248,10 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
     else runHidden(pending.user, reason);
   };
 
-  const askBlock = (user: SuperAdminUser) => setPending({ kind: "block", user });
-  const askHidden = (user: SuperAdminUser) => setPending({ kind: "hide", user });
+  const askBlock = (user: SuperAdminUser) =>
+    setPending({ kind: "block", user });
+  const askHidden = (user: SuperAdminUser) =>
+    setPending({ kind: "hide", user });
 
   return (
     <div>
@@ -220,68 +263,115 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
           placeholder="Tìm theo username, tên, email, SĐT..."
           className="min-h-11 w-80 max-w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         />
-        <div role="group" aria-label="Lọc theo trạng thái" className="flex flex-wrap gap-2">
-          <FilterChip active={statusFilter === "all"} onClick={() => setStatusFilter("all")}>
+        <div
+          role="group"
+          aria-label="Lọc theo trạng thái"
+          className="flex flex-wrap gap-2"
+        >
+          <FilterChip
+            active={statusFilter === "all"}
+            onClick={() => setStatusFilter("all")}
+          >
             Tất cả
           </FilterChip>
-          <FilterChip active={statusFilter === "active"} onClick={() => setStatusFilter("active")}>
+          <FilterChip
+            active={statusFilter === "active"}
+            onClick={() => setStatusFilter("active")}
+          >
             Hoạt động
           </FilterChip>
-          <FilterChip active={statusFilter === "blocked"} onClick={() => setStatusFilter("blocked")}>
+          <FilterChip
+            active={statusFilter === "blocked"}
+            onClick={() => setStatusFilter("blocked")}
+          >
             Bị chặn
           </FilterChip>
-          <FilterChip active={showHidden} onClick={() => setShowHidden((current) => !current)}>
-            <span aria-hidden="true" className="material-symbols-outlined text-lg">
+          <FilterChip
+            active={showHidden}
+            onClick={() => setShowHidden((current) => !current)}
+          >
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined text-lg"
+            >
               visibility_off
             </span>
             Hiện cả khách đã ẩn
           </FilterChip>
         </div>
-        <span className="ml-auto text-xs text-on-surface-variant" aria-live="polite">
+        <span
+          className="ml-auto text-xs text-on-surface-variant"
+          aria-live="polite"
+        >
           Hiển thị {visibleUsers.length} / {users.length} khách hàng
         </span>
       </div>
 
-      <div role="group" aria-label="Lọc theo nguồn đăng ký" className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-xs font-bold text-on-surface-variant">Nguồn đăng ký</span>
-        <FilterChip active={sourceFilter === "all"} onClick={() => setSourceFilter("all")}>
+      <div
+        role="group"
+        aria-label="Lọc theo nguồn đăng ký"
+        className="mt-3 flex flex-wrap items-center gap-2"
+      >
+        <span className="mr-1 text-xs font-bold text-on-surface-variant">
+          Nguồn đăng ký
+        </span>
+        <FilterChip
+          active={sourceFilter === "all"}
+          onClick={() => setSourceFilter("all")}
+        >
           Tất cả nguồn
         </FilterChip>
-        {SOURCE_GROUPS.filter((group) => sourceFilter === group || (sourceCounts.get(group) ?? 0) > 0).map((group) => (
-          <FilterChip key={group} active={sourceFilter === group} onClick={() => setSourceFilter(group)}>
+        {SOURCE_GROUPS.filter(
+          (group) =>
+            sourceFilter === group || (sourceCounts.get(group) ?? 0) > 0,
+        ).map((group) => (
+          <FilterChip
+            key={group}
+            active={sourceFilter === group}
+            onClick={() => setSourceFilter(group)}
+          >
             {SOURCE_META[group].label} <b>{sourceCounts.get(group) ?? 0}</b>
           </FilterChip>
         ))}
       </div>
 
-      {isLoading && <p className="mt-6 text-body-sm text-on-surface-variant">Đang tải danh sách khách hàng...</p>}
-      {!isLoading && loadError && <p className="mt-6 text-body-sm text-error">{loadError}</p>}
+      {isLoading && (
+        <p className="mt-6 text-body-sm text-on-surface-variant">
+          Đang tải danh sách khách hàng...
+        </p>
+      )}
+      {!isLoading && loadError && (
+        <p className="mt-6 text-body-sm text-error">{loadError}</p>
+      )}
 
       {!isLoading && !loadError && (
         <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-start">
           <div className="min-w-0 flex-1 overflow-x-auto rounded-2xl border border-outline-variant/50 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)]">
-            <table className="w-full min-w-[860px] text-left text-sm">
+            <table className="w-full min-w-[900px] text-left text-sm">
               <thead className="bg-surface-container-low text-[11px] uppercase tracking-wider text-on-surface-variant">
                 <tr>
-                  <th className="px-4 py-3 font-bold">Tên đăng nhập</th>
-                  <th className="px-4 py-3 font-bold">Họ tên</th>
-                  <th className="px-4 py-3 font-bold">Liên hệ</th>
-                  <th className="px-4 py-3 font-bold">Nguồn đăng ký</th>
-                  <th className="px-4 py-3 font-bold">Lịch hẹn</th>
-                  <th className="px-4 py-3 font-bold">Không đến</th>
-                  <th className="px-4 py-3 font-bold">Trạng thái</th>
-                  <th className="px-4 py-3 text-right font-bold">Thao tác</th>
+                  <th className="px-3 py-3 font-bold">Tên đăng nhập</th>
+                  <th className="px-3 py-3 font-bold">Họ tên</th>
+                  <th className="px-3 py-3 font-bold">Liên hệ</th>
+                  <th className="px-3 py-3 font-bold">Nguồn đăng ký</th>
+                  <th className="px-3 py-3 font-bold">Lịch hẹn</th>
+                  <th className="px-3 py-3 font-bold">Không đến</th>
+                  <th className="px-3 py-3 font-bold">Gói</th>
+                  <th className="px-3 py-3 font-bold">Trạng thái</th>
+                  <th className="px-3 py-3 text-right font-bold">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/50">
                 {visibleUsers.map((u) => (
                   <tr
                     key={u.id}
-                    className={`${u.hidden ? "opacity-60" : ""} ${
-                      u.id === selectedId ? "bg-primary-fixed/30" : "hover:bg-surface-container-low"
+                    className={`group ${u.hidden ? "opacity-60" : ""} ${
+                      u.id === selectedId
+                        ? "bg-[#f3f6ff]"
+                        : "hover:bg-surface-container-low"
                     }`}
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
                       <button
                         type="button"
                         onClick={() => setSelectedId(u.id)}
@@ -291,20 +381,48 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
                         {u.username}
                       </button>
                     </td>
-                    <td className="px-4 py-3">{u.fullName || "—"}</td>
-                    <td className="px-4 py-3 text-xs text-on-surface-variant">
-                      <div className="text-sm text-on-surface">{u.email || "—"}</div>
+                    <td className="px-3 py-3">{u.fullName || "—"}</td>
+                    <td className="px-3 py-3 text-xs text-on-surface-variant">
+                      <div className="text-sm text-on-surface">
+                        {u.email || "—"}
+                      </div>
                       <div>{u.phone || ""}</div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
                       <SourceBadge source={u.signupSource} />
                     </td>
-                    <td className="px-4 py-3">{u.appointmentCount ?? 0}</td>
-                    <td className="px-4 py-3">{u.noShow ?? 0}</td>
-                    <td className="px-4 py-3">
-                      <StatusChips blocked={u.status === "blocked"} hidden={u.hidden} />
+                    <td className="px-3 py-3">{u.appointmentCount ?? 0}</td>
+                    <td className="px-3 py-3">{u.noShow ?? 0}</td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          u.isPremium
+                            ? "bg-primary-fixed text-on-primary-fixed-variant"
+                            : "bg-surface-container text-on-surface-variant"
+                        }`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="material-symbols-outlined text-[15px]"
+                        >
+                          {u.isPremium ? "workspace_premium" : "person"}
+                        </span>
+                        {/*{u.isPremium ? "Premium" : "Miễn phí"}*/}
+                      </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
+                      <StatusChips
+                        blocked={u.status === "blocked"}
+                        hidden={u.hidden}
+                      />
+                    </td>
+                    <td
+                      className={`sticky right-0 z-10 border-l border-outline-variant/40 px-3 py-3 ${
+                        u.id === selectedId
+                          ? "bg-[#f3f6ff]"
+                          : "bg-surface-container-lowest group-hover:bg-surface-container-low"
+                      }`}
+                    >
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
@@ -318,8 +436,12 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
                           disabled={busyId === u.id}
                           items={[
                             {
-                              label: u.status === "blocked" ? "Mở chặn tài khoản" : "Chặn tài khoản",
-                              icon: u.status === "blocked" ? "lock_open" : "block",
+                              label:
+                                u.status === "blocked"
+                                  ? "Mở chặn tài khoản"
+                                  : "Chặn tài khoản",
+                              icon:
+                                u.status === "blocked" ? "lock_open" : "block",
                               danger: u.status !== "blocked",
                               onSelect: () => askBlock(u),
                             },
@@ -336,7 +458,10 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
                 ))}
                 {visibleUsers.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-on-surface-variant">
+                    <td
+                      colSpan={9}
+                      className="px-4 py-8 text-center text-on-surface-variant"
+                    >
                       Không tìm thấy khách hàng phù hợp.
                     </td>
                   </tr>
@@ -351,14 +476,19 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
               className="flex w-full shrink-0 flex-col gap-4 rounded-2xl border border-outline-variant/50 bg-surface-container-lowest p-5 shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] lg:w-80"
             >
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-extrabold">Chi tiết khách hàng</h2>
+                <h2 className="text-base font-extrabold">
+                  Chi tiết khách hàng
+                </h2>
                 <button
                   type="button"
                   aria-label="Đóng chi tiết"
                   onClick={() => setSelectedId(null)}
                   className="flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-low"
                 >
-                  <span aria-hidden="true" className="material-symbols-outlined">
+                  <span
+                    aria-hidden="true"
+                    className="material-symbols-outlined"
+                  >
                     close
                   </span>
                 </button>
@@ -368,14 +498,23 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
                   aria-hidden="true"
                   className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-primary text-xl font-extrabold text-on-primary"
                 >
-                  {(selectedUser.fullName || selectedUser.username).charAt(0).toUpperCase()}
+                  {(selectedUser.fullName || selectedUser.username)
+                    .charAt(0)
+                    .toUpperCase()}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-base font-bold">{selectedUser.fullName || selectedUser.username}</p>
-                  <p className="text-xs text-on-surface-variant">@{selectedUser.username}</p>
+                  <p className="truncate text-base font-bold">
+                    {selectedUser.fullName || selectedUser.username}
+                  </p>
+                  <p className="text-xs text-on-surface-variant">
+                    @{selectedUser.username}
+                  </p>
                 </div>
               </div>
-              <StatusChips blocked={selectedUser.status === "blocked"} hidden={selectedUser.hidden} />
+              <StatusChips
+                blocked={selectedUser.status === "blocked"}
+                hidden={selectedUser.hidden}
+              />
               <dl className="grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-2 text-[13px]">
                 <dt className="text-on-surface-variant">Email</dt>
                 <dd className="break-all">{selectedUser.email || "—"}</dd>
@@ -388,7 +527,11 @@ export default function SuperAdminCustomersTab({ notify, onViewAppointments }: P
                 <dt className="text-on-surface-variant">Không đến</dt>
                 <dd>{selectedUser.noShow ?? 0}</dd>
                 <dt className="text-on-surface-variant">Tham gia lúc</dt>
-                <dd>{selectedUser.createdAt ? formatDateTime(selectedUser.createdAt) || "—" : "—"}</dd>
+                <dd>
+                  {selectedUser.createdAt
+                    ? formatDateTime(selectedUser.createdAt) || "—"
+                    : "—"}
+                </dd>
                 <dt className="text-on-surface-variant">Đăng ký qua</dt>
                 <dd>
                   <SourceBadge source={selectedUser.signupSource} />
