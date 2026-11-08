@@ -329,15 +329,22 @@ export default function YearStats() {
                   {years.map((y, index) => {
                     const value = rowsByYear.get(y)?.[m]?.[metric] ?? 0;
                     return (
-                      <i
-                        key={y}
-                        title={`${y} · ${MONTH_LABELS[m]}: ${metric === "revenue" ? formatVnd(value) : formatCount(value)}`}
-                        className="flex-1 rounded-t-[5px] rounded-b-sm"
-                        style={{
-                          height: `${Math.max(3, Math.round((value / chartMax) * 100))}%`,
-                          background: palette[index],
-                        }}
-                      />
+                      <div key={y} className="flex h-full flex-1 flex-col items-center justify-end gap-1 min-w-0">
+                        <span
+                          className="text-[9px] font-bold text-on-surface-variant whitespace-nowrap select-none"
+                          title={`${y} · ${MONTH_LABELS[m]}: ${metric === "revenue" ? formatVnd(value) : formatCount(value)}`}
+                        >
+                          {metric === "revenue" ? formatShortVnd(value) : formatCount(value)}
+                        </span>
+                        <i
+                          title={`${y} · ${MONTH_LABELS[m]}: ${metric === "revenue" ? formatVnd(value) : formatCount(value)}`}
+                          className="w-full rounded-t-[5px] rounded-b-sm"
+                          style={{
+                            height: `${Math.max(3, Math.round((value / chartMax) * 125))}px`,
+                            background: palette[index],
+                          }}
+                        />
+                      </div>
                     );
                   })}
                 </div>

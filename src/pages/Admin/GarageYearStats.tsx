@@ -284,11 +284,10 @@ export default function GarageYearStats() {
                 type="button"
                 aria-pressed={metric === option.key}
                 onClick={() => setMetric(option.key)}
-                className={`min-h-9 rounded-xl px-3.5 text-[13px] font-bold ${
-                  metric === option.key
+                className={`min-h-9 rounded-xl px-3.5 text-[13px] font-bold ${metric === option.key
                     ? "bg-surface-container-lowest text-on-primary-fixed-variant shadow-sm"
                     : "text-on-surface-variant hover:text-on-surface"
-                }`}
+                  }`}
               >
                 {option.label}
               </button>
@@ -316,15 +315,22 @@ export default function GarageYearStats() {
                   {years.map((y, index) => {
                     const value = rowsByYear.get(y)?.[m]?.[metric] ?? 0;
                     return (
-                      <i
-                        key={y}
-                        title={`${y} · ${MONTH_LABELS[m]}: ${formatCount(value)}`}
-                        className="flex-1 rounded-t-[5px] rounded-b-sm"
-                        style={{
-                          height: `${Math.max(3, Math.round((value / chartMax) * 100))}%`,
-                          background: palette[index],
-                        }}
-                      />
+                      <div key={y} className="flex h-full flex-1 flex-col items-center justify-end gap-1 min-w-0">
+                        <span
+                          className="text-[9px] font-bold text-on-surface-variant whitespace-nowrap select-none"
+                          title={`${y} · ${MONTH_LABELS[m]}: ${formatCount(value)}`}
+                        >
+                          {formatCount(value)}
+                        </span>
+                        <i
+                          title={`${y} · ${MONTH_LABELS[m]}: ${formatCount(value)}`}
+                          className="w-full rounded-t-[5px] rounded-b-sm"
+                          style={{
+                            height: `${Math.max(3, Math.round((value / chartMax) * 125))}px`,
+                            background: palette[index],
+                          }}
+                        />
+                      </div>
                     );
                   })}
                 </div>
@@ -367,9 +373,8 @@ export default function GarageYearStats() {
                         <td className="px-4 py-2.5 text-right">{formatCount(sum.appointments)}</td>
                         <td className="px-4 py-2.5 text-right">{formatCount(sum.done)}</td>
                         <td
-                          className={`px-4 py-2.5 text-right font-bold ${
-                            growth === null ? "text-outline" : growth >= 0 ? "text-[#00531a]" : "text-[#7a2e00]"
-                          }`}
+                          className={`px-4 py-2.5 text-right font-bold ${growth === null ? "text-outline" : growth >= 0 ? "text-[#00531a]" : "text-[#7a2e00]"
+                            }`}
                         >
                           {growth === null ? "—" : `${growth >= 0 ? "▲" : "▼"} ${Math.abs(growth)}%`}
                         </td>

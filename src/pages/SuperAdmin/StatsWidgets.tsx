@@ -60,14 +60,23 @@ export function BarChart({
           const isFuture = futureFrom !== undefined && index > futureFrom;
           const height = isFuture || max === 0 ? 3 : Math.max(3, Math.round((value / max) * 100));
           return (
-            <div key={labels[index] + index} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
+            <div key={labels[index] + index} className="flex h-full flex-1 flex-col items-center justify-end gap-1 min-w-0">
               {formatValue && !isFuture && (
-                <span className="text-[11px] font-bold text-on-surface-variant">{formatValue(value)}</span>
+                <span
+                  className={`font-bold text-on-surface-variant whitespace-nowrap select-none ${
+                    dense
+                      ? "text-[9px] leading-tight tracking-tighter"
+                      : "text-[11px]"
+                  }`}
+                  title={`${labels[index]}: ${formatValue(value)}`}
+                >
+                  {formatValue(value)}
+                </span>
               )}
               <div
                 className={`w-full rounded-t-lg rounded-b-sm ${dense ? "" : "max-w-9"}`}
                 style={{
-                  height,
+                  height: `${height}px`,
                   background: isFuture || max === 0 ? "#eceeef" : index === highlight ? highlightColor : barColor,
                 }}
               />

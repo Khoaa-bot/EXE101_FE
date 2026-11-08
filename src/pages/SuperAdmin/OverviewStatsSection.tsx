@@ -89,7 +89,7 @@ export default function OverviewStatsSection() {
   const showLabel = period === "week" ? undefined : sparseLabel;
   const futureFrom = period === "day" ? undefined : ranges.todayIndex;
   const formatCount = (value: number) => value.toLocaleString("vi-VN");
-  const showValues = period === "week";
+  const showValues = true;
 
   const doneRate = percentOf(outcomeCounts.done);
   const lostRate = percentOf(outcomeCounts.cancelled + outcomeCounts.noShow);
