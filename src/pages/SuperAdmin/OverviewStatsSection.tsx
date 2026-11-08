@@ -6,7 +6,7 @@ import {
   getPeriodRanges,
   parseDateTime,
   percentChange,
-  type AppointmentOutcome,
+  // type AppointmentOutcome,
   type Period,
 } from "./overviewStats";
 import { BarChart, DeltaChip, StatCard, Status } from "./StatsWidgets";
@@ -21,16 +21,16 @@ const PERIODS: Array<{ key: View; label: string }> = [
   { key: "year", label: "Năm" },
 ];
 
-const OUTCOMES: Array<{
-  key: AppointmentOutcome;
-  label: string;
-  color: string;
-}> = [
-  { key: "done", label: "Hoàn thành", color: "#008730" },
-  { key: "active", label: "Đang xử lý", color: "#0059bb" },
-  { key: "cancelled", label: "Đã hủy", color: "#c47f00" },
-  { key: "noShow", label: "Không đến", color: "#ba1a1a" },
-];
+// const OUTCOMES: Array<{
+//   key: AppointmentOutcome;
+//   label: string;
+//   color: string;
+// }> = [
+//   { key: "done", label: "Hoàn thành", color: "#008730" },
+//   { key: "active", label: "Đang xử lý", color: "#0059bb" },
+//   { key: "cancelled", label: "Đã hủy", color: "#c47f00" },
+//   { key: "noShow", label: "Không đến", color: "#ba1a1a" },
+// ];
 
 type StatsState = {
   key: Period;
@@ -103,8 +103,8 @@ export default function OverviewStatsSection() {
   const formatCount = (value: number) => value.toLocaleString("vi-VN");
   const showValues = true;
 
-  const doneRate = percentOf(outcomeCounts.done);
-  const lostRate = percentOf(outcomeCounts.cancelled + outcomeCounts.noShow);
+  // const doneRate = percentOf(outcomeCounts.done);
+  // const lostRate = percentOf(outcomeCounts.cancelled + outcomeCounts.noShow);
 
   return (
     <section aria-labelledby="overview-stats-title" className="space-y-3.5">
