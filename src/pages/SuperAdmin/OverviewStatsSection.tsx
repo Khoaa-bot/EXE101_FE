@@ -72,19 +72,19 @@ export default function OverviewStatsSection() {
     [period, serverNowText, browserNow],
   );
 
-  const outcomeCounts = stats?.outcomes ?? {
-    done: 0,
-    active: 0,
-    cancelled: 0,
-    noShow: 0,
-  };
-  const outcomeTotal =
-    outcomeCounts.done +
-    outcomeCounts.active +
-    outcomeCounts.cancelled +
-    outcomeCounts.noShow;
-  const percentOf = (value: number) =>
-    outcomeTotal === 0 ? 0 : Math.round((value / outcomeTotal) * 100);
+  // const outcomeCounts = stats?.outcomes ?? {
+  //   done: 0,
+  //   active: 0,
+  //   cancelled: 0,
+  //   noShow: 0,
+  // };
+  // const outcomeTotal =
+  //   outcomeCounts.done +
+  //   outcomeCounts.active +
+  //   outcomeCounts.cancelled +
+  //   outcomeCounts.noShow;
+  // const percentOf = (value: number) =>
+  //   outcomeTotal === 0 ? 0 : Math.round((value / outcomeTotal) * 100);
 
   // Hôm nay: lịch hẹn nhóm theo khung giờ hẹn thay vì theo giờ.
   const timeFrameBars = stats?.timeFrames
