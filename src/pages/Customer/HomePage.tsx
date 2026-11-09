@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AppSidebar, { type AppSection } from "../../components/AppSidebar";
+import HomeBanner, { type HomeBannerSlide } from "../../components/HomeBanner";
 import { MaintenanceAlert } from "../../components/MaintenancePanel";
 import { useUnreadNotificationCount } from "../../hooks/useUnreadNotificationCount";
 import {
@@ -94,11 +95,15 @@ type HomeProps = {
   onNotificationsClick: () => void;
   onProfileClick: () => void;
   onTrackingClick: () => void;
+  onPointsClick?: () => void;
+  onFindGarageClick?: () => void;
 };
 
 export default function Home({
   onBookingClick,
   onDiagnoseClick,
+  onPointsClick,
+  onFindGarageClick,
   onHistoryClick,
   onNotificationsClick,
   onProfileClick,
@@ -193,6 +198,65 @@ export default function Home({
     { label: "Theo dõi xe", icon: "location_on", onClick: onTrackingClick },
     { label: "Lịch sử dịch vụ", icon: "receipt_long", onClick: onHistoryClick },
     { label: "Chẩn đoán xế yêu", icon: "auto_awesome", onClick: onDiagnoseClick },
+  ];
+
+  const bannerSlides: HomeBannerSlide[] = [
+    {
+      eyebrow: "DỊCH VỤ ĐỊNH KỲ",
+      title: "Bảo dưỡng định kỳ & kiểm tra",
+      body: "Giữ xe luôn ở trạng thái tốt nhất, nhận nhắc lịch khi đến hạn bảo dưỡng.",
+      cta: "Đặt lịch ngay",
+      image: "/banner/dinh-ky.png",
+      imageAlt: "Kỹ thuật viên cầm máy tính bảng kiểm tra khoang máy xe",
+      bg: "#0b4fae",
+      fg: "#ffffff",
+      sub: "#d6e4ff",
+      ctaBg: "#ffffff",
+      ctaFg: "#0b4fae",
+      onClick: onBookingClick,
+    },
+    {
+      eyebrow: "RỬA & CHĂM SÓC XE",
+      title: "Chăm sóc xe chuyên nghiệp",
+      body: "Tìm garage gần bạn có dịch vụ rửa và chăm sóc xe, đặt lịch trong vài chạm.",
+      cta: "Xem dịch vụ",
+      image: "/banner/rua-xe.png",
+      imageAlt: "Nhân viên đang lau rửa xe",
+      bg: "#1f6fc4",
+      fg: "#ffffff",
+      sub: "#e3eeff",
+      ctaBg: "#ffffff",
+      ctaFg: "#1c5fae",
+      onClick: onFindGarageClick ?? onBookingClick,
+    },
+    {
+      eyebrow: "ĐIỂM THƯỞNG",
+      title: "Đổi điểm lấy voucher",
+      body: "Dùng điểm tích lũy đổi voucher giảm giá, chọn ở bước thanh toán khi đặt lịch.",
+      cta: "Xem voucher",
+      image: "/banner/diem-thuong.png",
+      imageAlt: "Khách hàng vui vẻ xem voucher trên điện thoại",
+      bg: "#fff1cc",
+      fg: "#3d2600",
+      sub: "#5a3a00",
+      ctaBg: "#6b4200",
+      ctaFg: "#ffffff",
+      onClick: onPointsClick ?? onProfileClick,
+    },
+    {
+      eyebrow: "TRỢ LÝ AI",
+      title: "Xe có dấu hiệu lạ? Hỏi AI",
+      body: "Mô tả triệu chứng, AI gợi ý nguyên nhân khả dĩ và dịch vụ phù hợp tại garage.",
+      cta: "Chẩn đoán ngay",
+      image: "/banner/tro-ly-ai.png",
+      imageAlt: "Tài xế nhắn tin với trợ lý AI trên điện thoại",
+      bg: "#d8e2ff",
+      fg: "#001a41",
+      sub: "#22345c",
+      ctaBg: "#0059bb",
+      ctaFg: "#ffffff",
+      onClick: onDiagnoseClick,
+    },
   ];
 
   return (
@@ -332,6 +396,8 @@ export default function Home({
             </button>
           </section>
 
+          <HomeBanner slides={bannerSlides} />
+
           {maintenanceAlerts.length > 0 && (
             <section aria-label="Nhắc bảo dưỡng" className="space-y-sm">
               <div className="flex items-center justify-between">
@@ -357,7 +423,7 @@ export default function Home({
             </section>
           )}
 
-          <div className="grid gap-5 xl:grid-cols-[1fr_22.5rem]">
+          <div className="grid gap-5">
             <section
               aria-labelledby="home-car-title"
               className="flex flex-col overflow-hidden rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-[0_10px_26px_-14px_rgba(25,28,29,0.28)] md:flex-row"
@@ -490,21 +556,6 @@ export default function Home({
                 />
               </div>
             </section>
-
-            <aside className="flex flex-col gap-5">
-              <div className="flex items-center gap-3.5 rounded-3xl border border-[#f3dc9a] bg-[#fff1cc] p-5">
-                <span
-                  aria-hidden="true"
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#6b4200]"
-                >
-                  <span className="material-symbols-outlined">redeem</span>
-                </span>
-                <div className="flex-1">
-                  <p className="text-[15px] font-bold">Ưu đãi của bạn</p>
-                  <p className="text-[13px] text-[#6b4200]">Giảm 20% thay dầu nhớt cho lần tới.</p>
-                </div>
-              </div>
-            </aside>
           </div>
 
           <section aria-labelledby="home-quick-title">

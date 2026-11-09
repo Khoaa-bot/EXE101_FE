@@ -391,6 +391,8 @@ function App() {
         onNotificationsClick={() => navigate("/notifications")}
         onTrackingClick={() => navigate("/tracking")}
         onProfileClick={() => navigate("/profile")}
+        onPointsClick={() => navigate("/points")}
+        onFindGarageClick={() => navigate("/find-garage")}
       />
     );
   }
@@ -874,6 +876,8 @@ function App() {
         onNotificationsClick={shellProps.onNotificationsClick}
         onTrackingClick={shellProps.onTrackingClick}
         onProfileClick={shellProps.onProfileClick}
+        onPointsClick={() => navigate("/points")}
+        onFindGarageClick={() => navigate("/find-garage")}
         onDiagnoseClick={() => {
           setDiagnoseVehicleId(null);
           navigate("/diagnose");
