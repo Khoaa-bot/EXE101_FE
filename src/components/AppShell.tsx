@@ -16,6 +16,7 @@ export type AppShellProps = {
   onProfileClick: () => void;
   onTrackingClick: () => void;
   onPremiumClick?: () => void;
+  onPointsClick?: () => void;
   onFindGarageClick?: () => void;
   onBookingClick?: () => void;
   onAddVehicleClick?: () => void;
@@ -40,6 +41,7 @@ const navItems: Array<{
     icon: "workspace_premium",
     section: "premium",
   },
+  { label: "Điểm thưởng", icon: "redeem", section: "points" },
   {
     label: "Thông báo",
     icon: "notifications",
@@ -58,6 +60,7 @@ export default function AppShell({
   onProfileClick,
   onTrackingClick,
   onPremiumClick,
+  onPointsClick,
   onFindGarageClick,
   onBookingClick,
   onAddVehicleClick,
@@ -107,6 +110,7 @@ export default function AppShell({
     if (section === "notifications") onNotificationsClick();
     if (section === "tracking") onTrackingClick();
     if (section === "premium") onPremiumClick?.();
+    if (section === "points") onPointsClick?.();
     if (section === "profile") onProfileClick();
   };
 

@@ -1769,6 +1769,68 @@ export type AdminOverview = {
   signupSources?: Array<{ source: string; count: number }>;
 };
 
+// ---------------------------------------------------------------------------
+// Điểm thưởng và voucher (khách hàng)
+// ---------------------------------------------------------------------------
+
+export type LoyaltySummary = { balance: number; totalEarned: number; totalSpent: number; vndPerPoint: number };
+
+export type VoucherType = "FIXED" | "PERCENT" | "GIFT";
+
+export type VoucherTemplate = {
+  id: number;
+  title: string;
+  discountType: VoucherType;
+  discountValue: number | null;
+  maxDiscount: number | null;
+  minOrder: number;
+  pointCost: number;
+  validDays: number;
+  active: boolean;
+};
+
+export type MyVoucher = {
+  id: number;
+  code: string;
+  title: string;
+  discountType: VoucherType;
+  discountValue: number | null;
+  maxDiscount: number | null;
+  minOrder: number;
+  status: "unused" | "used" | "expired";
+  expiresAt: string;
+  usedAt: string | null;
+  createdAt: string;
+};
+
+export type PointEntry = {
+  id: number;
+  points: number;
+  type: "EARN" | "REDEEM";
+  description: string;
+  createdAt: string;
+};
+
+export function getLoyaltySummary() {
+  return apiRequest<LoyaltySummary>("/loyalty/me");
+}
+
+export function getPointHistory() {
+  return apiRequest<PointEntry[]>("/loyalty/me/history");
+}
+
+export function getMyVouchers() {
+  return apiRequest<MyVoucher[]>("/loyalty/me/vouchers");
+}
+
+export function getVoucherCatalog() {
+  return apiRequest<VoucherTemplate[]>("/loyalty/vouchers");
+}
+
+export function redeemVoucher(templateId: number) {
+  return apiRequest<MyVoucher>(`/loyalty/vouchers/${templateId}/redeem`, { method: "POST" });
+}
+
 // GET /api/admin/overview — số liệu KPI trang Tổng quan trong một lần gọi (Super Admin).
 export function getAdminOverview() {
   return apiRequest<AdminOverview>("/admin/overview");

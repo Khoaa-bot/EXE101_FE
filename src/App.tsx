@@ -23,6 +23,7 @@ import LandingPage from "./Landing/pages/LandingPage";
 import ForgotPasswordPage from "./Auth/pages/ForgotPasswordPage";
 import NotificationsPage from "./pages/Customer/NotificationsPage";
 import ProfilePage from "./pages/Customer/ProfilePage";
+import PointsPage from "./pages/Customer/PointsPage";
 import PremiumMemberPage from "./pages/Customer/PremiumMemberPage";
 import PremiumCheckoutPage from "./pages/Customer/PremiumCheckoutPage";
 import DiagnosePage from "./pages/Customer/DiagnosePage";
@@ -449,6 +450,7 @@ function App() {
     onProfileClick: () => navigate("/profile"),
     onTrackingClick: () => navigate("/tracking"),
     onPremiumClick: () => navigate("/premium"),
+    onPointsClick: () => navigate("/points"),
     // Bong bóng chat nổi ở mọi trang khách hàng dẫn tới chẩn đoán AI.
     onDiagnoseClick: () => {
       setDiagnoseVehicleId(null);
@@ -746,6 +748,14 @@ function App() {
           onTrackingClick={shellProps.onTrackingClick}
           onNotificationsClick={shellProps.onNotificationsClick}
         />
+      </AppShell>
+    );
+  }
+
+  if (routePath === "/points") {
+    return (
+      <AppShell active="points" title="Điểm thưởng và voucher" {...shellProps}>
+        <PointsPage onBookingClick={openBooking} />
       </AppShell>
     );
   }
