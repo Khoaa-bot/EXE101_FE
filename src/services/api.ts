@@ -570,6 +570,7 @@ export type AppointmentRequest = {
   serviceId: number;
   scheduleId: number;
   notes?: string;
+  voucherId?: number; // voucher khách chọn dùng cho lịch này
 };
 
 export type AppointmentDto = {
@@ -600,6 +601,12 @@ export type AppointmentDto = {
   invoiceId: number | null;
   invoicePaymentStatus: "unpaid" | "paid" | null;
   totalAmount?: number;
+  // Voucher đang áp dụng cho lịch (nếu có): số tiền giảm và giá dịch vụ sau khi trừ voucher.
+  voucherCode?: string | null;
+  voucherTitle?: string | null;
+  voucherType?: VoucherType | null;
+  discountAmount?: number | null;
+  payableAmount?: number | null;
   garagePhone?: string | null;
   // Đánh giá khách đã gửi cho lịch hẹn này (null nếu chưa đánh giá). BE trả `review`
   // lồng; api.ts tách sang các trường review* bên dưới.
@@ -1798,6 +1805,7 @@ export type MyVoucher = {
   maxDiscount: number | null;
   minOrder: number;
   status: "unused" | "used" | "expired";
+  reserved?: boolean; // đang được giữ cho một lịch hẹn chưa hủy
   expiresAt: string;
   usedAt: string | null;
   createdAt: string;

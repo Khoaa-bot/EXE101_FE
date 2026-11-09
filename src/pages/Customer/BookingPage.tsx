@@ -6,12 +6,15 @@ import {
   getAvailableSchedules,
   getGarages,
   getMyFleet,
+  getMyVouchers,
   type Garage,
   type MaintenanceService,
+  type MyVoucher,
   type Schedule,
   type Vehicle,
 } from "../../services/api";
 import { isSlotUpcoming } from "../../utils/schedule";
+import { isVoucherUsable, voucherDiscount } from "../../utils/voucher";
 
 type BookingPageProps = {
   onHomeClick: () => void;
@@ -71,6 +74,8 @@ export default function BookingPage({
   const [selectedScheduleId, setSelectedScheduleId] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [vouchers, setVouchers] = useState<MyVoucher[]>([]);
+  const [selectedVoucherId, setSelectedVoucherId] = useState<number | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -88,11 +93,13 @@ export default function BookingPage({
     setIsLoadingOptions(true);
     setOptionsError(null);
 
-    Promise.all([getMyFleet(), getGarages()])
-      .then(([vehicleData, garageData]) => {
+    // Voucher chỉ là phần thêm: lỗi tải voucher không được chặn việc đặt lịch.
+    Promise.all([getMyFleet(), getGarages(), getMyVouchers().catch(() => [] as MyVoucher[])])
+      .then(([vehicleData, garageData, voucherData]) => {
         if (!cancelled) {
           setVehicles(vehicleData);
           setGarages(garageData);
+          setVouchers(voucherData.filter((voucher) => voucher.status === "unused"));
         }
       })
       .catch((err) => {
@@ -198,6 +205,11 @@ export default function BookingPage({
   );
   const bookingStep = !selectedVehicleId || !selectedGarageId ? 0 : !selectedServiceId || !selectedScheduleId ? 1 : 2;
 
+  // Voucher đang chọn chỉ có hiệu lực khi vẫn dùng được cho dịch vụ hiện tại (đổi dịch vụ có thể làm nó không đủ đơn tối thiểu).
+  const servicePrice = selectedService?.price;
+  const activeVoucher = vouchers.find((voucher) => voucher.id === selectedVoucherId && isVoucherUsable(voucher, servicePrice)) ?? null;
+  const voucherSaving = activeVoucher ? voucherDiscount(activeVoucher, servicePrice) : 0;
+
   const canSubmit =
     Boolean(selectedVehicleId) &&
     Boolean(selectedGarageId) &&
@@ -216,6 +228,7 @@ export default function BookingPage({
         serviceId: Number(selectedServiceId),
         scheduleId: Number(selectedScheduleId),
         notes: notes.trim() || undefined,
+        voucherId: activeVoucher?.id,
       });
       // Đặt lịch miễn phí, không thu tiền trước: sang màn Theo dõi để xem lịch vừa đặt.
       onTrackingClick();
@@ -586,6 +599,86 @@ export default function BookingPage({
                   />
                 </div>
               </section>
+
+              {vouchers.length > 0 && (
+                <section aria-labelledby="booking-voucher-title" className={`${bookingCardClass} space-y-3 p-[22px]`}>
+                  <div className="flex items-center justify-between">
+                    <h3 id="booking-voucher-title" className="text-lg font-extrabold">
+                      Voucher
+                    </h3>
+                    <span className="text-xs text-on-surface-variant">Chọn 1 voucher cho lịch này</span>
+                  </div>
+                  <div role="radiogroup" aria-label="Chọn voucher" className="space-y-2.5">
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={activeVoucher === null}
+                      onClick={() => setSelectedVoucherId(null)}
+                      className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border-[1.5px] px-4 py-3 text-left ${
+                        activeVoucher === null ? "border-primary bg-primary-fixed/40" : "border-outline-variant bg-surface-container-lowest"
+                      }`}
+                    >
+                      <span aria-hidden="true" className="material-symbols-outlined text-primary">
+                        {activeVoucher === null ? "radio_button_checked" : "radio_button_unchecked"}
+                      </span>
+                      <span>
+                        <b className="block text-sm">Không dùng voucher</b>
+                        <span className="text-xs text-on-surface-variant">Voucher vẫn còn để dùng cho lịch sau</span>
+                      </span>
+                    </button>
+                    {vouchers.map((voucher) => {
+                      const usable = isVoucherUsable(voucher, servicePrice);
+                      const checked = activeVoucher?.id === voucher.id;
+                      let reason = "";
+                      if (!usable) {
+                        reason = voucher.reserved
+                          ? "Đang giữ cho lịch khác"
+                          : servicePrice === undefined
+                            ? "Chọn dịch vụ trước"
+                            : `Cần đơn từ ${formatCurrency(voucher.minOrder)}`;
+                      }
+                      return (
+                        <button
+                          key={voucher.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={checked}
+                          aria-disabled={!usable}
+                          disabled={!usable}
+                          onClick={() => setSelectedVoucherId(voucher.id)}
+                          className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border-[1.5px] px-4 py-3 text-left ${
+                            checked
+                              ? "border-primary bg-primary-fixed/40"
+                              : usable
+                                ? "border-outline-variant bg-surface-container-lowest"
+                                : "border-dashed border-outline-variant bg-surface-container-low text-on-surface-variant"
+                          }`}
+                        >
+                          <span aria-hidden="true" className="material-symbols-outlined text-primary">
+                            {checked ? "radio_button_checked" : "radio_button_unchecked"}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <b className="block text-sm">{voucher.title}</b>
+                            <span className="text-xs text-on-surface-variant">
+                              Mã {voucher.code} · Hạn dùng đến {new Date(voucher.expiresAt).toLocaleDateString("vi-VN")}
+                            </span>
+                          </span>
+                          <span
+                            className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${
+                              usable ? "bg-[#d9f7dd] text-[#00531a]" : "bg-[#e9eaeb] text-[#3a3f4b]"
+                            }`}
+                          >
+                            {usable ? "Áp dụng được" : reason}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="rounded-2xl bg-surface-container-low p-3 text-xs leading-relaxed text-on-surface-variant">
+                    Voucher được giữ cho lịch này và chỉ tính là đã dùng khi garage bàn giao xe. Hủy lịch hoặc không đến thì voucher được trả lại.
+                  </p>
+                </section>
+              )}
             </div>
 
             <aside className="w-full space-y-5 lg:sticky lg:top-24 lg:w-[22.5rem]">
@@ -605,9 +698,22 @@ export default function BookingPage({
                   <dt className="text-on-surface-variant">Dịch vụ</dt>
                   <dd className="text-right font-bold">{selectedService?.name ?? "Chưa chọn"}</dd>
                 </dl>
+                {activeVoucher && (
+                  <div className="flex items-center justify-between text-sm text-[#00531a]">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span aria-hidden="true" className="material-symbols-outlined text-lg">
+                        {activeVoucher.discountType === "GIFT" ? "card_giftcard" : "sell"}
+                      </span>
+                      Voucher {activeVoucher.code}
+                    </span>
+                    <b>{activeVoucher.discountType === "GIFT" ? "Tặng dịch vụ" : `−${formatCurrency(voucherSaving)}`}</b>
+                  </div>
+                )}
                 <div className="flex items-baseline justify-between border-t border-outline-variant/40 pt-3">
-                  <b>Tạm tính</b>
-                  <b className="text-[26px] text-on-primary-fixed-variant">{formatCurrency(selectedService?.price)}</b>
+                  <b>{activeVoucher ? "Tạm tính tại garage" : "Tạm tính"}</b>
+                  <b className="text-[26px] text-on-primary-fixed-variant">
+                    {formatCurrency(servicePrice === undefined ? undefined : servicePrice - voucherSaving)}
+                  </b>
                 </div>
                 <p className="text-[11px] italic leading-tight text-on-surface-variant">
                   * Phí cuối cùng được báo chính xác sau khi kỹ thuật viên kiểm tra thực tế tình trạng xe.
