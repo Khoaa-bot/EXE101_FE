@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getAdminOverview, type AdminOverview } from "../../services/api";
 import { SOURCE_META, sourceGroup, type SourceGroup } from "../../utils/signupSource";
 import OverviewStatsSection from "./OverviewStatsSection";
+import SuperAdminRecentReviews from "./SuperAdminRecentReviews";
 import { SourceBadge } from "./SuperAdminChips";
 
 const SOURCE_BAR: Record<SourceGroup, string> = {
@@ -14,7 +15,7 @@ const SOURCE_BAR: Record<SourceGroup, string> = {
   unknown: "#c1c6d7",
 };
 
-type OverviewTarget = "customers" | "garages";
+type OverviewTarget = "customers" | "garages" | "reviews";
 
 type Props = {
   onNavigate: (tab: OverviewTarget) => void;
@@ -199,6 +200,8 @@ export default function SuperAdminOverviewTab({ onNavigate }: Props) {
       )}
 
       <OverviewStatsSection />
+
+      <SuperAdminRecentReviews onSeeAll={() => onNavigate("reviews")} />
 
       <section className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5">
         <div className="flex items-center justify-between">
